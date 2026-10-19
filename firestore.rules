@@ -1,0 +1,78 @@
+rules_version = '2';
+
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    // Kiểm tra người dùng đã đăng nhập bằng tài khoản Google (Firebase Auth)
+    function isAuthenticated() {
+      return request.auth != null;
+    }
+
+    // Lấy thông tin vai trò từ bảng users
+    function getUserData() {
+      return get(/databases/$(database)/documents/users/$(request.auth.uid)).data;
+    }
+
+    // Kiểm tra người dùng có quyền Quản lý (manager)
+    function isManager() {
+      return isAuthenticated() &&
+        exists(/databases/$(database)/documents/users/$(request.auth.uid)) &&
+        getUserData().role == 'manager';
+    }
+
+    // Kiểm tra người dùng là Nhân viên vận hành hoặc Quản lý
+    function isOperatorOrManager() {
+      return isAuthenticated() && (
+        !exists(/databases/$(database)/documents/users/$(request.auth.uid)) ||
+        getUserData().role in ['operator', 'manager']
+      );
+    }
+
+    // 1. Bảng Hồ sơ & Phân quyền người dùng (users)
+    match /users/{userId} {
+      // Mọi nhân viên đã đăng nhập đều có thể đọc danh sách phân quyền
+      allow read: if isAuthenticated();
+
+      // Người dùng mới đăng nhập lần đầu được tạo hồ sơ của chính mình;
+      // Chỉ Quản lý (manager) mới được thay đổi role của người khác hoặc xóa user
+      allow create: if isAuthenticated() && request.auth.uid == userId;
+      allow update: if isManager() || (
+        isAuthenticated() &&
+        request.auth.uid == userId &&
+        request.resource.data.role == resource.data.role
+      );
+      allow delete: if isManager();
+    }
+
+    // 2. Bảng Ca trực vận hành (shifts)
+    match /shifts/{shiftId} {
+      allow read: if isAuthenticated();
+      allow create, update: if isOperatorOrManager()
+        && request.resource.data.keys().hasAll(['date', 'gameId', 'gameName']);
+      // Chỉ Quản lý mới được phép xóa lịch sử ca trực
+      allow delete: if isManager();
+    }
+
+    // 3. Bảng Chi tiết thời gian dừng (downtimes)
+    match /downtimes/{downtimeId} {
+      allow read: if isAuthenticated();
+      allow create, update: if isOperatorOrManager()
+        && request.resource.data.keys().hasAll(['date', 'gameId', 'reason']);
+      allow delete: if isOperatorOrManager();
+    }
+
+    // 4. Bảng Chi tiết chuyến / lượt chơi (cycles)
+    match /cycles/{cycleId} {
+      allow read: if isAuthenticated();
+      allow create, update: if isOperatorOrManager()
+        && request.resource.data.keys().hasAll(['date', 'gameId', 'pax']);
+      allow delete: if isOperatorOrManager();
+    }
+
+    // 5. Bảng Cấu hình chung toàn khu (settings)
+    match /settings/{settingId} {
+      allow read: if isAuthenticated();
+      allow write: if isManager();
+    }
+  }
+}
