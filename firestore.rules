@@ -13,18 +13,31 @@ service cloud.firestore {
       return get(/databases/$(database)/documents/users/$(request.auth.uid)).data;
     }
 
-    // Kiểm tra người dùng có quyền Quản lý (manager)
-    function isManager() {
+    // Kiểm tra tài khoản Super Admin định danh trực tiếp qua Gmail chủ sở hữu
+    function isSuperAdmin() {
       return isAuthenticated() &&
-        exists(/databases/$(database)/documents/users/$(request.auth.uid)) &&
-        getUserData().role == 'manager';
+        request.auth.token.email in [
+          'laotuung@gmail.com',
+          'laoung1996@gmail.com'
+        ];
     }
 
-    // Kiểm tra người dùng là Nhân viên vận hành hoặc Quản lý
+    // Kiểm tra người dùng có quyền Quản lý (manager) hoặc Super Admin Gmail
+    function isManager() {
+      return isSuperAdmin() || (
+        isAuthenticated() &&
+        exists(/databases/$(database)/documents/users/$(request.auth.uid)) &&
+        getUserData().role in ['admin', 'manager']
+      );
+    }
+
+    // Kiểm tra người dùng là Nhân viên vận hành, Quản lý hoặc Super Admin Gmail
     function isOperatorOrManager() {
-      return isAuthenticated() && (
-        !exists(/databases/$(database)/documents/users/$(request.auth.uid)) ||
-        getUserData().role in ['operator', 'manager']
+      return isSuperAdmin() || (
+        isAuthenticated() && (
+          !exists(/databases/$(database)/documents/users/$(request.auth.uid)) ||
+          getUserData().role in ['operator', 'manager', 'admin']
+        )
       );
     }
 

@@ -2786,11 +2786,12 @@
           <span class="notif-badge-float" id="notifUnreadBadge">3</span>
         </button>
 
-        <!-- Nút Tài khoản Avatar tròn -->
-        <button type="button" class="user-avatar-circle-btn" onclick="openLoginModal()" title="Tài khoản nhân viên vận hành">
-          <span id="headerUserAvatar">NA</span>
-          <span id="headerUserName" style="display:none;">Nguyễn Văn An</span>
-          <span id="headerUserRole" style="display:none;">NV Vận hành • SW018</span>
+        <!-- Nút Tài khoản Avatar tròn + Nhãn Admin Gmail -->
+        <button type="button" class="user-avatar-circle-btn" id="headerUserBtn" onclick="openLoginModal()" title="Tài khoản Admin: laotuung@gmail.com (Nhấn để quản lý tài khoản)" style="width:auto; padding:0 10px; border-radius:999px; gap:6px; border:1.5px solid #C0262D;">
+          <span id="headerUserAvatar" style="background:#C0262D; color:#fff; width:24px; height:24px; border-radius:50%; display:inline-flex; align-items:center; justify-content:center; font-size:0.7rem; font-weight:800;">AD</span>
+          <span id="headerAdminBadgeText" style="font-size:0.72rem; font-weight:700; color:var(--text);">ADMIN • laotuung@gmail.com</span>
+          <span id="headerUserName" style="display:none;">Ứng Lão (Admin Toàn Khu)</span>
+          <span id="headerUserRole" style="display:none;">Admin Hệ Thống (Toàn Quyền) • ADMIN01</span>
         </button>
 
         <!-- Bảng thả xuống Thông báo -->
@@ -2807,59 +2808,83 @@
     </div>
   </header>
 
-  <!-- MODAL ĐĂNG NHẬP & CHUYỂN ĐỔI TÀI KHOẢN USER -->
+  <!-- MODAL ĐĂNG NHẬP ADMIN GMAIL & CHUYỂN ĐỔI 26 USER VẬN HÀNH -->
   <div id="loginModalBackdrop" class="modal-backdrop" onclick="closeLoginModal(event)">
-    <div class="login-modal-card" onclick="event.stopPropagation()">
+    <div class="login-modal-card" onclick="event.stopPropagation()" style="max-width:480px;">
       <div style="display:flex; justify-content:space-between; align-items:center; border-bottom:1px solid var(--border); padding-bottom:10px;">
         <div style="font-size:0.92rem; font-weight:700; display:flex; align-items:center; gap:8px;">
-          <span>Đăng Nhập Tài Khoản Vận Hành</span>
+          <span>Quản Trị Tài Khoản Admin (Gmail) & 26 User</span>
         </div>
         <button type="button" class="del-btn" style="font-size:1.1rem;" onclick="closeLoginModal()">✕</button>
       </div>
 
-      <div style="font-size:0.78rem; color:var(--text-muted);">
-        Đăng nhập tài khoản cá nhân (hoặc chọn nhanh từ danh sách 26 User vận hành 26 trò chơi):
+      <!-- KHỐI ĐĂNG NHẬP NHANH ADMIN BẰNG GMAIL -->
+      <div style="background:var(--surface-2); border:1.5px solid #C0262D; border-radius:10px; padding:10px 12px;">
+        <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:6px;">
+          <span style="font-size:0.74rem; font-weight:800; color:#C0262D; text-transform:uppercase;">★ Tài khoản Chủ sở hữu / Admin Gmail</span>
+          <span id="adminGmailVerifiedBadge" style="font-size:0.68rem; font-weight:700; color:#15803d; background:rgba(22,163,74,0.12); padding:2px 8px; border-radius:999px;">✓ Đã xác thực Google</span>
+        </div>
+        <div style="display:flex; gap:6px; flex-wrap:wrap;">
+          <button type="button" class="btn btn-primary" style="flex:1; padding:7px 10px; font-size:0.75rem; justify-content:center;" onclick="loginWithAdminGmail('laotuung@gmail.com')">
+            Đăng nhập Admin: laotuung@gmail.com
+          </button>
+          <button type="button" class="btn btn-outline" style="padding:7px 10px; font-size:0.73rem;" onclick="loginWithAdminGmail('laoung1996@gmail.com')" title="Chuyển sang Gmail dự phòng laoung1996@gmail.com">
+            laoung1996@gmail.com
+          </button>
+        </div>
       </div>
 
       <div class="field-group">
-        <label class="field-label" for="loginQuickUserSelect">Chọn nhanh 1 trong 26 User vận hành</label>
+        <label class="field-label" for="loginQuickUserSelect">Chọn nhanh Tài khoản (Admin Gmail hoặc 26 User vận hành)</label>
         <select id="loginQuickUserSelect" onchange="onQuickUserSelectChange()"></select>
-      </div>
-
-      <div class="field-group">
-        <label class="field-label" for="loginUserCode">Mã nhân viên / Tên đăng nhập</label>
-        <input type="text" id="loginUserCode" value="SW001" placeholder="VD: SW001..SW026" />
-      </div>
-
-      <div class="field-group">
-        <label class="field-label" for="loginFullName">Họ và tên nhân viên</label>
-        <input type="text" id="loginFullName" value="Nguyễn Văn An" placeholder="Nhập họ và tên..." />
       </div>
 
       <div class="grid-2">
         <div class="field-group">
-          <label class="field-label" for="loginRoleSelect">Vai trò tài khoản</label>
+          <label class="field-label" for="loginUserCode">Mã định danh</label>
+          <input type="text" id="loginUserCode" value="ADMIN01" placeholder="VD: ADMIN01 hoặc SW001..SW026" />
+        </div>
+        <div class="field-group">
+          <label class="field-label" for="loginGmailInput">Địa chỉ Gmail xác thực</label>
+          <input type="email" id="loginGmailInput" value="laotuung@gmail.com" placeholder="nhap-email@gmail.com" />
+        </div>
+      </div>
+
+      <div class="field-group">
+        <label class="field-label" for="loginFullName">Họ và tên chủ tài khoản</label>
+        <input type="text" id="loginFullName" value="Ứng Lão (Admin Toàn Khu)" placeholder="Nhập họ và tên..." />
+      </div>
+
+      <div class="grid-2">
+        <div class="field-group">
+          <label class="field-label" for="loginRoleSelect">Vai trò phân quyền</label>
           <select id="loginRoleSelect">
-            <option value="NV Vận hành">NV Vận hành</option>
+            <option value="Admin Hệ Thống (Toàn Quyền)">Admin Hệ Thống (Toàn Quyền)</option>
+            <option value="Quản lý khu trò chơi">Quản lý khu trò chơi</option>
             <option value="Tổ trưởng ca">Tổ trưởng ca</option>
             <option value="Kỹ thuật bảo trì">Kỹ thuật bảo trì</option>
-            <option value="Quản lý khu trò chơi">Quản lý khu trò chơi</option>
+            <option value="NV Vận hành">NV Vận hành</option>
           </select>
         </div>
         <div class="field-group">
-          <label class="field-label" for="loginAssignedGame">Trò chơi phụ trách</label>
+          <label class="field-label" for="loginAssignedGame">Phạm vi trò chơi phụ trách</label>
           <select id="loginAssignedGame"></select>
         </div>
       </div>
 
       <div class="field-group">
-        <label class="field-label" for="loginPassword">Mật khẩu xác thực</label>
-        <input type="password" id="loginPassword" value="••••••••" placeholder="Nhập mật khẩu..." />
+        <label class="field-label" for="loginPassword">Mật khẩu / Token xác thực Google</label>
+        <input type="password" id="loginPassword" value="••••••••••••" placeholder="Nhập mật khẩu..." />
       </div>
 
-      <div style="display:flex; justify-content:flex-end; gap:8px; margin-top:4px;">
-        <button type="button" class="btn btn-outline" onclick="closeLoginModal()">Đóng</button>
-        <button type="button" class="btn btn-primary" onclick="submitUserLogin()">Đăng nhập & Đồng bộ ca</button>
+      <div style="display:flex; justify-content:space-between; align-items:center; gap:8px; margin-top:4px; flex-wrap:wrap;">
+        <button type="button" class="btn btn-outline" style="font-size:0.74rem; padding:6px 10px;" onclick="export26UserTestReportNow(false)">
+          Xuất dữ liệu 26 Trò chơi (Admin)
+        </button>
+        <div style="display:flex; gap:8px;">
+          <button type="button" class="btn btn-outline" onclick="closeLoginModal()">Đóng</button>
+          <button type="button" class="btn btn-primary" onclick="submitUserLogin()">Xác nhận Đăng nhập</button>
+        </div>
       </div>
     </div>
   </div>
@@ -4102,26 +4127,110 @@ function doGet(e) {
       renderNotifications();
     }
 
-    // Hệ thống Đăng nhập tài khoản User
+    // Danh sách Tài khoản Super Admin định danh bằng Gmail chủ sở hữu
+    const ADMIN_GMAIL_ACCOUNTS = [
+      {
+        code: "ADMIN01",
+        email: "laotuung@gmail.com",
+        name: "Ứng Lão (Admin Toàn Khu)",
+        role: "Admin Hệ Thống (Toàn Quyền)",
+        assignedGame: "ALL",
+        isAdmin: true
+      },
+      {
+        code: "ADMIN02",
+        email: "laoung1996@gmail.com",
+        name: "Ung Lao (Admin Điều Hành)",
+        role: "Admin Hệ Thống (Toàn Quyền)",
+        assignedGame: "ALL",
+        isAdmin: true
+      }
+    ];
+
+    // Hệ thống Đăng nhập tài khoản (Mặc định kích hoạt tài khoản Admin Gmail: laotuung@gmail.com)
     let currentUserAccount = {
-      code: "SW018",
-      name: "Nguyễn Văn An",
-      role: "NV Vận hành",
-      assignedGame: "MANG_TRUOT_1"
+      code: "ADMIN01",
+      email: "laotuung@gmail.com",
+      name: "Ứng Lão (Admin Toàn Khu)",
+      role: "Admin Hệ Thống (Toàn Quyền)",
+      assignedGame: "ALL",
+      isAdmin: true
     };
 
     function getInitials(fullName) {
-      const parts = (fullName || "NV").trim().split(/\s+/);
+      const parts = (fullName || "AD").trim().split(/\s+/);
       if (parts.length === 1) return parts[0].slice(0, 2).toUpperCase();
       return (parts[0][0] + parts[parts.length - 1][0]).toUpperCase();
+    }
+
+    function updateHeaderUserBadgeUI() {
+      const avatarEl = document.getElementById("headerUserAvatar");
+      const badgeTextEl = document.getElementById("headerAdminBadgeText");
+      const nameEl = document.getElementById("headerUserName");
+      const roleEl = document.getElementById("headerUserRole");
+      const btnEl = document.getElementById("headerUserBtn");
+
+      if (avatarEl) {
+        avatarEl.textContent = currentUserAccount.isAdmin ? "AD" : getInitials(currentUserAccount.name);
+        avatarEl.style.background = currentUserAccount.isAdmin ? "#C0262D" : "var(--surface-2)";
+        avatarEl.style.color = currentUserAccount.isAdmin ? "#fff" : "var(--text)";
+      }
+      if (badgeTextEl) {
+        badgeTextEl.textContent = currentUserAccount.isAdmin
+          ? `ADMIN • ${currentUserAccount.email || "laotuung@gmail.com"}`
+          : `${currentUserAccount.code} • ${currentUserAccount.name}`;
+      }
+      if (nameEl) nameEl.textContent = currentUserAccount.name;
+      if (roleEl) roleEl.textContent = `${currentUserAccount.role} • ${currentUserAccount.code}`;
+      if (btnEl) {
+        btnEl.title = currentUserAccount.isAdmin
+          ? `Tài khoản Admin: ${currentUserAccount.email} (Toàn quyền 26 trò chơi)`
+          : `Nhân viên: ${currentUserAccount.name} (${currentUserAccount.code})`;
+      }
+    }
+
+    function loginWithAdminGmail(gmailAddress) {
+      const targetEmail = (gmailAddress || "laotuung@gmail.com").trim().toLowerCase();
+      const adminObj = ADMIN_GMAIL_ACCOUNTS.find(a => a.email.toLowerCase() === targetEmail) || {
+        code: "ADMIN01",
+        email: targetEmail,
+        name: "Ứng Lão (Admin Toàn Khu)",
+        role: "Admin Hệ Thống (Toàn Quyền)",
+        assignedGame: "ALL",
+        isAdmin: true
+      };
+
+      document.getElementById("loginUserCode").value = adminObj.code;
+      const emailEl = document.getElementById("loginGmailInput");
+      if (emailEl) emailEl.value = adminObj.email;
+      document.getElementById("loginFullName").value = adminObj.name;
+      document.getElementById("loginRoleSelect").value = "Admin Hệ Thống (Toàn Quyền)";
+      document.getElementById("loginAssignedGame").value = "ALL";
+      const qSel = document.getElementById("loginQuickUserSelect");
+      if (qSel) qSel.value = adminObj.code;
+
+      submitUserLogin();
+      showAppToast(`✓ Đã đăng nhập quyền Admin Toàn Khu bằng Gmail: ${adminObj.email}`);
     }
 
     function onQuickUserSelectChange() {
       const qSel = document.getElementById("loginQuickUserSelect");
       if (!qSel) return;
+      const adminMatch = ADMIN_GMAIL_ACCOUNTS.find(a => a.code === qSel.value);
+      if (adminMatch) {
+        document.getElementById("loginUserCode").value = adminMatch.code;
+        const emailEl = document.getElementById("loginGmailInput");
+        if (emailEl) emailEl.value = adminMatch.email;
+        document.getElementById("loginFullName").value = adminMatch.name;
+        document.getElementById("loginRoleSelect").value = adminMatch.role;
+        document.getElementById("loginAssignedGame").value = "ALL";
+        return;
+      }
       const u = TEST_USERS_26.find(item => item.code === qSel.value);
       if (!u) return;
       document.getElementById("loginUserCode").value = u.code;
+      const emailEl = document.getElementById("loginGmailInput");
+      if (emailEl) emailEl.value = `${u.code.toLowerCase()}@sunworld.vn`;
       document.getElementById("loginFullName").value = u.name;
       document.getElementById("loginRoleSelect").value = u.role;
       document.getElementById("loginAssignedGame").value = u.assignedGame;
@@ -4133,9 +4242,13 @@ function doGet(e) {
         qSel.value = currentUserAccount.code;
       }
       document.getElementById("loginUserCode").value = currentUserAccount.code;
+      const emailEl = document.getElementById("loginGmailInput");
+      if (emailEl) emailEl.value = currentUserAccount.email || "laotuung@gmail.com";
       document.getElementById("loginFullName").value = currentUserAccount.name;
       document.getElementById("loginRoleSelect").value = currentUserAccount.role;
-      document.getElementById("loginAssignedGame").value = document.getElementById("gameSelect").value;
+      document.getElementById("loginAssignedGame").value = currentUserAccount.isAdmin
+        ? "ALL"
+        : document.getElementById("gameSelect").value;
       document.getElementById("loginModalBackdrop").classList.add("open");
     }
 
@@ -4145,26 +4258,49 @@ function doGet(e) {
     }
 
     function submitUserLogin() {
-      const code = document.getElementById("loginUserCode").value.trim() || "SW001";
-      const name = document.getElementById("loginFullName").value.trim() || "Nhân viên Sun World";
+      const code = document.getElementById("loginUserCode").value.trim() || "ADMIN01";
+      const emailEl = document.getElementById("loginGmailInput");
+      const email = (emailEl ? emailEl.value.trim() : "laotuung@gmail.com") || "laotuung@gmail.com";
+      const name = document.getElementById("loginFullName").value.trim() || "Ứng Lão (Admin Toàn Khu)";
       const role = document.getElementById("loginRoleSelect").value;
-      const gameId = document.getElementById("loginAssignedGame").value;
+      const assignedChoice = document.getElementById("loginAssignedGame").value;
 
-      currentUserAccount = { code, name, role, assignedGame: gameId };
-      document.getElementById("headerUserAvatar").textContent = getInitials(name);
-      document.getElementById("headerUserName").textContent = name;
-      document.getElementById("headerUserRole").textContent = `${role} • ${code}`;
+      const isAdminAccount =
+        role.includes("Admin") ||
+        code.toUpperCase().startsWith("ADMIN") ||
+        assignedChoice === "ALL" ||
+        ADMIN_GMAIL_ACCOUNTS.some(a => a.email.toLowerCase() === email.toLowerCase());
 
-      document.getElementById("gameSelect").value = gameId;
-      const rec = appStore.games[gameId] || createEmptyGameRecord(gameId, "", "coaster");
-      rec.staffCode = code;
-      rec.staff = name;
-      rec.staffRole = role;
-      document.getElementById("staffName").value = name;
+      currentUserAccount = {
+        code,
+        email,
+        name,
+        role: isAdminAccount ? "Admin Hệ Thống (Toàn Quyền)" : role,
+        assignedGame: isAdminAccount ? "ALL" : assignedChoice,
+        isAdmin: isAdminAccount
+      };
 
-      onGameChange();
+      updateHeaderUserBadgeUI();
+      safeSetStorage("SUNWORLD_ACTIVE_USER_ACCOUNT", JSON.stringify(currentUserAccount));
+
+      if (!isAdminAccount && assignedChoice && assignedChoice !== "ALL") {
+        document.getElementById("gameSelect").value = assignedChoice;
+        const rec = appStore.games[assignedChoice] || createEmptyGameRecord(assignedChoice, "", "coaster");
+        rec.staffCode = code;
+        rec.staff = name;
+        rec.staffRole = role;
+        document.getElementById("staffName").value = name;
+        onGameChange();
+      } else {
+        onGameChange();
+      }
+
       saveCurrentState();
-      pushNotification(`Tài khoản ${name} (${code} - ${role}) đã đăng nhập trực vận hành.`);
+      pushNotification(
+        isAdminAccount
+          ? `★ Tài khoản Admin (${email} - ${name}) đã đăng nhập với toàn quyền quản trị 26 trò chơi.`
+          : `Tài khoản ${name} (${code} - ${role}) đã đăng nhập trực vận hành.`
+      );
       document.getElementById("loginModalBackdrop").classList.remove("open");
     }
 
@@ -4212,16 +4348,24 @@ function doGet(e) {
 
       const gameOptionsHtml = document.getElementById("gameSelect").innerHTML;
       document.getElementById("dashGameSelect").innerHTML = gameOptionsHtml;
-      document.getElementById("loginAssignedGame").innerHTML = gameOptionsHtml;
+      document.getElementById("loginAssignedGame").innerHTML =
+        `<option value="ALL">★ TOÀN BỘ 26 TRÒ CHƠI (QUYỀN ADMIN TOÀN KHU)</option>` + gameOptionsHtml;
 
       const qSel = document.getElementById("loginQuickUserSelect");
       if (qSel) {
-        qSel.innerHTML = TEST_USERS_26.map(u => {
+        const adminOpts = ADMIN_GMAIL_ACCOUNTS.map(a =>
+          `<option value="${a.code}">★ ${a.code} - ${a.email} (${a.name})</option>`
+        ).join("");
+        const userOpts = TEST_USERS_26.map(u => {
           const gObj = ALL_GAMES.find(g => g.id === u.assignedGame);
           const gName = gObj ? gObj.name : u.assignedGame;
           return `<option value="${u.code}">${u.code} - ${u.name} (${gName})</option>`;
         }).join("");
+        qSel.innerHTML =
+          `<optgroup label="TÀI KHOẢN ADMIN (GMAIL CHỦ SỞ HỮU)">${adminOpts}</optgroup>` +
+          `<optgroup label="26 TÀI KHOẢN USER VẬN HÀNH 26 TRÒ CHƠI">${userOpts}</optgroup>`;
       }
+      updateHeaderUserBadgeUI();
     }
 
     function createEmptyGameRecord(gameId, gameName, mode) {
@@ -6418,6 +6562,10 @@ function doGet(e) {
       const savedTheme = safeGetStorage("SUNWORLD_THEME_MODE") || "light";
       applyTheme(savedTheme);
       autoDetectDeviceFormat();
+      try {
+        const savedAcc = JSON.parse(safeGetStorage("SUNWORLD_ACTIVE_USER_ACCOUNT") || "null");
+        if (savedAcc && savedAcc.code) currentUserAccount = savedAcc;
+      } catch (e) {}
       initTimeSelectDropdowns();
       initDefaultDemoIfEmpty();
       initIndexedDB();
