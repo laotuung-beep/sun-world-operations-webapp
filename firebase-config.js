@@ -1,7 +1,8 @@
 // ============================================================================
 // CẤU HÌNH KẾT NỐI FIREBASE (FIREBASE AUTHENTICATION + CLOUD FIRESTORE)
-// Bạn có thể dán trực tiếp cấu hình Firebase Project tại đây HOẶC dán ngay trên
-// giao diện Web App (nút "⚙️ Cấu hình Firebase" ở màn hình Đăng nhập / Kho dữ liệu)
+// Khi apiKey còn trống  -> app chạy CHẾ ĐỘ CỤC BỘ (không bảo mật, chỉ để demo/test).
+// Khi đã điền apiKey     -> app BẮT BUỘC đăng nhập Google, quyền do firestore.rules quyết định.
+// Lấy cấu hình bằng lệnh: firebase apps:sdkconfig web
 // ============================================================================
 window.DEFAULT_FIREBASE_CONFIG = {
   apiKey: "",
@@ -12,8 +13,9 @@ window.DEFAULT_FIREBASE_CONFIG = {
   appId: ""
 };
 
-// Danh sách email mặc định được cấp quyền Quản lý (Manager) ngay khi đăng nhập Google
-window.DEFAULT_MANAGER_EMAILS = [
-  "admin@sunworld.vn",
-  "quanly.vanhanh@sunworld.vn"
+// Gmail chủ sở hữu được toàn quyền Admin.
+// PHẢI KHỚP với danh sách trong hàm isSuperAdmin() của firestore.rules.
+window.SUPER_ADMIN_EMAILS = [
+  "laotuung@gmail.com",
+  "laoung1996@gmail.com"
 ];

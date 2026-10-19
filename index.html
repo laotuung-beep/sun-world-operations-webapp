@@ -3878,7 +3878,10 @@ function doGet(e) {
 
   </main>
 
+  <script src="firebase-config.js"></script>
   <script>
+    // Bật chế độ bảo mật khi firebase-config.js đã có apiKey
+    const FIREBASE_ENABLED = !!(window.DEFAULT_FIREBASE_CONFIG && window.DEFAULT_FIREBASE_CONFIG.apiKey);
     
     function showAppToast(msg) {
       const container = document.getElementById("appToastContainer");
@@ -4190,6 +4193,7 @@ function doGet(e) {
     }
 
     function loginWithAdminGmail(gmailAddress) {
+      if (FIREBASE_ENABLED) { showAppToast("Chế độ bảo mật: vui lòng đăng nhập bằng Google."); return; }
       const targetEmail = (gmailAddress || "laotuung@gmail.com").trim().toLowerCase();
       const adminObj = ADMIN_GMAIL_ACCOUNTS.find(a => a.email.toLowerCase() === targetEmail) || {
         code: "ADMIN01",
@@ -4258,6 +4262,7 @@ function doGet(e) {
     }
 
     function submitUserLogin() {
+      if (FIREBASE_ENABLED) { showAppToast("Chế độ bảo mật: vui lòng đăng nhập bằng Google."); return; }
       const code = document.getElementById("loginUserCode").value.trim() || "ADMIN01";
       const emailEl = document.getElementById("loginGmailInput");
       const email = (emailEl ? emailEl.value.trim() : "laotuung@gmail.com") || "laotuung@gmail.com";
@@ -5234,6 +5239,7 @@ function doGet(e) {
 
     function saveToLocalStorage() {
       safeSetStorage(STORAGE_KEY, JSON.stringify(appStore));
+      if (window.SWFirebase) window.SWFirebase.queueSync();
       if (storageDebounceTimer) clearTimeout(storageDebounceTimer);
       storageDebounceTimer = setTimeout(() => {
         syncCurrentStoreToIndexedDB();
@@ -6137,7 +6143,7 @@ function doGet(e) {
     // =========================================================================
     const TEST_DURATION_SEC = 3600; // 1 giờ = 3600 giây
     let testRunnerState = {
-      running: true,
+      running: !FIREBASE_ENABLED,
       startedAtMs: Date.now(),
       elapsedSec: 0,
       totalOpsCount: 0,
@@ -6580,6 +6586,12 @@ function doGet(e) {
       document.getElementById("opDate").value = new Date().toISOString().slice(0, 10);
       onGameChange();
       runSelfHealingAudit();
+      if (FIREBASE_ENABLED) {
+        const mon = document.getElementById("liveTestMonitorSection");
+        if (mon) mon.style.display = "none";
+        renderAll();
+        return;
+      }
       // Khởi tạo lượt thao tác mở màn cho cả 26 User khi bắt đầu phiên test
       TEST_USERS_26.forEach(u => simulateSingleUserOperation(u));
       saveToLocalStorage();
@@ -6588,5 +6600,6 @@ function doGet(e) {
       appendTestAuditLog("Đã kích hoạt 26 User (SW001 → SW026) đồng loạt mở ca và vận hành 26 trò chơi.");
     });
   </script>
+  <script type="module" src="firebase-auth.js"></script>
 </body>
 </html>
