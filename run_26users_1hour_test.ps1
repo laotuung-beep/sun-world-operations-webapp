@@ -1,4 +1,4 @@
-# Kịch bản Chạy Test Tự Động 26 User x 26 Trò Chơi Liên Tục Trong 1 Giờ (3600 giây)
+﻿# Kịch bản Chạy Test Tự Động 26 User x 26 Trò Chơi Liên Tục Trong 1 Giờ (3600 giây)
 # Giám sát liên tục, kiểm tra toàn vẹn mã nguồn HTML/JS và xuất báo cáo CSV/JSON
 
 $ErrorActionPreference = "Continue"

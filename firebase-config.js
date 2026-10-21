@@ -5,12 +5,12 @@
 // Lấy cấu hình bằng lệnh: firebase apps:sdkconfig web
 // ============================================================================
 window.DEFAULT_FIREBASE_CONFIG = {
-  apiKey: "",
-  authDomain: "",
-  projectId: "sunworld-operations-app",
-  storageBucket: "",
-  messagingSenderId: "",
-  appId: ""
+  apiKey: "AIzaSyAVHfPs1IsHNpwwVKbnd0LBNhcbM8Wu17g",
+  authDomain: "sunworld-ops-laotuung.firebaseapp.com",
+  projectId: "sunworld-ops-laotuung",
+  storageBucket: "sunworld-ops-laotuung.firebasestorage.app",
+  messagingSenderId: "432835347015",
+  appId: "1:432835347015:web:421389b25b807c34cfa762"
 };
 
 // Gmail chủ sở hữu được toàn quyền Admin.
