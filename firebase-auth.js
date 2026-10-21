@@ -38,32 +38,35 @@ if (cfg.apiKey) {
   let syncTimer = null;
   const dirtyGames = new Set();
 
-  // ---------------------------------------------------------------- UI: Màn hình Giao diện Tài khoản Vận hành Sun World
+  // ---------------------------------------------------------------- UI: màn chắn đăng nhập Google
   const gate = document.createElement("div");
   gate.id = "fbAuthGate";
-  gate.style.cssText = "position:fixed;inset:0;z-index:2000;background:rgba(15,23,42,0.92);backdrop-filter:blur(8px);display:flex;align-items:center;justify-content:center;padding:12px;overflow-y:auto;";
-
-  if (typeof window.getAccountsHubMarkup === "function") {
-    gate.innerHTML = window.getAccountsHubMarkup("gate", true);
-  } else {
-    gate.innerHTML = `
-      <div class="login-modal-card" style="max-width:440px;text-align:center;">
-        <div style="font-size:1.05rem;font-weight:800;color:#C0262D;">SUN WORLD — VẬN HÀNH TRÒ CHƠI</div>
-        <div id="fbGateMsg" style="font-size:0.82rem;color:var(--text-muted);">Đang tải giao diện tài khoản...</div>
-      </div>
-    `;
-  }
+  gate.style.cssText = "position:fixed;inset:0;z-index:2000;background:var(--bg,#0f172a);display:flex;align-items:center;justify-content:center;padding:16px;";
+  gate.innerHTML = `
+    <div class="login-modal-card" style="max-width:420px;text-align:center;display:flex;flex-direction:column;gap:14px;padding:24px;">
+      <div style="font-size:1.1rem;font-weight:800;color:#C0262D;letter-spacing:0.3px;">SUN WORLD — VẬN HÀNH TRÒ CHƠI</div>
+      <div id="fbGateMsg" style="font-size:0.84rem;color:var(--text-muted);line-height:1.5;">Vui lòng đăng nhập bằng tài khoản Google đã được cấp quyền.</div>
+      <button type="button" id="fbGateSignIn" class="btn btn-primary" style="justify-content:center;padding:12px;font-size:0.9rem;font-weight:700;display:none;">
+        <svg width="18" height="18" viewBox="0 0 24 24" style="margin-right:8px;"><path fill="#EA4335" d="M12 5c1.6 0 3 .6 4.1 1.6l3.1-3.1C17.3 1.7 14.8 1 12 1 7.5 1 3.7 3.6 1.9 7.3l3.7 2.9C6.5 7.4 9 5 12 5z"/><path fill="#4285F4" d="M23.5 12.3c0-.8-.1-1.6-.2-2.3H12v4.5h6.5c-.3 1.5-1.1 2.8-2.4 3.7l3.7 2.9c2.2-2 3.7-5 3.7-8.8z"/><path fill="#FBBC05" d="M5.6 14.8c-.2-.7-.4-1.5-.4-2.8s.2-2.1.4-2.8L1.9 6.3C.7 8.7 0 10.8 0 12s.7 3.3 1.9 5.7l3.7-2.9z"/><path fill="#34A853" d="M12 23c3.2 0 6-1.1 8-3l-3.7-2.9c-1.1.7-2.5 1.2-4.3 1.2-3 0-5.5-2-6.4-4.8L1.9 16.4C3.7 20.4 7.5 23 12 23z"/></svg>
+        Đăng nhập bằng Google
+      </button>
+      <button type="button" id="fbGateSignOut" class="btn btn-outline" style="justify-content:center;display:none;">Đăng xuất / Đổi tài khoản</button>
+    </div>`;
   document.body.appendChild(gate);
+  const gateMsg = gate.querySelector("#fbGateMsg");
+  const gateIn = gate.querySelector("#fbGateSignIn");
+  const gateOut = gate.querySelector("#fbGateSignOut");
 
-  if (typeof window.initAccountsHub === "function") {
-    window.initAccountsHub("gate");
-  }
+  gateIn.onclick = () => signInWithPopup(auth, provider).catch(err => {
+    gateMsg.textContent = "Đăng nhập thất bại: " + (err.code || err.message);
+  });
+  gateOut.onclick = () => signOut(auth);
 
-  function showGate(msg = "", { signIn = false, signOutBtn = false } = {}) {
+  function showGate(msg, { signIn = false, signOutBtn = false } = {}) {
     gate.style.display = "flex";
-    if (typeof window.initAccountsHub === "function") {
-      window.initAccountsHub("gate");
-    }
+    gateMsg.innerHTML = msg;
+    gateIn.style.display = signIn ? "flex" : "none";
+    gateOut.style.display = signOutBtn ? "flex" : "none";
   }
   function hideGate() { gate.style.display = "none"; }
 
@@ -71,9 +74,10 @@ if (cfg.apiKey) {
   function setupAccountModal() {
     const card = document.querySelector("#loginModalBackdrop .login-modal-card");
     if (!card || card.querySelector("#fbAccountPanel")) return;
+    Array.from(card.children).forEach((el, i) => { if (i > 0) el.style.display = "none"; });
     const panel = document.createElement("div");
     panel.id = "fbAccountPanel";
-    panel.style.cssText = "display:flex;flex-direction:column;gap:10px;margin-top:12px;border-top:1px dashed var(--border);padding-top:12px;";
+    panel.style.cssText = "display:flex;flex-direction:column;gap:10px;";
     card.appendChild(panel);
   }
 
@@ -230,13 +234,7 @@ if (cfg.apiKey) {
     profile = null;
 
     if (!user) {
-      // Nếu đã có tài khoản vận hành trò chơi lưu trong máy và đang active
-      const hasSavedOperator = (typeof currentUserAccount !== "undefined" && currentUserAccount.username && !currentUserAccount.isAdmin);
-      if (hasSavedOperator) {
-        hideGate();
-      } else {
-        showGate();
-      }
+      showGate("Vui lòng đăng nhập bằng tài khoản Google đã được cấp quyền.", { signIn: true });
       return;
     }
     showGate(`Đang xác thực <b>${escapeHtml(user.email)}</b>...`);

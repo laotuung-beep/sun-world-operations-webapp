@@ -624,146 +624,7 @@
       gap: 14px;
     }
 
-    /* Giao diện Hub Danh sách Tài khoản Vận hành Sun World */
-    .accounts-hub-card {
-      background: var(--surface);
-      color: var(--text);
-      border: 1.5px solid var(--border);
-      border-radius: 18px;
-      width: 100%;
-      max-width: 1060px;
-      max-height: 90vh;
-      display: flex;
-      flex-direction: column;
-      box-shadow: 0 24px 60px rgba(0, 0, 0, 0.45);
-      overflow: hidden;
-      animation: hubCardFadeIn 0.2s cubic-bezier(0.16, 1, 0.3, 1);
-    }
-    @keyframes hubCardFadeIn {
-      from { opacity: 0; transform: scale(0.97) translateY(8px); }
-      to { opacity: 1; transform: scale(1) translateY(0); }
-    }
-    .accounts-hub-header {
-      padding: 16px 20px 12px;
-      border-bottom: 1px solid var(--border);
-      background: var(--surface-2);
-      display: flex;
-      justify-content: space-between;
-      align-items: flex-start;
-      gap: 12px;
-      flex-wrap: wrap;
-    }
-    .hub-brand-pill {
-      font-size: 0.7rem;
-      font-weight: 800;
-      color: #C0262D;
-      background: rgba(192, 38, 45, 0.12);
-      padding: 3px 8px;
-      border-radius: 6px;
-      text-transform: uppercase;
-      letter-spacing: 0.5px;
-    }
-    .hub-pwd-pill {
-      font-size: 0.72rem;
-      color: var(--text-muted);
-    }
-    .hub-pwd-pill strong {
-      color: #15803d;
-      background: rgba(22, 163, 74, 0.12);
-      padding: 1px 6px;
-      border-radius: 4px;
-    }
-    .hub-main-title {
-      font-size: 1.18rem;
-      font-weight: 800;
-      margin: 4px 0 2px;
-      color: var(--text);
-      letter-spacing: -0.2px;
-    }
-    .hub-sub-title {
-      font-size: 0.76rem;
-      color: var(--text-muted);
-      margin: 0;
-    }
-    .accounts-hub-toolbar {
-      padding: 12px 20px;
-      border-bottom: 1px solid var(--border);
-      background: var(--surface);
-      display: flex;
-      flex-direction: column;
-      gap: 10px;
-    }
-    .hub-inputs-grid {
-      display: grid;
-      grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
-      gap: 12px;
-    }
-    .hub-tabs-scroll {
-      display: flex;
-      gap: 6px;
-      overflow-x: auto;
-      padding-bottom: 2px;
-      scrollbar-width: thin;
-    }
-    .hub-tab-btn {
-      padding: 6px 14px;
-      border-radius: 999px;
-      font-size: 0.74rem;
-      font-weight: 700;
-      cursor: pointer;
-      border: 1px solid var(--border);
-      background: var(--surface-2);
-      color: var(--text);
-      transition: all 0.15s ease;
-      white-space: nowrap;
-    }
-    .hub-tab-btn:hover {
-      border-color: #C0262D;
-      color: #C0262D;
-    }
-    .hub-tab-btn.active {
-      background: #C0262D;
-      color: #fff;
-      border-color: #C0262D;
-      box-shadow: 0 2px 8px rgba(192, 38, 45, 0.35);
-    }
-    .accounts-cards-grid {
-      flex: 1;
-      overflow-y: auto;
-      padding: 16px 20px;
-      display: grid;
-      grid-template-columns: repeat(auto-fill, minmax(260px, 1fr));
-      gap: 12px;
-      background: var(--bg);
-      align-content: start;
-    }
-    .hub-card {
-      background: var(--surface);
-      border: 1.5px solid var(--border);
-      border-radius: 12px;
-      padding: 12px 14px;
-      display: flex;
-      flex-direction: column;
-      justify-content: space-between;
-      gap: 8px;
-      cursor: pointer;
-      transition: transform 0.15s ease, box-shadow 0.15s ease, border-color 0.15s ease;
-    }
-    .hub-card:hover {
-      transform: translateY(-2px);
-      box-shadow: 0 10px 24px rgba(0, 0, 0, 0.14);
-      border-color: #C0262D !important;
-    }
-    .accounts-hub-footer {
-      padding: 10px 20px;
-      border-top: 1px solid var(--border);
-      background: var(--surface-2);
-      display: flex;
-      justify-content: space-between;
-      align-items: center;
-      flex-wrap: wrap;
-      gap: 10px;
-    }
+
 
     /* Thanh chuyển đổi 3 Khung Hình chính: Cân đối 3 cột bằng nhau, không tràn chữ */
     .screen-nav-bar {
@@ -2973,10 +2834,38 @@
     </div>
   </header>
 
-  <!-- MODAL GIAO DIỆN CHỌN TÀI KHOẢN VẬN HÀNH TRÒ CHƠI & ADMIN -->
+  <!-- MODAL TÀI KHOẢN & PHÂN QUYỀN GOOGLE (CHỈ GIỮ LẠI ADMIN) -->
   <div id="loginModalBackdrop" class="modal-backdrop" onclick="closeLoginModal(event)">
-    <div id="modalAccountsHubContainer" style="width:100%;max-width:1060px;display:flex;justify-content:center;" onclick="event.stopPropagation()">
-      <!-- Nội dung Giao diện Tài khoản Vận hành được nạp động từ getAccountsHubMarkup('modal') -->
+    <div class="login-modal-card" onclick="event.stopPropagation()" style="max-width:520px;">
+      <div style="display:flex; justify-content:space-between; align-items:center; border-bottom:1px solid var(--border); padding-bottom:10px;">
+        <div style="font-size:0.95rem; font-weight:700; display:flex; align-items:center; gap:8px;">
+          <span>Tài Khoản Quản Trị Hệ Thống (Admin)</span>
+        </div>
+        <button type="button" class="del-btn" style="font-size:1.1rem;" onclick="closeLoginModal()">✕</button>
+      </div>
+
+      <!-- KHỐI TÀI KHOẢN ADMIN GMAIL -->
+      <div style="background:var(--surface-2); border:1.5px solid #C0262D; border-radius:10px; padding:12px 14px;">
+        <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:6px;">
+          <span style="font-size:0.76rem; font-weight:800; color:#C0262D; text-transform:uppercase;">👑 Tài khoản Super Admin Chủ Sở Hữu</span>
+          <span style="font-size:0.68rem; font-weight:700; color:#15803d; background:rgba(22,163,74,0.12); padding:2px 8px; border-radius:999px;">✓ Quyền Toàn Khu</span>
+        </div>
+        <div style="font-size:0.86rem; font-weight:700; color:var(--text); margin-bottom:4px;">
+          Ứng Lão — laotuung@gmail.com
+        </div>
+        <div style="font-size:0.74rem; color:var(--text-muted); line-height:1.4;">
+          Đăng nhập xác thực bảo mật trực tiếp bằng tài khoản Google. Toàn quyền quản trị 25 trò chơi, phân quyền người dùng và xuất báo cáo.
+        </div>
+      </div>
+
+      <div style="display:flex; justify-content:space-between; align-items:center; gap:8px; margin-top:6px; flex-wrap:wrap;">
+        <button type="button" class="btn btn-outline" style="font-size:0.74rem; padding:6px 10px;" onclick="exportAllGamesCSV()">
+          Xuất dữ liệu toàn khu (.CSV)
+        </button>
+        <button type="button" class="btn btn-primary" onclick="closeLoginModal()">
+          Đóng
+        </button>
+      </div>
     </div>
   </div>
 
@@ -4063,11 +3952,11 @@ function doGet(e) {
     ];
 
     function getAssignedUserForGame(gameId) {
-      if (typeof GAME_ACCOUNTS !== "undefined") {
-        const match = GAME_ACCOUNTS.find(a => a.assignedGame === gameId && !a.isAdmin);
-        if (match) return match;
-      }
-      return TEST_USERS_26.find(u => u.assignedGame === gameId) || TEST_USERS_26[0];
+      return {
+        code: "ADMIN01",
+        name: "Ứng Lão (Admin Toàn Khu)",
+        role: "Admin Hệ Thống (Toàn Quyền)"
+      };
     }
 
     function formatVNNumber(n) {
@@ -4248,386 +4137,13 @@ function doGet(e) {
       }
     ];
 
-    // =========================================================================
-    // DANH SÁCH 29 TÀI KHOẢN VẬN HÀNH TRÒ CHƠI & ADMIN (MẬT KHẨU: 123456)
-    // - Tên đăng nhập: Tên trò chơi không dấu (e.g. mangtruot1, rapmatbay1, jurassic, admin)
-    // - Máng trượt: 6 tài khoản cho 6 vị trí (Line 1 - Line 6)
-    // - Airship (Rạp mắt bay): 2 tài khoản cho 2 rạp (Rạp 1, Rạp 2)
-    // - 21 trò chơi khác
-    // - Quyền tự động: Đăng nhập trò nào tự động cố định trò chơi và Line/Rạp,
-    //   nhân viên chỉ cần chọn ngày và ghi tên.
-    // =========================================================================
-    const GAME_ACCOUNTS = [
-      // 1. ADMIN TOÀN QUYỀN
-      {
-        username: "admin",
-        code: "ADMIN01",
-        aliases: ["admin01", "laotuung", "laotuung@gmail.com", "laoung1996@gmail.com"],
-        password: "123456",
-        name: "Ứng Lão (Admin Toàn Khu)",
-        role: "Admin Hệ Thống (Toàn Quyền)",
-        assignedGame: "ALL",
-        assignedSubArea: "",
-        isAdmin: true
-      },
-
-      // 2. MÁNG TRƯỢT (6 VỊ TRÍ CHO 6 LINE)
-      {
-        username: "mangtruot1",
-        code: "MT_L1",
-        aliases: ["mangtruotline1", "mangtruot1line1", "line1"],
-        password: "123456",
-        name: "NV Máng Trượt 1 (Line 1)",
-        role: "NV Vận hành",
-        assignedGame: "MANG_TRUOT_1",
-        assignedSubArea: "Line 1",
-        isAdmin: false
-      },
-      {
-        username: "mangtruot2",
-        code: "MT_L2",
-        aliases: ["mangtruotline2", "mangtruot1line2", "line2"],
-        password: "123456",
-        name: "NV Máng Trượt 1 (Line 2)",
-        role: "NV Vận hành",
-        assignedGame: "MANG_TRUOT_1",
-        assignedSubArea: "Line 2",
-        isAdmin: false
-      },
-      {
-        username: "mangtruot3",
-        code: "MT_L3",
-        aliases: ["mangtruotline3", "mangtruot2line3", "line3"],
-        password: "123456",
-        name: "NV Máng Trượt 2 (Line 3)",
-        role: "NV Vận hành",
-        assignedGame: "MANG_TRUOT_2",
-        assignedSubArea: "Line 3",
-        isAdmin: false
-      },
-      {
-        username: "mangtruot4",
-        code: "MT_L4",
-        aliases: ["mangtruotline4", "mangtruot2line4", "line4"],
-        password: "123456",
-        name: "NV Máng Trượt 2 (Line 4)",
-        role: "NV Vận hành",
-        assignedGame: "MANG_TRUOT_2",
-        assignedSubArea: "Line 4",
-        isAdmin: false
-      },
-      {
-        username: "mangtruot5",
-        code: "MT_L5",
-        aliases: ["mangtruotline5", "mangtruot3line5", "line5"],
-        password: "123456",
-        name: "NV Máng Trượt 3 (Line 5)",
-        role: "NV Vận hành",
-        assignedGame: "MANG_TRUOT_3",
-        assignedSubArea: "Line 5",
-        isAdmin: false
-      },
-      {
-        username: "mangtruot6",
-        code: "MT_L6",
-        aliases: ["mangtruotline6", "mangtruot3line6", "line6"],
-        password: "123456",
-        name: "NV Máng Trượt 3 (Line 6)",
-        role: "NV Vận hành",
-        assignedGame: "MANG_TRUOT_3",
-        assignedSubArea: "Line 6",
-        isAdmin: false
-      },
-
-      // 3. AIRSHIP / RẠP MẮT BAY (2 VỊ TRÍ CHO 2 RẠP)
-      {
-        username: "rapmatbay1",
-        code: "AS_R1",
-        aliases: ["airship1", "rapmatbayrap1", "rap1"],
-        password: "123456",
-        name: "NV Rạp Mắt Bay (Rạp 1)",
-        role: "NV Vận hành",
-        assignedGame: "AIRSHIP",
-        assignedSubArea: "Rạp 1",
-        isAdmin: false
-      },
-      {
-        username: "rapmatbay2",
-        code: "AS_R2",
-        aliases: ["airship2", "rapmatbayrap2", "rap2"],
-        password: "123456",
-        name: "NV Rạp Mắt Bay (Rạp 2)",
-        role: "NV Vận hành",
-        assignedGame: "AIRSHIP",
-        assignedSubArea: "Rạp 2",
-        isAdmin: false
-      },
-
-      // 4. 21 TRÒ CHƠI KHÁC (TÊN KHÔNG DẤU, MK: 123456)
-      {
-        username: "phicongskiver",
-        code: "PC_SKIVER",
-        aliases: ["skiver", "phicong"],
-        password: "123456",
-        name: "NV Phi Công Skiver",
-        role: "NV Vận hành",
-        assignedGame: "PHI_CONG_SKIVER",
-        assignedSubArea: "",
-        isAdmin: false
-      },
-      {
-        username: "xediendung1",
-        code: "XDD_1",
-        aliases: ["xediendung", "xedien1"],
-        password: "123456",
-        name: "NV Xe Điện Đụng 1",
-        role: "NV Vận hành",
-        assignedGame: "XE_DIEN_DUNG_1",
-        assignedSubArea: "",
-        isAdmin: false
-      },
-      {
-        username: "xediendung2",
-        code: "XDD_2",
-        aliases: ["xedien2"],
-        password: "123456",
-        name: "NV Xe Điện Đụng 2",
-        role: "NV Vận hành",
-        assignedGame: "XE_DIEN_DUNG_2",
-        assignedSubArea: "",
-        isAdmin: false
-      },
-      {
-        username: "jurassic",
-        code: "JURASSIC",
-        aliases: ["khunglong"],
-        password: "123456",
-        name: "NV Jurassic",
-        role: "NV Vận hành",
-        assignedGame: "JURASSIC",
-        assignedSubArea: "",
-        isAdmin: false
-      },
-      {
-        username: "rap4d",
-        code: "RAP_4D",
-        aliases: ["4d"],
-        password: "123456",
-        name: "NV Rạp 4D",
-        role: "NV Vận hành",
-        assignedGame: "RAP_4D",
-        assignedSubArea: "",
-        isAdmin: false
-      },
-      {
-        username: "rap5d",
-        code: "RAP_5D",
-        aliases: ["5d"],
-        password: "123456",
-        name: "NV Rạp 5D",
-        role: "NV Vận hành",
-        assignedGame: "RAP_5D",
-        assignedSubArea: "",
-        isAdmin: false
-      },
-      {
-        username: "khurungthantien",
-        code: "KR_TT",
-        aliases: ["thantien", "rungthantien"],
-        password: "123456",
-        name: "NV Khu Rừng Thần Tiên",
-        role: "NV Vận hành",
-        assignedGame: "KHU_RUNG_THAN_TIEN",
-        assignedSubArea: "",
-        isAdmin: false
-      },
-      {
-        username: "kidsworld",
-        code: "KIDS_WORLD",
-        aliases: ["treem", "kidworld"],
-        password: "123456",
-        name: "NV Kids World",
-        role: "NV Vận hành",
-        assignedGame: "KIDS_WORLD",
-        assignedSubArea: "",
-        isAdmin: false
-      },
-      {
-        username: "rap3d",
-        code: "RAP_3D",
-        aliases: ["3d"],
-        password: "123456",
-        name: "NV Rạp 3D",
-        role: "NV Vận hành",
-        assignedGame: "RAP_3D",
-        assignedSubArea: "",
-        isAdmin: false
-      },
-      {
-        username: "thaproi",
-        code: "THAP_ROI",
-        aliases: ["droptower"],
-        password: "123456",
-        name: "NV Tháp Rơi",
-        role: "NV Vận hành",
-        assignedGame: "THAP_ROI",
-        assignedSubArea: "",
-        isAdmin: false
-      },
-      {
-        username: "thamhiemlongdat",
-        code: "TH_LD",
-        aliases: ["longdat", "thamhiem"],
-        password: "123456",
-        name: "NV Thám Hiểm Lòng Đất",
-        role: "NV Vận hành",
-        assignedGame: "THAM_HIEM_LONG_DAT",
-        assignedSubArea: "",
-        isAdmin: false
-      },
-      {
-        username: "leonui",
-        code: "LEO_NUI",
-        aliases: ["climbing"],
-        password: "123456",
-        name: "NV Leo Núi",
-        role: "NV Vận hành",
-        assignedGame: "LEO_NUI",
-        assignedSubArea: "",
-        isAdmin: false
-      },
-      {
-        username: "carousel",
-        code: "CAROUSEL",
-        aliases: ["duquay", "nguago"],
-        password: "123456",
-        name: "NV Carousel (Đu Quay)",
-        role: "NV Vận hành",
-        assignedGame: "CAROUSEL",
-        assignedSubArea: "",
-        isAdmin: false
-      },
-      {
-        username: "swing",
-        code: "SWING",
-        aliases: ["duquaybay"],
-        password: "123456",
-        name: "NV Swing",
-        role: "NV Vận hành",
-        assignedGame: "SWING",
-        assignedSubArea: "",
-        isAdmin: false
-      },
-      {
-        username: "hops",
-        code: "HOPS",
-        aliases: ["nhunhay"],
-        password: "123456",
-        name: "NV Hops",
-        role: "NV Vận hành",
-        assignedGame: "HOPS",
-        assignedSubArea: "",
-        isAdmin: false
-      },
-      {
-        username: "hits",
-        code: "HITS",
-        aliases: ["dapbua"],
-        password: "123456",
-        name: "NV Hits",
-        role: "NV Vận hành",
-        assignedGame: "HITS",
-        assignedSubArea: "",
-        isAdmin: false
-      },
-      {
-        username: "rapgiaolotrang",
-        code: "GL_TRANG",
-        aliases: ["giaolotrang"],
-        password: "123456",
-        name: "NV Rạp Giao Lộ Trăng",
-        role: "NV Vận hành",
-        assignedGame: "GIAO_LO_TRANG",
-        assignedSubArea: "",
-        isAdmin: false
-      },
-      {
-        username: "coixaygio",
-        code: "COI_XAY_GIO",
-        aliases: ["coixay"],
-        password: "123456",
-        name: "NV Cối Xay Gió",
-        role: "NV Vận hành",
-        assignedGame: "COI_XAY_GIO",
-        assignedSubArea: "",
-        isAdmin: false
-      },
-      {
-        username: "dino",
-        code: "DINO",
-        aliases: ["khunglongcon"],
-        password: "123456",
-        name: "NV Dino",
-        role: "NV Vận hành",
-        assignedGame: "DINO",
-        assignedSubArea: "",
-        isAdmin: false
-      },
-      {
-        username: "happy",
-        code: "HAPPY",
-        aliases: ["vui"],
-        password: "123456",
-        name: "NV Happy",
-        role: "NV Vận hành",
-        assignedGame: "HAPPY",
-        assignedSubArea: "",
-        isAdmin: false
-      },
-      {
-        username: "nhaphao",
-        code: "NHA_PHAO",
-        aliases: ["phao"],
-        password: "123456",
-        name: "NV Nhà Phao",
-        role: "NV Vận hành",
-        assignedGame: "NHA_PHAO",
-        assignedSubArea: "",
-        isAdmin: false
-      }
-    ];
-
-    function normalizeAccountInput(str) {
-      if (!str) return "";
-      return String(str).toLowerCase()
-        .normalize("NFD").replace(/[\u0300-\u036f]/g, "")
-        .replace(/đ/g, "d")
-        .replace(/[^a-z0-9]/g, "");
-    }
-
-    function findGameAccount(input) {
-      if (!input) return null;
-      const raw = String(input).trim().toLowerCase();
-      const normalized = normalizeAccountInput(raw);
-
-      return GAME_ACCOUNTS.find(acc => {
-        if (acc.username.toLowerCase() === raw || acc.username === normalized) return true;
-        if (acc.code.toLowerCase() === raw || normalizeAccountInput(acc.code) === normalized) return true;
-        if (acc.aliases && acc.aliases.some(alias => alias.toLowerCase() === raw || normalizeAccountInput(alias) === normalized)) return true;
-        if (acc.name.toLowerCase() === raw || normalizeAccountInput(acc.name) === normalized) return true;
-        return false;
-      }) || null;
-    }
-
-    // Hệ thống Đăng nhập tài khoản (Mặc định kích hoạt tài khoản Admin)
+    // Hệ thống Đăng nhập tài khoản (Mặc định tài khoản Super Admin)
     let currentUserAccount = {
-      username: "admin",
       code: "ADMIN01",
       email: "laotuung@gmail.com",
       name: "Ứng Lão (Admin Toàn Khu)",
       role: "Admin Hệ Thống (Toàn Quyền)",
       assignedGame: "ALL",
-      assignedSubArea: "",
       isAdmin: true
     };
 
@@ -4652,420 +4168,18 @@ function doGet(e) {
       if (badgeTextEl) {
         badgeTextEl.textContent = currentUserAccount.isAdmin
           ? `ADMIN • ${currentUserAccount.email || "laotuung@gmail.com"}`
-          : `${currentUserAccount.code || currentUserAccount.username} • ${currentUserAccount.name}`;
+          : `${currentUserAccount.code} • ${currentUserAccount.name}`;
       }
       if (nameEl) nameEl.textContent = currentUserAccount.name;
-      if (roleEl) roleEl.textContent = `${currentUserAccount.role} • ${currentUserAccount.code || currentUserAccount.username}`;
+      if (roleEl) roleEl.textContent = `${currentUserAccount.role}`;
       if (btnEl) {
         btnEl.title = currentUserAccount.isAdmin
           ? `Tài khoản Admin: ${currentUserAccount.email} (Toàn quyền 25 trò chơi)`
-          : `Nhân viên: ${currentUserAccount.name} (${currentUserAccount.code || currentUserAccount.username})`;
+          : `Nhân viên: ${currentUserAccount.name}`;
       }
     }
-
-    function applyAccountPrivileges() {
-      const gameSel = document.getElementById("gameSelect");
-      const staffName = document.getElementById("staffName");
-
-      if (!currentUserAccount) return;
-
-      if (currentUserAccount.isAdmin) {
-        if (gameSel) gameSel.disabled = false;
-        renderSubAreaSelector();
-        return;
-      }
-
-      // Tài khoản trò chơi (Operator): Tự động cố định trò chơi và vị trí Line/Rạp
-      if (currentUserAccount.assignedGame && currentUserAccount.assignedGame !== "ALL") {
-        if (gameSel) {
-          gameSel.value = currentUserAccount.assignedGame;
-          gameSel.disabled = true; // Khóa không cho đổi sang trò khác
-        }
-
-        // Tự động gán vị trí Line / Rạp cố định theo tài khoản
-        if (currentUserAccount.assignedSubArea) {
-          selectedSubAreaByGame[currentUserAccount.assignedGame] = currentUserAccount.assignedSubArea;
-        }
-
-        const rec = appStore.games[currentUserAccount.assignedGame];
-        if (rec) {
-          rec.staffCode = currentUserAccount.code || currentUserAccount.username;
-          if (currentUserAccount.name && (!rec.staff || rec.staff.includes("Admin") || rec.staff.startsWith("NV "))) {
-            rec.staff = currentUserAccount.name;
-          }
-          rec.staffRole = currentUserAccount.role;
-        }
-        if (staffName && currentUserAccount.name && (!staffName.value || staffName.value.includes("Admin"))) {
-          staffName.value = currentUserAccount.name;
-        }
-
-        onGameChange();
-      }
-    }
-
-    function loginWithAdminGmail(gmailAddress) {
-      const targetEmail = (gmailAddress || "laotuung@gmail.com").trim().toLowerCase();
-      const adminAcc = GAME_ACCOUNTS.find(a => a.isAdmin) || {
-        username: "admin",
-        code: "ADMIN01",
-        password: "123456",
-        name: "Ứng Lão (Admin Toàn Khu)",
-        role: "Admin Hệ Thống (Toàn Quyền)",
-        assignedGame: "ALL",
-        assignedSubArea: "",
-        isAdmin: true
-      };
-
-      document.getElementById("loginUserCode").value = adminAcc.username;
-      document.getElementById("loginPassword").value = adminAcc.password;
-      document.getElementById("loginFullName").value = adminAcc.name;
-      const qSel = document.getElementById("loginQuickUserSelect");
-      if (qSel) qSel.value = adminAcc.username;
-
-      submitUserLogin();
-      showAppToast(`✓ Đã đăng nhập quyền Admin Toàn Khu (${targetEmail})!`);
-    }
-
-    function onQuickUserSelectChange() {
-      const qSel = document.getElementById("loginQuickUserSelect");
-      if (!qSel) return;
-      const acc = GAME_ACCOUNTS.find(a => a.username === qSel.value || a.code === qSel.value);
-      if (!acc) return;
-
-      document.getElementById("loginUserCode").value = acc.username;
-      document.getElementById("loginPassword").value = acc.password || "123456";
-      document.getElementById("loginFullName").value = acc.name;
-      const emailEl = document.getElementById("loginGmailInput");
-      if (emailEl) emailEl.value = acc.isAdmin ? "laotuung@gmail.com" : `${acc.username}@sunworld.vn`;
-      const roleSel = document.getElementById("loginRoleSelect");
-      if (roleSel) roleSel.value = acc.role;
-      const gameSel = document.getElementById("loginAssignedGame");
-      if (gameSel) gameSel.value = acc.assignedGame;
-    }
-
-    let currentHubTabByPrefix = { modal: "all", gate: "all" };
-
-    function getAccountsHubMarkup(prefix = "modal", isGate = false) {
-      return `
-        <div class="accounts-hub-card" onclick="event.stopPropagation()">
-          <!-- Header Bar -->
-          <div class="accounts-hub-header">
-            <div>
-              <div style="display:flex;align-items:center;gap:8px;margin-bottom:4px;flex-wrap:wrap;">
-                <span class="hub-brand-pill">SUN WORLD OPERATIONS</span>
-                <span class="hub-pwd-pill">Mật khẩu chung cho tất cả tài khoản: <strong>123456</strong></span>
-              </div>
-              <h2 class="hub-main-title">GIAO DIỆN CHỌN TÀI KHOẢN VẬN HÀNH</h2>
-              <p class="hub-sub-title">Chạm vào trò chơi để vào ca làm việc ngay • Hệ thống tự động khóa trò chơi & vị trí Line / Rạp</p>
-            </div>
-            <div style="display:flex;gap:8px;align-items:center;">
-              ${!isGate ? `<button type="button" class="del-btn" style="font-size:1.3rem;width:34px;height:34px;display:flex;align-items:center;justify-content:center;border-radius:8px;" onclick="closeLoginModal()">✕</button>` : ''}
-            </div>
-          </div>
-
-          <!-- Controls & Search Toolbar -->
-          <div class="accounts-hub-toolbar">
-            <div class="hub-inputs-grid">
-              <div class="field-group" style="margin:0;">
-                <label class="field-label" style="font-size:0.72rem;" for="${prefix}_staffName">👤 Họ và tên nhân viên trực ca hôm nay</label>
-                <input type="text" id="${prefix}_staffName" placeholder="Nhập họ và tên nhân viên (VD: Nguyễn Văn An)..." style="padding:8px 12px;font-size:0.82rem;" />
-              </div>
-              <div class="field-group" style="margin:0;">
-                <label class="field-label" style="font-size:0.72rem;" for="${prefix}_search">🔍 Tìm nhanh trò chơi / tài khoản / Line</label>
-                <input type="text" id="${prefix}_search" oninput="filterAccountsHubUI('${prefix}')" placeholder="Gõ: mangtruot, line 1, rap 4d, airship, admin..." style="padding:8px 12px;font-size:0.82rem;" />
-              </div>
-            </div>
-
-            <!-- Filter Tabs -->
-            <div id="${prefix}_tabs" class="hub-tabs-scroll">
-              <button type="button" class="hub-tab-btn active" data-tab="all" onclick="selectHubTab('${prefix}', 'all')">Tất cả (30 tài khoản)</button>
-              <button type="button" class="hub-tab-btn" data-tab="admin" onclick="selectHubTab('${prefix}', 'admin')">👑 Admin Toàn Khu</button>
-              <button type="button" class="hub-tab-btn" data-tab="mangtruot" onclick="selectHubTab('${prefix}', 'mangtruot')">🛷 Máng Trượt (6 Line)</button>
-              <button type="button" class="hub-tab-btn" data-tab="airship" onclick="selectHubTab('${prefix}', 'airship')">🛸 Rạp Mắt Bay (2 Rạp)</button>
-              <button type="button" class="hub-tab-btn" data-tab="other" onclick="selectHubTab('${prefix}', 'other')">🎡 21 Trò Chơi Khác</button>
-            </div>
-          </div>
-
-          <!-- Cards Grid -->
-          <div id="${prefix}_grid" class="accounts-cards-grid"></div>
-
-          <!-- Manual Login Collapsible Section -->
-          <div style="padding:10px 20px;border-top:1px solid var(--border);background:var(--surface);">
-            <div style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:8px;">
-              <button type="button" class="btn btn-outline" style="font-size:0.72rem;padding:4px 10px;" onclick="toggleManualLogin('${prefix}')">
-                ⌨ Đăng nhập thủ công bằng Tên đăng nhập & Mật khẩu ▾
-              </button>
-              <button type="button" class="btn btn-outline" style="font-size:0.72rem;padding:4px 10px;" onclick="exportAllGamesCSV()">
-                Xuất dữ liệu toàn khu (.CSV)
-              </button>
-            </div>
-            <div id="${prefix}_manualForm" style="display:none;margin-top:10px;padding:12px;background:var(--surface-2);border-radius:10px;border:1px solid var(--border);">
-              <div style="display:grid;grid-template-columns:repeat(auto-fit, minmax(180px, 1fr));gap:8px;">
-                <div class="field-group" style="margin:0;">
-                  <label class="field-label" style="font-size:0.7rem;">Tên đăng nhập (không dấu)</label>
-                  <input type="text" id="${prefix}_manualUserCode" placeholder="VD: mangtruot1, jurassic..." value="mangtruot1" style="font-size:0.8rem;padding:6px 10px;" />
-                </div>
-                <div class="field-group" style="margin:0;">
-                  <label class="field-label" style="font-size:0.7rem;">Mật khẩu</label>
-                  <input type="password" id="${prefix}_manualPassword" placeholder="Mật khẩu: 123456" value="123456" style="font-size:0.8rem;padding:6px 10px;" />
-                </div>
-                <div style="display:flex;align-items:flex-end;">
-                  <button type="button" class="btn btn-primary" style="width:100%;padding:7px;font-size:0.8rem;justify-content:center;" onclick="submitManualLoginFromHub('${prefix}')">
-                    Đăng nhập thủ công
-                  </button>
-                </div>
-              </div>
-            </div>
-          </div>
-
-          <!-- Footer Bar -->
-          <div class="accounts-hub-footer">
-            <div style="display:flex;align-items:center;gap:10px;flex-wrap:wrap;">
-              <button type="button" class="btn btn-outline" style="font-size:0.74rem;padding:6px 12px;" onclick="triggerGoogleSignInFromHub()">
-                <svg width="14" height="14" viewBox="0 0 24 24" style="margin-right:4px;"><path fill="#EA4335" d="M12 5c1.6 0 3 .6 4.1 1.6l3.1-3.1C17.3 1.7 14.8 1 12 1 7.5 1 3.7 3.6 1.9 7.3l3.7 2.9C6.5 7.4 9 5 12 5z"/><path fill="#4285F4" d="M23.5 12.3c0-.8-.1-1.6-.2-2.3H12v4.5h6.5c-.3 1.5-1.1 2.8-2.4 3.7l3.7 2.9c2.2-2 3.7-5 3.7-8.8z"/><path fill="#FBBC05" d="M5.6 14.8c-.2-.7-.4-1.5-.4-2.8s.2-2.1.4-2.8L1.9 6.3C.7 8.7 0 10.8 0 12s.7 3.3 1.9 5.7l3.7-2.9z"/><path fill="#34A853" d="M12 23c3.2 0 6-1.1 8-3l-3.7-2.9c-1.1.7-2.5 1.2-4.3 1.2-3 0-5.5-2-6.4-4.8L1.9 16.4C3.7 20.4 7.5 23 12 23z"/></svg>
-                Đăng nhập Google (Admin)
-              </button>
-              <span style="font-size:0.72rem;color:var(--text-muted);">
-                ✓ Tài khoản trò chơi tự động khóa Line/Rạp • Nhân viên chỉ cần chọn ngày và ghi tên.
-              </span>
-            </div>
-            <div style="display:flex;gap:8px;">
-              ${!isGate ? `<button type="button" class="btn btn-outline" onclick="closeLoginModal()">Đóng</button>` : ''}
-            </div>
-          </div>
-        </div>
-      `;
-    }
-
-    function initAccountsHub(prefix = "modal") {
-      currentHubTabByPrefix[prefix] = "all";
-      renderAccountsGrid(prefix, "all", "");
-    }
-
-    function selectHubTab(prefix, tabName) {
-      currentHubTabByPrefix[prefix] = tabName;
-      const tabContainer = document.getElementById(`${prefix}_tabs`);
-      if (tabContainer) {
-        tabContainer.querySelectorAll(".hub-tab-btn").forEach(btn => {
-          btn.classList.toggle("active", btn.getAttribute("data-tab") === tabName);
-        });
-      }
-      const searchInput = document.getElementById(`${prefix}_search`);
-      const searchVal = searchInput ? searchInput.value.trim() : "";
-      renderAccountsGrid(prefix, tabName, searchVal);
-    }
-
-    function filterAccountsHubUI(prefix) {
-      const searchInput = document.getElementById(`${prefix}_search`);
-      const searchVal = searchInput ? searchInput.value.trim() : "";
-      const currentTab = currentHubTabByPrefix[prefix] || "all";
-      renderAccountsGrid(prefix, currentTab, searchVal);
-    }
-
-    function toggleManualLogin(prefix) {
-      const form = document.getElementById(`${prefix}_manualForm`);
-      if (!form) return;
-      form.style.display = form.style.display === "none" ? "block" : "none";
-    }
-
-    function submitManualLoginFromHub(prefix) {
-      const uEl = document.getElementById(`${prefix}_manualUserCode`);
-      const pEl = document.getElementById(`${prefix}_manualPassword`);
-      const uVal = uEl ? uEl.value.trim() : "";
-      const pVal = pEl ? pEl.value.trim() : "";
-      if (!uVal) {
-        showAppToast("Vui lòng nhập tên đăng nhập!");
-        return;
-      }
-      if (pVal && pVal !== "123456") {
-        showAppToast("Sai mật khẩu! Mật khẩu là: 123456");
-        return;
-      }
-      quickLoginWithAccount(uVal, prefix);
-    }
-
-    function renderAccountsGrid(prefix, tabFilter = "all", searchQuery = "") {
-      const container = document.getElementById(`${prefix}_grid`);
-      if (!container) return;
-
-      const q = normalizeAccountInput(searchQuery || "");
-      let list = GAME_ACCOUNTS;
-
-      if (tabFilter === "admin") {
-        list = list.filter(a => a.isAdmin);
-      } else if (tabFilter === "mangtruot") {
-        list = list.filter(a => a.assignedGame.startsWith("MANG_TRUOT"));
-      } else if (tabFilter === "airship") {
-        list = list.filter(a => a.assignedGame === "AIRSHIP");
-      } else if (tabFilter === "other") {
-        list = list.filter(a => !a.isAdmin && !a.assignedGame.startsWith("MANG_TRUOT") && a.assignedGame !== "AIRSHIP");
-      }
-
-      if (q) {
-        list = list.filter(a => {
-          if (a.username.includes(q) || normalizeAccountInput(a.username).includes(q)) return true;
-          if (normalizeAccountInput(a.name).includes(q)) return true;
-          if (a.assignedSubArea && normalizeAccountInput(a.assignedSubArea).includes(q)) return true;
-          if (a.aliases && a.aliases.some(al => normalizeAccountInput(al).includes(q))) return true;
-          const g = ALL_GAMES.find(g => g.id === a.assignedGame);
-          if (g && normalizeAccountInput(g.name).includes(q)) return true;
-          return false;
-        });
-      }
-
-      if (list.length === 0) {
-        container.innerHTML = `
-          <div style="grid-column: 1 / -1; padding: 40px 20px; text-align: center; color: var(--text-muted);">
-            <div style="font-size: 2.2rem; margin-bottom: 8px;">🔍</div>
-            <div style="font-size: 0.95rem; font-weight: 700; color: var(--text);">Không tìm thấy tài khoản phù hợp</div>
-            <div style="font-size: 0.78rem; margin-top: 4px;">Thử gõ từ khóa khác như "mangtruot", "line 1", "rap 4d", "airship"...</div>
-          </div>
-        `;
-        return;
-      }
-
-      container.innerHTML = list.map(acc => {
-        let categoryBadge = "";
-        let borderAccent = "var(--border)";
-        let icon = "🎮";
-        let locationPill = "";
-
-        if (acc.isAdmin) {
-          icon = "👑";
-          borderAccent = "#C0262D";
-          categoryBadge = `<span style="font-size:0.68rem;font-weight:800;background:rgba(192,38,45,0.14);color:#C0262D;padding:2px 8px;border-radius:999px;">QUYỀN ADMIN TOÀN KHU</span>`;
-        } else if (acc.assignedGame.startsWith("MANG_TRUOT")) {
-          icon = "🛷";
-          borderAccent = "#ea580c";
-          categoryBadge = `<span style="font-size:0.68rem;font-weight:700;background:rgba(234,88,12,0.14);color:#ea580c;padding:2px 8px;border-radius:999px;">MÁNG TRƯỢT</span>`;
-          if (acc.assignedSubArea) {
-            locationPill = `<span style="font-size:0.72rem;font-weight:800;background:#ea580c;color:#fff;padding:2px 8px;border-radius:6px;">${acc.assignedSubArea}</span>`;
-          }
-        } else if (acc.assignedGame === "AIRSHIP") {
-          icon = "🛸";
-          borderAccent = "#059669";
-          categoryBadge = `<span style="font-size:0.68rem;font-weight:700;background:rgba(5,150,105,0.14);color:#059669;padding:2px 8px;border-radius:999px;">RẠP MẮT BAY</span>`;
-          if (acc.assignedSubArea) {
-            locationPill = `<span style="font-size:0.72rem;font-weight:800;background:#059669;color:#fff;padding:2px 8px;border-radius:6px;">${acc.assignedSubArea}</span>`;
-          }
-        } else {
-          categoryBadge = `<span style="font-size:0.68rem;font-weight:700;background:var(--surface-2);color:var(--text-muted);padding:2px 8px;border-radius:999px;">TRÒ CHƠI</span>`;
-        }
-
-        const gObj = ALL_GAMES.find(g => g.id === acc.assignedGame);
-        const gameTitle = acc.isAdmin ? "Toàn Bộ 25 Trò Chơi (Admin)" : (gObj ? gObj.name : acc.name);
-
-        return `
-          <div class="hub-card" onclick="quickLoginWithAccount('${acc.username}', '${prefix}')" style="border-color:${borderAccent};">
-            <div>
-              <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px;">
-                <div style="display:flex;align-items:center;gap:6px;">
-                  <span style="font-size:1.15rem;">${icon}</span>
-                  ${categoryBadge}
-                </div>
-                ${locationPill}
-              </div>
-
-              <div style="font-size:0.95rem;font-weight:800;color:var(--text);line-height:1.3;margin-bottom:6px;">
-                ${acc.name}
-              </div>
-
-              <div style="font-size:0.74rem;color:var(--text-muted);margin-bottom:4px;">
-                Trò chơi: <strong style="color:var(--text);">${gameTitle}</strong>
-              </div>
-              ${acc.assignedSubArea ? `<div style="font-size:0.72rem;color:#C0262D;font-weight:700;">★ Cố định vị trí: ${acc.assignedSubArea}</div>` : ""}
-            </div>
-
-            <div style="background:var(--surface-2);border-radius:8px;padding:8px 10px;font-size:0.73rem;display:flex;justify-content:space-between;align-items:center;">
-              <div>
-                <div style="color:var(--text-muted);font-size:0.68rem;">TÊN ĐĂNG NHẬP</div>
-                <code style="font-size:0.84rem;font-weight:800;color:var(--text);">${acc.username}</code>
-              </div>
-              <div style="text-align:right;">
-                <div style="color:var(--text-muted);font-size:0.68rem;">MẬT KHẨU</div>
-                <code style="font-size:0.84rem;font-weight:800;color:#15803d;">123456</code>
-              </div>
-            </div>
-
-            <button type="button" class="btn ${acc.isAdmin ? 'btn-primary' : 'btn-outline'}" style="justify-content:center;font-size:0.78rem;font-weight:700;padding:8px;" onclick="event.stopPropagation();quickLoginWithAccount('${acc.username}', '${prefix}');">
-              ${acc.isAdmin ? 'Đăng Nhập Admin Toàn Khu ➜' : (acc.assignedSubArea ? `Vào Ca ${acc.assignedSubArea} ➜` : 'Vào Ca Vận Hành ➜')}
-            </button>
-          </div>
-        `;
-      }).join("");
-    }
-
-    function quickLoginWithAccount(username, prefix = "modal") {
-      const acc = findGameAccount(username);
-      if (!acc) return;
-
-      const staffInput = document.getElementById(`${prefix}_staffName`);
-      const staffVal = (staffInput && staffInput.value.trim()) ? staffInput.value.trim() : "";
-      const finalStaffName = staffVal || acc.name;
-
-      currentUserAccount = {
-        code: acc.code,
-        username: acc.username,
-        email: acc.isAdmin ? "laotuung@gmail.com" : `${acc.username}@sunworld.vn`,
-        name: finalStaffName,
-        role: acc.role,
-        assignedGame: acc.assignedGame,
-        assignedSubArea: acc.assignedSubArea || "",
-        isAdmin: !!acc.isAdmin
-      };
-
-      updateHeaderUserBadgeUI();
-      safeSetStorage("SUNWORLD_ACTIVE_USER_ACCOUNT", JSON.stringify(currentUserAccount));
-
-      applyAccountPrivileges();
-      saveCurrentState();
-
-      const modalBackdrop = document.getElementById("loginModalBackdrop");
-      if (modalBackdrop) modalBackdrop.classList.remove("open");
-      const gateEl = document.getElementById("fbAuthGate");
-      if (gateEl) gateEl.style.display = "none";
-
-      const locInfo = acc.isAdmin ? "Toàn khu (Admin Toàn Quyền)" : (acc.assignedSubArea ? `${acc.assignedGame} - ${acc.assignedSubArea}` : acc.assignedGame);
-      showAppToast(`✓ Đã vào ca: ${currentUserAccount.name} (${locInfo}). Mời chọn ngày và ghi số liệu!`);
-      pushNotification(
-        acc.isAdmin
-          ? `★ Tài khoản Admin (${currentUserAccount.name}) đã đăng nhập toàn quyền 25 trò chơi.`
-          : `✓ Nhân viên ${currentUserAccount.name} đã vào ca trực tại ${locInfo}.`
-      );
-    }
-
-    function triggerGoogleSignInFromHub() {
-      if (window.SWFirebase && window.SWFirebase.signInGoogle) {
-        window.SWFirebase.signInGoogle();
-      } else {
-        const btn = document.getElementById("fbGateSignIn");
-        if (btn) btn.click();
-        else showAppToast("Tính năng Google Sign-In chỉ hoạt động khi cấu hình Firebase.");
-      }
-    }
-
-    // Gắn các hàm Hub lên window để firebase-auth.js có thể truy cập dùng chung
-    window.GAME_ACCOUNTS = GAME_ACCOUNTS;
-    window.getAccountsHubMarkup = getAccountsHubMarkup;
-    window.initAccountsHub = initAccountsHub;
-    window.selectHubTab = selectHubTab;
-    window.filterAccountsHubUI = filterAccountsHubUI;
-    window.renderAccountsGrid = renderAccountsGrid;
-    window.quickLoginWithAccount = quickLoginWithAccount;
-    window.triggerGoogleSignInFromHub = triggerGoogleSignInFromHub;
 
     function openLoginModal() {
-      const container = document.getElementById("modalAccountsHubContainer");
-      if (container) {
-        if (!container.innerHTML.trim() || !container.querySelector(".accounts-hub-card")) {
-          container.innerHTML = getAccountsHubMarkup("modal", false);
-        }
-        initAccountsHub("modal");
-        const staffEl = document.getElementById("modal_staffName");
-        if (staffEl && currentUserAccount.name && !currentUserAccount.name.includes("Admin") && !currentUserAccount.name.startsWith("NV ")) {
-          staffEl.value = currentUserAccount.name;
-        }
-      }
       document.getElementById("loginModalBackdrop").classList.add("open");
     }
 
@@ -5074,8 +4188,19 @@ function doGet(e) {
       document.getElementById("loginModalBackdrop").classList.remove("open");
     }
 
-    function submitUserLogin() {
-      quickLoginWithAccount(document.getElementById("loginUserCode") ? document.getElementById("loginUserCode").value : "admin", "modal");
+    function applyAccountPrivileges() {
+      const gameSel = document.getElementById("gameSelect");
+      if (!currentUserAccount) return;
+      if (currentUserAccount.isAdmin) {
+        if (gameSel) gameSel.disabled = false;
+        renderSubAreaSelector();
+      } else if (currentUserAccount.assignedGame && currentUserAccount.assignedGame !== "ALL") {
+        if (gameSel) {
+          gameSel.value = currentUserAccount.assignedGame;
+          gameSel.disabled = true;
+        }
+        onGameChange();
+      }
     }
 
     function initTimeSelectDropdowns() {
@@ -5122,33 +4247,6 @@ function doGet(e) {
 
       const gameOptionsHtml = document.getElementById("gameSelect").innerHTML;
       document.getElementById("dashGameSelect").innerHTML = gameOptionsHtml;
-      document.getElementById("loginAssignedGame").innerHTML =
-        `<option value="ALL">★ TOÀN BỘ 25 TRÒ CHƠI (QUYỀN ADMIN TOÀN KHU)</option>` + gameOptionsHtml;
-
-      const qSel = document.getElementById("loginQuickUserSelect");
-      if (qSel) {
-        const adminOpts = GAME_ACCOUNTS.filter(a => a.isAdmin).map(a =>
-          `<option value="${a.username}">★ ${a.name} (Tên đăng nhập: ${a.username} • MK: 123456)</option>`
-        ).join("");
-
-        const mangTruotOpts = GAME_ACCOUNTS.filter(a => a.assignedGame.startsWith("MANG_TRUOT")).map(a =>
-          `<option value="${a.username}">${a.name} — ${a.assignedSubArea} (user: ${a.username})</option>`
-        ).join("");
-
-        const airshipOpts = GAME_ACCOUNTS.filter(a => a.assignedGame === "AIRSHIP").map(a =>
-          `<option value="${a.username}">${a.name} — ${a.assignedSubArea} (user: ${a.username})</option>`
-        ).join("");
-
-        const otherOpts = GAME_ACCOUNTS.filter(a => !a.isAdmin && !a.assignedGame.startsWith("MANG_TRUOT") && a.assignedGame !== "AIRSHIP").map(a =>
-          `<option value="${a.username}">${a.name} (user: ${a.username})</option>`
-        ).join("");
-
-        qSel.innerHTML =
-          `<optgroup label="TÀI KHOẢN ADMIN TOÀN QUYỀN (MK: 123456)">${adminOpts}</optgroup>` +
-          `<optgroup label="MÁNG TRƯỢT (6 VỊ TRÍ - LINE 1 ĐẾN LINE 6)">${mangTruotOpts}</optgroup>` +
-          `<optgroup label="AIRSHIP - RẠP MẮT BAY (2 RẠP)">${airshipOpts}</optgroup>` +
-          `<optgroup label="CÁC TRÒ CHƠI KHÁC (MK: 123456)">${otherOpts}</optgroup>`;
-      }
       updateHeaderUserBadgeUI();
     }
 
@@ -7463,7 +6561,11 @@ function doGet(e) {
       autoDetectDeviceFormat();
       try {
         const savedAcc = JSON.parse(safeGetStorage("SUNWORLD_ACTIVE_USER_ACCOUNT") || "null");
-        if (savedAcc && (savedAcc.username || savedAcc.code)) currentUserAccount = savedAcc;
+        if (savedAcc && savedAcc.code && savedAcc.isAdmin) {
+          currentUserAccount = savedAcc;
+        } else if (savedAcc && !savedAcc.isAdmin) {
+          safeRemoveStorage("SUNWORLD_ACTIVE_USER_ACCOUNT");
+        }
       } catch (e) {}
       initTimeSelectDropdowns();
       initDefaultDemoIfEmpty();
