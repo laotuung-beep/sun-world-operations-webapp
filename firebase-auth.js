@@ -43,16 +43,33 @@ if (cfg.apiKey) {
   gate.id = "fbAuthGate";
   gate.style.cssText = "position:fixed;inset:0;z-index:2000;background:var(--bg,#0f172a);display:flex;align-items:center;justify-content:center;padding:16px;";
   gate.innerHTML = `
-    <div class="login-modal-card" style="max-width:400px;text-align:center;">
+    <div class="login-modal-card" style="max-width:440px;text-align:center;display:flex;flex-direction:column;gap:12px;">
       <div style="font-size:1.05rem;font-weight:800;color:#C0262D;">SUN WORLD — VẬN HÀNH TRÒ CHƠI</div>
-      <div id="fbGateMsg" style="font-size:0.82rem;color:var(--text-muted);">Đang kiểm tra phiên đăng nhập...</div>
-      <button type="button" id="fbGateSignIn" class="btn btn-primary" style="justify-content:center;display:none;">Đăng nhập bằng Google</button>
+      <div id="fbGateMsg" style="font-size:0.82rem;color:var(--text-muted);">Vui lòng đăng nhập tài khoản trò chơi hoặc quản trị viên Google để tiếp tục.</div>
+      <button type="button" id="fbGateGameLogin" class="btn btn-primary" style="justify-content:center;padding:10px 14px;font-weight:700;font-size:0.85rem;">
+        Đăng nhập Tài khoản Trò chơi (Mật khẩu: 123456)
+      </button>
+      <div style="display:flex;align-items:center;gap:8px;margin:2px 0;">
+        <div style="flex:1;height:1px;background:var(--border);"></div>
+        <span style="font-size:0.72rem;color:var(--text-muted);text-transform:uppercase;">Hoặc qua Google</span>
+        <div style="flex:1;height:1px;background:var(--border);"></div>
+      </div>
+      <button type="button" id="fbGateSignIn" class="btn btn-outline" style="justify-content:center;display:none;">Đăng nhập bằng Google</button>
       <button type="button" id="fbGateSignOut" class="btn btn-outline" style="justify-content:center;display:none;">Đăng xuất / Đổi tài khoản</button>
     </div>`;
   document.body.appendChild(gate);
   const gateMsg = gate.querySelector("#fbGateMsg");
   const gateIn = gate.querySelector("#fbGateSignIn");
   const gateOut = gate.querySelector("#fbGateSignOut");
+  const gateGameBtn = gate.querySelector("#fbGateGameLogin");
+
+  if (gateGameBtn) {
+    gateGameBtn.onclick = () => {
+      gate.style.display = "none";
+      if (typeof openLoginModal === "function") openLoginModal();
+    };
+  }
+
   gateIn.onclick = () => signInWithPopup(auth, provider).catch(err => {
     gateMsg.textContent = "Đăng nhập thất bại: " + (err.code || err.message);
   });
@@ -63,6 +80,7 @@ if (cfg.apiKey) {
     gateMsg.innerHTML = msg;
     gateIn.style.display = signIn ? "flex" : "none";
     gateOut.style.display = signOutBtn ? "flex" : "none";
+    if (gateGameBtn) gateGameBtn.style.display = "flex";
   }
   function hideGate() { gate.style.display = "none"; }
 
@@ -70,11 +88,9 @@ if (cfg.apiKey) {
   function setupAccountModal() {
     const card = document.querySelector("#loginModalBackdrop .login-modal-card");
     if (!card || card.querySelector("#fbAccountPanel")) return;
-    // Ẩn toàn bộ form đăng nhập nội bộ cũ (không an toàn) — giữ lại thanh tiêu đề
-    Array.from(card.children).forEach((el, i) => { if (i > 0) el.style.display = "none"; });
     const panel = document.createElement("div");
     panel.id = "fbAccountPanel";
-    panel.style.cssText = "display:flex;flex-direction:column;gap:10px;";
+    panel.style.cssText = "display:flex;flex-direction:column;gap:10px;margin-top:12px;border-top:1px dashed var(--border);padding-top:12px;";
     card.appendChild(panel);
   }
 
