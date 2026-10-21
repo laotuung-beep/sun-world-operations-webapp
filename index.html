@@ -2521,7 +2521,31 @@
     body[data-device="tablet"] .grid-3 {
       grid-template-columns: 1.15fr 0.95fr 1fr;
       gap: 14px;
-      align-items: end;
+      align-items: start;
+    }
+
+    .general-info-grid {
+      align-items: start !important;
+    }
+    .general-info-grid .field-group {
+      display: flex;
+      flex-direction: column;
+      gap: 4px;
+      justify-content: flex-start;
+      margin: 0;
+    }
+    .general-info-grid .field-label {
+      margin: 0;
+      height: 20px;
+      line-height: 20px;
+      white-space: nowrap;
+    }
+    .general-info-grid select,
+    .general-info-grid input {
+      height: 40px !important;
+      line-height: 40px;
+      box-sizing: border-box;
+      margin: 0;
     }
 
     body[data-device="computer"] .grid-3 select,
@@ -2973,7 +2997,7 @@
         </div>
 
         <!-- Trò chơi, Ngày vận hành, Nhân viên vận hành -->
-        <div class="grid-3">
+        <div class="grid-3 general-info-grid">
           <div class="field-group">
             <label class="field-label" for="gameSelect">Chọn trò chơi</label>
             <select id="gameSelect" onchange="onGameChange()">
@@ -3002,9 +3026,8 @@
                 <option value="DINO" data-mode="batch">Dino</option>
                 <option value="HAPPY" data-mode="batch">Happy</option>
                 <option value="NHA_PHAO" data-mode="batch">Nhà phao</option>
-                <option value="VIDEO_GAME" data-mode="batch">Video Game</option>
             </select>
-            <div style="margin-top:6px;">
+            <div style="margin-top:8px;">
               <span class="status-pill status-running" id="timeOpsShiftStatusPill">
                 <span class="status-dot"></span>
                 <span id="timeOpsShiftStatusText">ĐANG HOẠT ĐỘNG</span>
@@ -3013,7 +3036,7 @@
           </div>
           <div class="field-group">
             <label class="field-label" for="opDate">Ngày vận hành</label>
-            <input type="date" id="opDate" onchange="saveCurrentState()" />
+            <input type="date" id="opDate" onchange="onOpDateChange(this.value)" />
           </div>
           <div class="field-group">
             <label class="field-label" for="staffName">Nhân viên vận hành</label>
@@ -3331,8 +3354,12 @@
     <!-- ========================================================================= -->
     <div id="screenDashboard" class="screen-frame" style="display:none;">
       <div class="frame-banner frame-banner-dashboard">
-        <div>
+        <div style="display:flex; align-items:center; gap:12px; flex-wrap:wrap;">
           <div style="font-size:0.88rem; font-weight:700;" id="dashboardBannerTitle">DASHBOARD</div>
+          <div style="display:flex; align-items:center; gap:6px; background:var(--surface-2); padding:3px 9px; border-radius:6px; border:1px solid var(--border);">
+            <label for="dashOpDate" style="font-size:0.75rem; font-weight:600; color:var(--text-muted); cursor:pointer;">Ngày vận hành:</label>
+            <input type="date" id="dashOpDate" style="padding:2px 6px; font-size:0.78rem; border:none; background:transparent; color:var(--text); font-weight:700; cursor:pointer;" onchange="onOpDateChange(this.value)" />
+          </div>
         </div>
         <div style="display:flex; gap:8px; align-items:center; flex-wrap:wrap;">
           <button class="btn btn-outline" style="padding:6px 11px; font-size:0.76rem;" onclick="exportCSV()">Xuất CSV Trò Chơi</button>
@@ -3936,11 +3963,10 @@ function doGet(e) {
       { id: "DINO", name: "DINO", mode: "batch", color: "#7c3aed", yesterdayPax: 0, yesterdayShareDiff: "+0%", initPax: 0, initCycles: 0 },
       // Hàng 5
       { id: "HAPPY", name: "HAPPY", mode: "batch", color: "#c026d3", yesterdayPax: 0, yesterdayShareDiff: "+0%", initPax: 0, initCycles: 0 },
-      { id: "NHA_PHAO", name: "NHÀ PHAO", mode: "batch", color: "#0891b2", yesterdayPax: 0, yesterdayShareDiff: "+0%", initPax: 0, initCycles: 0 },
-      { id: "VIDEO_GAME", name: "VIDEO GAME", mode: "batch", color: "#4f46e5", yesterdayPax: 1579, yesterdayShareDiff: "+0%", initPax: 1395, initCycles: 70 }
+      { id: "NHA_PHAO", name: "NHÀ PHAO", mode: "batch", color: "#0891b2", yesterdayPax: 0, yesterdayShareDiff: "+0%", initPax: 0, initCycles: 0 }
     ];
 
-    // Danh sách 26 User vận hành chính thức tương ứng 1-1 với 26 trò chơi
+    // Danh sách 25 User vận hành chính thức tương ứng 1-1 với 25 trò chơi
     const TEST_USERS_26 = [
       { code: "SW001", name: "Nguyễn Văn An", role: "NV Vận hành", assignedGame: "MANG_TRUOT_1" },
       { code: "SW002", name: "Trần Thị Bích", role: "NV Vận hành", assignedGame: "MANG_TRUOT_2" },
@@ -3966,8 +3992,7 @@ function doGet(e) {
       { code: "SW022", name: "Châu Bảo Ngọc", role: "NV Vận hành", assignedGame: "COI_XAY_GIO" },
       { code: "SW023", name: "Lương Thế Vinh", role: "NV Vận hành", assignedGame: "DINO" },
       { code: "SW024", name: "Đào Khánh Huyền", role: "NV Vận hành", assignedGame: "HAPPY" },
-      { code: "SW025", name: "Tô Minh Quân", role: "NV Vận hành", assignedGame: "NHA_PHAO" },
-      { code: "SW026", name: "Hà Gia Hưng", role: "NV Vận hành", assignedGame: "VIDEO_GAME" }
+      { code: "SW025", name: "Tô Minh Quân", role: "NV Vận hành", assignedGame: "NHA_PHAO" }
     ];
 
     function getAssignedUserForGame(gameId) {
@@ -3990,6 +4015,8 @@ function doGet(e) {
     let appStore = {
       currentGameId: "MANG_TRUOT_1",
       currentScreen: "time",
+      activeDate: new Date().toISOString().slice(0, 10),
+      historyByDate: {},
       games: {}
     };
 
@@ -4471,6 +4498,11 @@ function doGet(e) {
           const parsed = JSON.parse(saved);
           appStore.games = parsed.games || {};
           appStore.currentGameId = parsed.currentGameId || "MANG_TRUOT_1";
+          appStore.activeDate = parsed.activeDate || (document.getElementById("opDate") ? document.getElementById("opDate").value : "") || new Date().toISOString().slice(0, 10);
+          appStore.historyByDate = parsed.historyByDate || {};
+          if (appStore.games && Object.keys(appStore.games).length > 0 && !appStore.historyByDate[appStore.activeDate]) {
+            appStore.historyByDate[appStore.activeDate] = JSON.parse(JSON.stringify(appStore.games));
+          }
           ALL_GAMES.forEach(g => {
             const u = getAssignedUserForGame(g.id);
             if (!appStore.games[g.id]) {
@@ -4491,9 +4523,11 @@ function doGet(e) {
       populateSampleData();
     }
 
-    // Khởi tạo dữ liệu ban đầu cho 26 trò chơi với đúng 26 User phụ trách (SW001 -> SW026)
+    // Khởi tạo dữ liệu ban đầu cho 25 trò chơi với đúng 25 User phụ trách (SW001 -> SW025)
     function populateSampleData() {
       const today = new Date().toISOString().slice(0, 10);
+      appStore.activeDate = today;
+      if (!appStore.historyByDate) appStore.historyByDate = {};
       ALL_GAMES.forEach(g => {
         const u = getAssignedUserForGame(g.id);
         const rec = createEmptyGameRecord(g.id, g.name, g.mode);
@@ -4534,6 +4568,7 @@ function doGet(e) {
         }
         appStore.games[g.id] = rec;
       });
+      appStore.historyByDate[today] = JSON.parse(JSON.stringify(appStore.games));
       saveToLocalStorage();
     }
 
@@ -5261,9 +5296,69 @@ function doGet(e) {
       updateNetworkBadgeUI();
     }
 
+    function onOpDateChange(selectedDate) {
+      if (!selectedDate) return;
+      const oldDate = appStore.activeDate || (document.getElementById("opDate") ? document.getElementById("opDate").value : "") || new Date().toISOString().slice(0, 10);
+
+      if (!appStore.historyByDate) appStore.historyByDate = {};
+      if (appStore.games && Object.keys(appStore.games).length > 0) {
+        appStore.historyByDate[oldDate] = JSON.parse(JSON.stringify(appStore.games));
+      }
+
+      appStore.activeDate = selectedDate;
+
+      const opDateEl = document.getElementById("opDate");
+      if (opDateEl && opDateEl.value !== selectedDate) opDateEl.value = selectedDate;
+      const dashOpDateEl = document.getElementById("dashOpDate");
+      if (dashOpDateEl && dashOpDateEl.value !== selectedDate) dashOpDateEl.value = selectedDate;
+
+      if (appStore.historyByDate[selectedDate]) {
+        appStore.games = JSON.parse(JSON.stringify(appStore.historyByDate[selectedDate]));
+      } else {
+        const newDayGames = {};
+        ALL_GAMES.forEach(g => {
+          const u = getAssignedUserForGame(g.id);
+          const rec = createEmptyGameRecord(g.id, g.name, g.mode);
+          rec.date = selectedDate;
+          rec.staffCode = u.code;
+          rec.staff = u.name;
+          rec.staffRole = u.role;
+          rec.openTime = "08:00";
+          rec.closeTime = null;
+          rec.downtimes = [];
+          rec.cycles = [];
+          newDayGames[g.id] = rec;
+        });
+        appStore.games = newDayGames;
+        appStore.historyByDate[selectedDate] = JSON.parse(JSON.stringify(newDayGames));
+      }
+
+      ALL_GAMES.forEach(g => {
+        if (appStore.games[g.id]) {
+          appStore.games[g.id].date = selectedDate;
+        }
+      });
+
+      const currentRec = appStore.games[appStore.currentGameId];
+      if (currentRec) {
+        syncShiftDropdownsFromRecord(currentRec);
+        const staffInput = document.getElementById("staffName");
+        if (staffInput) staffInput.value = currentRec.staff || "";
+      }
+
+      saveToLocalStorage();
+      renderAll();
+      showAppToast(`✓ Dashboard và số liệu tự động cập nhật theo ngày: ${selectedDate}`);
+    }
+
     function saveCurrentState() {
+      const chosenDate = document.getElementById("opDate").value;
+      if (chosenDate && chosenDate !== appStore.activeDate) {
+        onOpDateChange(chosenDate);
+        return;
+      }
       const rec = getCurrentRecord();
-      rec.date = document.getElementById("opDate").value;
+      rec.date = chosenDate || appStore.activeDate;
       rec.staff = document.getElementById("staffName").value;
       saveToLocalStorage();
       renderAll();
@@ -5333,11 +5428,16 @@ function doGet(e) {
       const rec = getCurrentRecord();
       rec.mode = meta.mode;
 
+      const actDate = appStore.activeDate || (document.getElementById("opDate") ? document.getElementById("opDate").value : "") || new Date().toISOString().slice(0, 10);
+      rec.date = actDate;
+
       document.getElementById("currentRideHeaderLabel").textContent = `Trò chơi: ${meta.name}`;
       document.getElementById("cycleFrameBannerTitle").textContent = "NHẬP LIỆU";
       document.getElementById("cycleLockedGameBadge").textContent = `Trò chơi: ${meta.name}`;
       document.getElementById("dashboardBannerTitle").textContent = "DASHBOARD";
-      document.getElementById("opDate").value = rec.date || new Date().toISOString().slice(0, 10);
+      document.getElementById("opDate").value = actDate;
+      const dashOpDateEl = document.getElementById("dashOpDate");
+      if (dashOpDateEl) dashOpDateEl.value = actDate;
       document.getElementById("staffName").value = rec.staff || "";
       syncShiftDropdownsFromRecord(rec);
       switchModeUI(rec.mode);
@@ -5744,8 +5844,14 @@ function doGet(e) {
       document.getElementById("closeTimeDisplay").textContent = rec.closeTime || "--:--";
 
       // Dòng tóm tắt thông tin ca trên Dashboard
+      const curDateStr = appStore.activeDate || rec.date || new Date().toISOString().slice(0, 10);
       document.getElementById("dashShiftMetaText").textContent =
-        `Ngày: ${rec.date || "--"} | Nhân viên: ${rec.staff || "--"} | Mở cửa: ${rec.openTime || "--:--"} | Đóng cửa: ${rec.closeTime || "Đang mở"}`;
+        `Ngày: ${curDateStr} | Nhân viên: ${rec.staff || "--"} | Mở cửa: ${rec.openTime || "--:--"} | Đóng cửa: ${rec.closeTime || "Đang mở"}`;
+
+      const dashDateInput = document.getElementById("dashOpDate");
+      if (dashDateInput && dashDateInput.value !== curDateStr) {
+        dashDateInput.value = curDateStr;
+      }
 
       // 1. Giờ vận hành thực tế
       const netH = Math.floor(m.netMin / 60);
@@ -6086,9 +6192,9 @@ function doGet(e) {
     }
 
     function exportAllGamesCSV() {
-      const today = document.getElementById("opDate").value || new Date().toISOString().slice(0, 10);
+      const today = (document.getElementById("opDate") ? document.getElementById("opDate").value : "") || appStore.activeDate || new Date().toISOString().slice(0, 10);
       let lines = [];
-      lines.push(["SUN WORLD - BÁO CÁO TỔNG QUAN 26 TRÒ CHƠI & 26 USER VẬN HÀNH"]);
+      lines.push(["SUN WORLD - BÁO CÁO TỔNG QUAN 25 TRÒ CHƠI & 25 USER VẬN HÀNH"]);
       lines.push(["Ngày xuất báo cáo", today]);
       lines.push([]);
       lines.push([
@@ -6131,7 +6237,7 @@ function doGet(e) {
       const url = URL.createObjectURL(blob);
       const a = document.createElement("a");
       a.href = url;
-      a.download = `SunWorld_Dashboard_26TroChoi_26Users_${today}.csv`;
+      a.download = `SunWorld_Dashboard_25TroChoi_25Users_${today}.csv`;
       document.body.appendChild(a);
       a.click();
       document.body.removeChild(a);
@@ -6583,7 +6689,10 @@ function doGet(e) {
       }
       updateLiveDateTimeHeader();
       renderNotifications();
-      document.getElementById("opDate").value = new Date().toISOString().slice(0, 10);
+      const initDate = appStore.activeDate || (document.getElementById("opDate") ? document.getElementById("opDate").value : "") || new Date().toISOString().slice(0, 10);
+      document.getElementById("opDate").value = initDate;
+      const dashInitDate = document.getElementById("dashOpDate");
+      if (dashInitDate) dashInitDate.value = initDate;
       onGameChange();
       runSelfHealingAudit();
       if (FIREBASE_ENABLED) {
