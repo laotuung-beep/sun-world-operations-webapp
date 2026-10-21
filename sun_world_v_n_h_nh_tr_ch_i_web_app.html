@@ -624,6 +624,147 @@
       gap: 14px;
     }
 
+    /* Giao diện Hub Danh sách Tài khoản Vận hành Sun World */
+    .accounts-hub-card {
+      background: var(--surface);
+      color: var(--text);
+      border: 1.5px solid var(--border);
+      border-radius: 18px;
+      width: 100%;
+      max-width: 1060px;
+      max-height: 90vh;
+      display: flex;
+      flex-direction: column;
+      box-shadow: 0 24px 60px rgba(0, 0, 0, 0.45);
+      overflow: hidden;
+      animation: hubCardFadeIn 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+    }
+    @keyframes hubCardFadeIn {
+      from { opacity: 0; transform: scale(0.97) translateY(8px); }
+      to { opacity: 1; transform: scale(1) translateY(0); }
+    }
+    .accounts-hub-header {
+      padding: 16px 20px 12px;
+      border-bottom: 1px solid var(--border);
+      background: var(--surface-2);
+      display: flex;
+      justify-content: space-between;
+      align-items: flex-start;
+      gap: 12px;
+      flex-wrap: wrap;
+    }
+    .hub-brand-pill {
+      font-size: 0.7rem;
+      font-weight: 800;
+      color: #C0262D;
+      background: rgba(192, 38, 45, 0.12);
+      padding: 3px 8px;
+      border-radius: 6px;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+    }
+    .hub-pwd-pill {
+      font-size: 0.72rem;
+      color: var(--text-muted);
+    }
+    .hub-pwd-pill strong {
+      color: #15803d;
+      background: rgba(22, 163, 74, 0.12);
+      padding: 1px 6px;
+      border-radius: 4px;
+    }
+    .hub-main-title {
+      font-size: 1.18rem;
+      font-weight: 800;
+      margin: 4px 0 2px;
+      color: var(--text);
+      letter-spacing: -0.2px;
+    }
+    .hub-sub-title {
+      font-size: 0.76rem;
+      color: var(--text-muted);
+      margin: 0;
+    }
+    .accounts-hub-toolbar {
+      padding: 12px 20px;
+      border-bottom: 1px solid var(--border);
+      background: var(--surface);
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+    }
+    .hub-inputs-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
+      gap: 12px;
+    }
+    .hub-tabs-scroll {
+      display: flex;
+      gap: 6px;
+      overflow-x: auto;
+      padding-bottom: 2px;
+      scrollbar-width: thin;
+    }
+    .hub-tab-btn {
+      padding: 6px 14px;
+      border-radius: 999px;
+      font-size: 0.74rem;
+      font-weight: 700;
+      cursor: pointer;
+      border: 1px solid var(--border);
+      background: var(--surface-2);
+      color: var(--text);
+      transition: all 0.15s ease;
+      white-space: nowrap;
+    }
+    .hub-tab-btn:hover {
+      border-color: #C0262D;
+      color: #C0262D;
+    }
+    .hub-tab-btn.active {
+      background: #C0262D;
+      color: #fff;
+      border-color: #C0262D;
+      box-shadow: 0 2px 8px rgba(192, 38, 45, 0.35);
+    }
+    .accounts-cards-grid {
+      flex: 1;
+      overflow-y: auto;
+      padding: 16px 20px;
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(260px, 1fr));
+      gap: 12px;
+      background: var(--bg);
+      align-content: start;
+    }
+    .hub-card {
+      background: var(--surface);
+      border: 1.5px solid var(--border);
+      border-radius: 12px;
+      padding: 12px 14px;
+      display: flex;
+      flex-direction: column;
+      justify-content: space-between;
+      gap: 8px;
+      cursor: pointer;
+      transition: transform 0.15s ease, box-shadow 0.15s ease, border-color 0.15s ease;
+    }
+    .hub-card:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 10px 24px rgba(0, 0, 0, 0.14);
+      border-color: #C0262D !important;
+    }
+    .accounts-hub-footer {
+      padding: 10px 20px;
+      border-top: 1px solid var(--border);
+      background: var(--surface-2);
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      flex-wrap: wrap;
+      gap: 10px;
+    }
+
     /* Thanh chuyển đổi 3 Khung Hình chính: Cân đối 3 cột bằng nhau, không tràn chữ */
     .screen-nav-bar {
       max-width: 1620px;
@@ -2832,82 +2973,10 @@
     </div>
   </header>
 
-  <!-- MODAL ĐĂNG NHẬP TÀI KHOẢN VẬN HÀNH TRÒ CHƠI & ADMIN -->
+  <!-- MODAL GIAO DIỆN CHỌN TÀI KHOẢN VẬN HÀNH TRÒ CHƠI & ADMIN -->
   <div id="loginModalBackdrop" class="modal-backdrop" onclick="closeLoginModal(event)">
-    <div class="login-modal-card" onclick="event.stopPropagation()" style="max-width:500px;">
-      <div style="display:flex; justify-content:space-between; align-items:center; border-bottom:1px solid var(--border); padding-bottom:10px;">
-        <div style="font-size:0.95rem; font-weight:700; display:flex; align-items:center; gap:8px;">
-          <span>Đăng Nhập Tài Khoản Vận Hành Trò Chơi</span>
-        </div>
-        <button type="button" class="del-btn" style="font-size:1.1rem;" onclick="closeLoginModal()">✕</button>
-      </div>
-
-      <!-- KHỐI ĐĂNG NHẬP NHANH ADMIN BẰNG GMAIL -->
-      <div style="background:var(--surface-2); border:1.5px solid #C0262D; border-radius:10px; padding:9px 12px;">
-        <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:5px;">
-          <span style="font-size:0.74rem; font-weight:800; color:#C0262D; text-transform:uppercase;">★ Tài khoản Chủ sở hữu / Admin Gmail</span>
-          <span id="adminGmailVerifiedBadge" style="font-size:0.68rem; font-weight:700; color:#15803d; background:rgba(22,163,74,0.12); padding:2px 8px; border-radius:999px;">✓ Quyền Toàn Khu</span>
-        </div>
-        <div style="display:flex; gap:6px; flex-wrap:wrap;">
-          <button type="button" class="btn btn-primary" style="flex:1; padding:6px 10px; font-size:0.74rem; justify-content:center;" onclick="loginWithAdminGmail('laotuung@gmail.com')">
-            Admin: laotuung@gmail.com
-          </button>
-          <button type="button" class="btn btn-outline" style="padding:6px 10px; font-size:0.72rem;" onclick="loginWithAdminGmail('laoung1996@gmail.com')">
-            laoung1996@gmail.com
-          </button>
-        </div>
-      </div>
-
-      <div class="field-group">
-        <label class="field-label" for="loginQuickUserSelect">Chọn nhanh Tài khoản Trò chơi (hoặc Admin)</label>
-        <select id="loginQuickUserSelect" onchange="onQuickUserSelectChange()"></select>
-      </div>
-
-      <div class="grid-2">
-        <div class="field-group">
-          <label class="field-label" for="loginUserCode">Tên đăng nhập (tên trò chơi không dấu)</label>
-          <input type="text" id="loginUserCode" value="mangtruot1" placeholder="VD: mangtruot1, phicongskiver..." />
-        </div>
-        <div class="field-group">
-          <label class="field-label" for="loginPassword">Mật khẩu</label>
-          <input type="password" id="loginPassword" value="123456" placeholder="Mật khẩu: 123456" />
-        </div>
-      </div>
-
-      <div class="field-group">
-        <label class="field-label" for="loginFullName">Họ và tên nhân viên trực ca</label>
-        <input type="text" id="loginFullName" value="Nguyễn Văn An" placeholder="Nhập họ và tên nhân viên..." />
-      </div>
-
-      <div class="grid-2" style="display:none;">
-        <div class="field-group">
-          <label class="field-label" for="loginRoleSelect">Vai trò phân quyền</label>
-          <select id="loginRoleSelect">
-            <option value="NV Vận hành">NV Vận hành</option>
-            <option value="Admin Hệ Thống (Toàn Quyền)">Admin Hệ Thống (Toàn Quyền)</option>
-            <option value="Quản lý khu trò chơi">Quản lý khu trò chơi</option>
-          </select>
-        </div>
-        <div class="field-group">
-          <label class="field-label" for="loginAssignedGame">Phạm vi trò chơi phụ trách</label>
-          <select id="loginAssignedGame"></select>
-        </div>
-      </div>
-
-      <div style="font-size:0.72rem; color:var(--text-muted); background:var(--surface-2); padding:8px 10px; border-radius:6px; border:1px solid var(--border); line-height:1.4;">
-        ✓ Mật khẩu chung: <strong>123456</strong>.<br>
-        ✓ Khi đăng nhập tài khoản trò chơi: Hệ thống <strong>tự động cố định trò chơi và vị trí</strong> (Line / Rạp). Nhân viên chỉ cần <strong>chọn ngày và ghi tên</strong>.
-      </div>
-
-      <div style="display:flex; justify-content:space-between; align-items:center; gap:8px; margin-top:4px; flex-wrap:wrap;">
-        <button type="button" class="btn btn-outline" style="font-size:0.74rem; padding:6px 10px;" onclick="exportAllGamesCSV()">
-          Xuất dữ liệu toàn khu
-        </button>
-        <div style="display:flex; gap:8px;">
-          <button type="button" class="btn btn-outline" onclick="closeLoginModal()">Đóng</button>
-          <button type="button" class="btn btn-primary" onclick="submitUserLogin()">Đăng nhập</button>
-        </div>
-      </div>
+    <div id="modalAccountsHubContainer" style="width:100%;max-width:1060px;display:flex;justify-content:center;" onclick="event.stopPropagation()">
+      <!-- Nội dung Giao diện Tài khoản Vận hành được nạp động từ getAccountsHubMarkup('modal') -->
     </div>
   </div>
 
@@ -4674,14 +4743,329 @@ function doGet(e) {
       if (gameSel) gameSel.value = acc.assignedGame;
     }
 
-    function openLoginModal() {
-      const qSel = document.getElementById("loginQuickUserSelect");
-      if (qSel && currentUserAccount.username) {
-        qSel.value = currentUserAccount.username;
+    let currentHubTabByPrefix = { modal: "all", gate: "all" };
+
+    function getAccountsHubMarkup(prefix = "modal", isGate = false) {
+      return `
+        <div class="accounts-hub-card" onclick="event.stopPropagation()">
+          <!-- Header Bar -->
+          <div class="accounts-hub-header">
+            <div>
+              <div style="display:flex;align-items:center;gap:8px;margin-bottom:4px;flex-wrap:wrap;">
+                <span class="hub-brand-pill">SUN WORLD OPERATIONS</span>
+                <span class="hub-pwd-pill">Mật khẩu chung cho tất cả tài khoản: <strong>123456</strong></span>
+              </div>
+              <h2 class="hub-main-title">GIAO DIỆN CHỌN TÀI KHOẢN VẬN HÀNH</h2>
+              <p class="hub-sub-title">Chạm vào trò chơi để vào ca làm việc ngay • Hệ thống tự động khóa trò chơi & vị trí Line / Rạp</p>
+            </div>
+            <div style="display:flex;gap:8px;align-items:center;">
+              ${!isGate ? `<button type="button" class="del-btn" style="font-size:1.3rem;width:34px;height:34px;display:flex;align-items:center;justify-content:center;border-radius:8px;" onclick="closeLoginModal()">✕</button>` : ''}
+            </div>
+          </div>
+
+          <!-- Controls & Search Toolbar -->
+          <div class="accounts-hub-toolbar">
+            <div class="hub-inputs-grid">
+              <div class="field-group" style="margin:0;">
+                <label class="field-label" style="font-size:0.72rem;" for="${prefix}_staffName">👤 Họ và tên nhân viên trực ca hôm nay</label>
+                <input type="text" id="${prefix}_staffName" placeholder="Nhập họ và tên nhân viên (VD: Nguyễn Văn An)..." style="padding:8px 12px;font-size:0.82rem;" />
+              </div>
+              <div class="field-group" style="margin:0;">
+                <label class="field-label" style="font-size:0.72rem;" for="${prefix}_search">🔍 Tìm nhanh trò chơi / tài khoản / Line</label>
+                <input type="text" id="${prefix}_search" oninput="filterAccountsHubUI('${prefix}')" placeholder="Gõ: mangtruot, line 1, rap 4d, airship, admin..." style="padding:8px 12px;font-size:0.82rem;" />
+              </div>
+            </div>
+
+            <!-- Filter Tabs -->
+            <div id="${prefix}_tabs" class="hub-tabs-scroll">
+              <button type="button" class="hub-tab-btn active" data-tab="all" onclick="selectHubTab('${prefix}', 'all')">Tất cả (30 tài khoản)</button>
+              <button type="button" class="hub-tab-btn" data-tab="admin" onclick="selectHubTab('${prefix}', 'admin')">👑 Admin Toàn Khu</button>
+              <button type="button" class="hub-tab-btn" data-tab="mangtruot" onclick="selectHubTab('${prefix}', 'mangtruot')">🛷 Máng Trượt (6 Line)</button>
+              <button type="button" class="hub-tab-btn" data-tab="airship" onclick="selectHubTab('${prefix}', 'airship')">🛸 Rạp Mắt Bay (2 Rạp)</button>
+              <button type="button" class="hub-tab-btn" data-tab="other" onclick="selectHubTab('${prefix}', 'other')">🎡 21 Trò Chơi Khác</button>
+            </div>
+          </div>
+
+          <!-- Cards Grid -->
+          <div id="${prefix}_grid" class="accounts-cards-grid"></div>
+
+          <!-- Manual Login Collapsible Section -->
+          <div style="padding:10px 20px;border-top:1px solid var(--border);background:var(--surface);">
+            <div style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:8px;">
+              <button type="button" class="btn btn-outline" style="font-size:0.72rem;padding:4px 10px;" onclick="toggleManualLogin('${prefix}')">
+                ⌨ Đăng nhập thủ công bằng Tên đăng nhập & Mật khẩu ▾
+              </button>
+              <button type="button" class="btn btn-outline" style="font-size:0.72rem;padding:4px 10px;" onclick="exportAllGamesCSV()">
+                Xuất dữ liệu toàn khu (.CSV)
+              </button>
+            </div>
+            <div id="${prefix}_manualForm" style="display:none;margin-top:10px;padding:12px;background:var(--surface-2);border-radius:10px;border:1px solid var(--border);">
+              <div style="display:grid;grid-template-columns:repeat(auto-fit, minmax(180px, 1fr));gap:8px;">
+                <div class="field-group" style="margin:0;">
+                  <label class="field-label" style="font-size:0.7rem;">Tên đăng nhập (không dấu)</label>
+                  <input type="text" id="${prefix}_manualUserCode" placeholder="VD: mangtruot1, jurassic..." value="mangtruot1" style="font-size:0.8rem;padding:6px 10px;" />
+                </div>
+                <div class="field-group" style="margin:0;">
+                  <label class="field-label" style="font-size:0.7rem;">Mật khẩu</label>
+                  <input type="password" id="${prefix}_manualPassword" placeholder="Mật khẩu: 123456" value="123456" style="font-size:0.8rem;padding:6px 10px;" />
+                </div>
+                <div style="display:flex;align-items:flex-end;">
+                  <button type="button" class="btn btn-primary" style="width:100%;padding:7px;font-size:0.8rem;justify-content:center;" onclick="submitManualLoginFromHub('${prefix}')">
+                    Đăng nhập thủ công
+                  </button>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <!-- Footer Bar -->
+          <div class="accounts-hub-footer">
+            <div style="display:flex;align-items:center;gap:10px;flex-wrap:wrap;">
+              <button type="button" class="btn btn-outline" style="font-size:0.74rem;padding:6px 12px;" onclick="triggerGoogleSignInFromHub()">
+                <svg width="14" height="14" viewBox="0 0 24 24" style="margin-right:4px;"><path fill="#EA4335" d="M12 5c1.6 0 3 .6 4.1 1.6l3.1-3.1C17.3 1.7 14.8 1 12 1 7.5 1 3.7 3.6 1.9 7.3l3.7 2.9C6.5 7.4 9 5 12 5z"/><path fill="#4285F4" d="M23.5 12.3c0-.8-.1-1.6-.2-2.3H12v4.5h6.5c-.3 1.5-1.1 2.8-2.4 3.7l3.7 2.9c2.2-2 3.7-5 3.7-8.8z"/><path fill="#FBBC05" d="M5.6 14.8c-.2-.7-.4-1.5-.4-2.8s.2-2.1.4-2.8L1.9 6.3C.7 8.7 0 10.8 0 12s.7 3.3 1.9 5.7l3.7-2.9z"/><path fill="#34A853" d="M12 23c3.2 0 6-1.1 8-3l-3.7-2.9c-1.1.7-2.5 1.2-4.3 1.2-3 0-5.5-2-6.4-4.8L1.9 16.4C3.7 20.4 7.5 23 12 23z"/></svg>
+                Đăng nhập Google (Admin)
+              </button>
+              <span style="font-size:0.72rem;color:var(--text-muted);">
+                ✓ Tài khoản trò chơi tự động khóa Line/Rạp • Nhân viên chỉ cần chọn ngày và ghi tên.
+              </span>
+            </div>
+            <div style="display:flex;gap:8px;">
+              ${!isGate ? `<button type="button" class="btn btn-outline" onclick="closeLoginModal()">Đóng</button>` : ''}
+            </div>
+          </div>
+        </div>
+      `;
+    }
+
+    function initAccountsHub(prefix = "modal") {
+      currentHubTabByPrefix[prefix] = "all";
+      renderAccountsGrid(prefix, "all", "");
+    }
+
+    function selectHubTab(prefix, tabName) {
+      currentHubTabByPrefix[prefix] = tabName;
+      const tabContainer = document.getElementById(`${prefix}_tabs`);
+      if (tabContainer) {
+        tabContainer.querySelectorAll(".hub-tab-btn").forEach(btn => {
+          btn.classList.toggle("active", btn.getAttribute("data-tab") === tabName);
+        });
       }
-      document.getElementById("loginUserCode").value = currentUserAccount.username || currentUserAccount.code || "admin";
-      document.getElementById("loginPassword").value = "123456";
-      document.getElementById("loginFullName").value = currentUserAccount.name || "";
+      const searchInput = document.getElementById(`${prefix}_search`);
+      const searchVal = searchInput ? searchInput.value.trim() : "";
+      renderAccountsGrid(prefix, tabName, searchVal);
+    }
+
+    function filterAccountsHubUI(prefix) {
+      const searchInput = document.getElementById(`${prefix}_search`);
+      const searchVal = searchInput ? searchInput.value.trim() : "";
+      const currentTab = currentHubTabByPrefix[prefix] || "all";
+      renderAccountsGrid(prefix, currentTab, searchVal);
+    }
+
+    function toggleManualLogin(prefix) {
+      const form = document.getElementById(`${prefix}_manualForm`);
+      if (!form) return;
+      form.style.display = form.style.display === "none" ? "block" : "none";
+    }
+
+    function submitManualLoginFromHub(prefix) {
+      const uEl = document.getElementById(`${prefix}_manualUserCode`);
+      const pEl = document.getElementById(`${prefix}_manualPassword`);
+      const uVal = uEl ? uEl.value.trim() : "";
+      const pVal = pEl ? pEl.value.trim() : "";
+      if (!uVal) {
+        showAppToast("Vui lòng nhập tên đăng nhập!");
+        return;
+      }
+      if (pVal && pVal !== "123456") {
+        showAppToast("Sai mật khẩu! Mật khẩu là: 123456");
+        return;
+      }
+      quickLoginWithAccount(uVal, prefix);
+    }
+
+    function renderAccountsGrid(prefix, tabFilter = "all", searchQuery = "") {
+      const container = document.getElementById(`${prefix}_grid`);
+      if (!container) return;
+
+      const q = normalizeAccountInput(searchQuery || "");
+      let list = GAME_ACCOUNTS;
+
+      if (tabFilter === "admin") {
+        list = list.filter(a => a.isAdmin);
+      } else if (tabFilter === "mangtruot") {
+        list = list.filter(a => a.assignedGame.startsWith("MANG_TRUOT"));
+      } else if (tabFilter === "airship") {
+        list = list.filter(a => a.assignedGame === "AIRSHIP");
+      } else if (tabFilter === "other") {
+        list = list.filter(a => !a.isAdmin && !a.assignedGame.startsWith("MANG_TRUOT") && a.assignedGame !== "AIRSHIP");
+      }
+
+      if (q) {
+        list = list.filter(a => {
+          if (a.username.includes(q) || normalizeAccountInput(a.username).includes(q)) return true;
+          if (normalizeAccountInput(a.name).includes(q)) return true;
+          if (a.assignedSubArea && normalizeAccountInput(a.assignedSubArea).includes(q)) return true;
+          if (a.aliases && a.aliases.some(al => normalizeAccountInput(al).includes(q))) return true;
+          const g = ALL_GAMES.find(g => g.id === a.assignedGame);
+          if (g && normalizeAccountInput(g.name).includes(q)) return true;
+          return false;
+        });
+      }
+
+      if (list.length === 0) {
+        container.innerHTML = `
+          <div style="grid-column: 1 / -1; padding: 40px 20px; text-align: center; color: var(--text-muted);">
+            <div style="font-size: 2.2rem; margin-bottom: 8px;">🔍</div>
+            <div style="font-size: 0.95rem; font-weight: 700; color: var(--text);">Không tìm thấy tài khoản phù hợp</div>
+            <div style="font-size: 0.78rem; margin-top: 4px;">Thử gõ từ khóa khác như "mangtruot", "line 1", "rap 4d", "airship"...</div>
+          </div>
+        `;
+        return;
+      }
+
+      container.innerHTML = list.map(acc => {
+        let categoryBadge = "";
+        let borderAccent = "var(--border)";
+        let icon = "🎮";
+        let locationPill = "";
+
+        if (acc.isAdmin) {
+          icon = "👑";
+          borderAccent = "#C0262D";
+          categoryBadge = `<span style="font-size:0.68rem;font-weight:800;background:rgba(192,38,45,0.14);color:#C0262D;padding:2px 8px;border-radius:999px;">QUYỀN ADMIN TOÀN KHU</span>`;
+        } else if (acc.assignedGame.startsWith("MANG_TRUOT")) {
+          icon = "🛷";
+          borderAccent = "#ea580c";
+          categoryBadge = `<span style="font-size:0.68rem;font-weight:700;background:rgba(234,88,12,0.14);color:#ea580c;padding:2px 8px;border-radius:999px;">MÁNG TRƯỢT</span>`;
+          if (acc.assignedSubArea) {
+            locationPill = `<span style="font-size:0.72rem;font-weight:800;background:#ea580c;color:#fff;padding:2px 8px;border-radius:6px;">${acc.assignedSubArea}</span>`;
+          }
+        } else if (acc.assignedGame === "AIRSHIP") {
+          icon = "🛸";
+          borderAccent = "#059669";
+          categoryBadge = `<span style="font-size:0.68rem;font-weight:700;background:rgba(5,150,105,0.14);color:#059669;padding:2px 8px;border-radius:999px;">RẠP MẮT BAY</span>`;
+          if (acc.assignedSubArea) {
+            locationPill = `<span style="font-size:0.72rem;font-weight:800;background:#059669;color:#fff;padding:2px 8px;border-radius:6px;">${acc.assignedSubArea}</span>`;
+          }
+        } else {
+          categoryBadge = `<span style="font-size:0.68rem;font-weight:700;background:var(--surface-2);color:var(--text-muted);padding:2px 8px;border-radius:999px;">TRÒ CHƠI</span>`;
+        }
+
+        const gObj = ALL_GAMES.find(g => g.id === acc.assignedGame);
+        const gameTitle = acc.isAdmin ? "Toàn Bộ 25 Trò Chơi (Admin)" : (gObj ? gObj.name : acc.name);
+
+        return `
+          <div class="hub-card" onclick="quickLoginWithAccount('${acc.username}', '${prefix}')" style="border-color:${borderAccent};">
+            <div>
+              <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px;">
+                <div style="display:flex;align-items:center;gap:6px;">
+                  <span style="font-size:1.15rem;">${icon}</span>
+                  ${categoryBadge}
+                </div>
+                ${locationPill}
+              </div>
+
+              <div style="font-size:0.95rem;font-weight:800;color:var(--text);line-height:1.3;margin-bottom:6px;">
+                ${acc.name}
+              </div>
+
+              <div style="font-size:0.74rem;color:var(--text-muted);margin-bottom:4px;">
+                Trò chơi: <strong style="color:var(--text);">${gameTitle}</strong>
+              </div>
+              ${acc.assignedSubArea ? `<div style="font-size:0.72rem;color:#C0262D;font-weight:700;">★ Cố định vị trí: ${acc.assignedSubArea}</div>` : ""}
+            </div>
+
+            <div style="background:var(--surface-2);border-radius:8px;padding:8px 10px;font-size:0.73rem;display:flex;justify-content:space-between;align-items:center;">
+              <div>
+                <div style="color:var(--text-muted);font-size:0.68rem;">TÊN ĐĂNG NHẬP</div>
+                <code style="font-size:0.84rem;font-weight:800;color:var(--text);">${acc.username}</code>
+              </div>
+              <div style="text-align:right;">
+                <div style="color:var(--text-muted);font-size:0.68rem;">MẬT KHẨU</div>
+                <code style="font-size:0.84rem;font-weight:800;color:#15803d;">123456</code>
+              </div>
+            </div>
+
+            <button type="button" class="btn ${acc.isAdmin ? 'btn-primary' : 'btn-outline'}" style="justify-content:center;font-size:0.78rem;font-weight:700;padding:8px;" onclick="event.stopPropagation();quickLoginWithAccount('${acc.username}', '${prefix}');">
+              ${acc.isAdmin ? 'Đăng Nhập Admin Toàn Khu ➜' : (acc.assignedSubArea ? `Vào Ca ${acc.assignedSubArea} ➜` : 'Vào Ca Vận Hành ➜')}
+            </button>
+          </div>
+        `;
+      }).join("");
+    }
+
+    function quickLoginWithAccount(username, prefix = "modal") {
+      const acc = findGameAccount(username);
+      if (!acc) return;
+
+      const staffInput = document.getElementById(`${prefix}_staffName`);
+      const staffVal = (staffInput && staffInput.value.trim()) ? staffInput.value.trim() : "";
+      const finalStaffName = staffVal || acc.name;
+
+      currentUserAccount = {
+        code: acc.code,
+        username: acc.username,
+        email: acc.isAdmin ? "laotuung@gmail.com" : `${acc.username}@sunworld.vn`,
+        name: finalStaffName,
+        role: acc.role,
+        assignedGame: acc.assignedGame,
+        assignedSubArea: acc.assignedSubArea || "",
+        isAdmin: !!acc.isAdmin
+      };
+
+      updateHeaderUserBadgeUI();
+      safeSetStorage("SUNWORLD_ACTIVE_USER_ACCOUNT", JSON.stringify(currentUserAccount));
+
+      applyAccountPrivileges();
+      saveCurrentState();
+
+      const modalBackdrop = document.getElementById("loginModalBackdrop");
+      if (modalBackdrop) modalBackdrop.classList.remove("open");
+      const gateEl = document.getElementById("fbAuthGate");
+      if (gateEl) gateEl.style.display = "none";
+
+      const locInfo = acc.isAdmin ? "Toàn khu (Admin Toàn Quyền)" : (acc.assignedSubArea ? `${acc.assignedGame} - ${acc.assignedSubArea}` : acc.assignedGame);
+      showAppToast(`✓ Đã vào ca: ${currentUserAccount.name} (${locInfo}). Mời chọn ngày và ghi số liệu!`);
+      pushNotification(
+        acc.isAdmin
+          ? `★ Tài khoản Admin (${currentUserAccount.name}) đã đăng nhập toàn quyền 25 trò chơi.`
+          : `✓ Nhân viên ${currentUserAccount.name} đã vào ca trực tại ${locInfo}.`
+      );
+    }
+
+    function triggerGoogleSignInFromHub() {
+      if (window.SWFirebase && window.SWFirebase.signInGoogle) {
+        window.SWFirebase.signInGoogle();
+      } else {
+        const btn = document.getElementById("fbGateSignIn");
+        if (btn) btn.click();
+        else showAppToast("Tính năng Google Sign-In chỉ hoạt động khi cấu hình Firebase.");
+      }
+    }
+
+    // Gắn các hàm Hub lên window để firebase-auth.js có thể truy cập dùng chung
+    window.GAME_ACCOUNTS = GAME_ACCOUNTS;
+    window.getAccountsHubMarkup = getAccountsHubMarkup;
+    window.initAccountsHub = initAccountsHub;
+    window.selectHubTab = selectHubTab;
+    window.filterAccountsHubUI = filterAccountsHubUI;
+    window.renderAccountsGrid = renderAccountsGrid;
+    window.quickLoginWithAccount = quickLoginWithAccount;
+    window.triggerGoogleSignInFromHub = triggerGoogleSignInFromHub;
+
+    function openLoginModal() {
+      const container = document.getElementById("modalAccountsHubContainer");
+      if (container) {
+        if (!container.innerHTML.trim() || !container.querySelector(".accounts-hub-card")) {
+          container.innerHTML = getAccountsHubMarkup("modal", false);
+        }
+        initAccountsHub("modal");
+        const staffEl = document.getElementById("modal_staffName");
+        if (staffEl && currentUserAccount.name && !currentUserAccount.name.includes("Admin") && !currentUserAccount.name.startsWith("NV ")) {
+          staffEl.value = currentUserAccount.name;
+        }
+      }
       document.getElementById("loginModalBackdrop").classList.add("open");
     }
 
@@ -4691,67 +5075,7 @@ function doGet(e) {
     }
 
     function submitUserLogin() {
-      const userInput = (document.getElementById("loginUserCode").value || "").trim();
-      const passInput = (document.getElementById("loginPassword").value || "").trim();
-      const nameInput = (document.getElementById("loginFullName") ? document.getElementById("loginFullName").value : "").trim();
-
-      if (!userInput) {
-        showAppToast("Vui lòng nhập Tên đăng nhập (tên trò chơi không dấu)!");
-        return;
-      }
-
-      // Kiểm tra mật khẩu (chuẩn: 123456)
-      if (passInput && passInput !== "123456") {
-        showAppToast("Sai mật khẩu! Mật khẩu mặc định là: 123456");
-        return;
-      }
-
-      const accMatch = findGameAccount(userInput);
-      let accountObj = null;
-
-      if (accMatch) {
-        accountObj = {
-          code: accMatch.code,
-          username: accMatch.username,
-          email: accMatch.isAdmin ? "laotuung@gmail.com" : `${accMatch.username}@sunworld.vn`,
-          name: nameInput || accMatch.name,
-          role: accMatch.role,
-          assignedGame: accMatch.assignedGame,
-          assignedSubArea: accMatch.assignedSubArea || "",
-          isAdmin: !!accMatch.isAdmin
-        };
-      } else {
-        const isAdm = userInput.toLowerCase().includes("admin") || (nameInput && nameInput.toLowerCase().includes("admin"));
-        accountObj = {
-          code: userInput.toUpperCase(),
-          username: normalizeAccountInput(userInput),
-          email: `${normalizeAccountInput(userInput)}@sunworld.vn`,
-          name: nameInput || userInput,
-          role: isAdm ? "Admin Hệ Thống (Toàn Quyền)" : "NV Vận hành",
-          assignedGame: isAdm ? "ALL" : (document.getElementById("gameSelect").value || "MANG_TRUOT_1"),
-          assignedSubArea: "",
-          isAdmin: isAdm
-        };
-      }
-
-      currentUserAccount = accountObj;
-      updateHeaderUserBadgeUI();
-      safeSetStorage("SUNWORLD_ACTIVE_USER_ACCOUNT", JSON.stringify(currentUserAccount));
-
-      applyAccountPrivileges();
-      saveCurrentState();
-
-      const gameDisplayName = accountObj.isAdmin 
-        ? "Toàn khu (Admin Toàn Quyền)" 
-        : (accountObj.assignedSubArea ? `${accountObj.assignedGame} - ${accountObj.assignedSubArea}` : accountObj.assignedGame);
-
-      showAppToast(`✓ Đăng nhập thành công: ${currentUserAccount.name} (${gameDisplayName}). Mời chọn ngày và ghi tên!`);
-      pushNotification(
-        accountObj.isAdmin
-          ? `★ Tài khoản Admin (${accountObj.name}) đã đăng nhập với toàn quyền quản trị 25 trò chơi.`
-          : `✓ Tài khoản ${accountObj.name} đã đăng nhập trực ca tại ${gameDisplayName}.`
-      );
-      document.getElementById("loginModalBackdrop").classList.remove("open");
+      quickLoginWithAccount(document.getElementById("loginUserCode") ? document.getElementById("loginUserCode").value : "admin", "modal");
     }
 
     function initTimeSelectDropdowns() {

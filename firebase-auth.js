@@ -38,49 +38,32 @@ if (cfg.apiKey) {
   let syncTimer = null;
   const dirtyGames = new Set();
 
-  // ---------------------------------------------------------------- UI: màn chắn
+  // ---------------------------------------------------------------- UI: Màn hình Giao diện Tài khoản Vận hành Sun World
   const gate = document.createElement("div");
   gate.id = "fbAuthGate";
-  gate.style.cssText = "position:fixed;inset:0;z-index:2000;background:var(--bg,#0f172a);display:flex;align-items:center;justify-content:center;padding:16px;";
-  gate.innerHTML = `
-    <div class="login-modal-card" style="max-width:440px;text-align:center;display:flex;flex-direction:column;gap:12px;">
-      <div style="font-size:1.05rem;font-weight:800;color:#C0262D;">SUN WORLD — VẬN HÀNH TRÒ CHƠI</div>
-      <div id="fbGateMsg" style="font-size:0.82rem;color:var(--text-muted);">Vui lòng đăng nhập tài khoản trò chơi hoặc quản trị viên Google để tiếp tục.</div>
-      <button type="button" id="fbGateGameLogin" class="btn btn-primary" style="justify-content:center;padding:10px 14px;font-weight:700;font-size:0.85rem;">
-        Đăng nhập Tài khoản Trò chơi (Mật khẩu: 123456)
-      </button>
-      <div style="display:flex;align-items:center;gap:8px;margin:2px 0;">
-        <div style="flex:1;height:1px;background:var(--border);"></div>
-        <span style="font-size:0.72rem;color:var(--text-muted);text-transform:uppercase;">Hoặc qua Google</span>
-        <div style="flex:1;height:1px;background:var(--border);"></div>
-      </div>
-      <button type="button" id="fbGateSignIn" class="btn btn-outline" style="justify-content:center;display:none;">Đăng nhập bằng Google</button>
-      <button type="button" id="fbGateSignOut" class="btn btn-outline" style="justify-content:center;display:none;">Đăng xuất / Đổi tài khoản</button>
-    </div>`;
-  document.body.appendChild(gate);
-  const gateMsg = gate.querySelector("#fbGateMsg");
-  const gateIn = gate.querySelector("#fbGateSignIn");
-  const gateOut = gate.querySelector("#fbGateSignOut");
-  const gateGameBtn = gate.querySelector("#fbGateGameLogin");
+  gate.style.cssText = "position:fixed;inset:0;z-index:2000;background:rgba(15,23,42,0.92);backdrop-filter:blur(8px);display:flex;align-items:center;justify-content:center;padding:12px;overflow-y:auto;";
 
-  if (gateGameBtn) {
-    gateGameBtn.onclick = () => {
-      gate.style.display = "none";
-      if (typeof openLoginModal === "function") openLoginModal();
-    };
+  if (typeof window.getAccountsHubMarkup === "function") {
+    gate.innerHTML = window.getAccountsHubMarkup("gate", true);
+  } else {
+    gate.innerHTML = `
+      <div class="login-modal-card" style="max-width:440px;text-align:center;">
+        <div style="font-size:1.05rem;font-weight:800;color:#C0262D;">SUN WORLD — VẬN HÀNH TRÒ CHƠI</div>
+        <div id="fbGateMsg" style="font-size:0.82rem;color:var(--text-muted);">Đang tải giao diện tài khoản...</div>
+      </div>
+    `;
+  }
+  document.body.appendChild(gate);
+
+  if (typeof window.initAccountsHub === "function") {
+    window.initAccountsHub("gate");
   }
 
-  gateIn.onclick = () => signInWithPopup(auth, provider).catch(err => {
-    gateMsg.textContent = "Đăng nhập thất bại: " + (err.code || err.message);
-  });
-  gateOut.onclick = () => signOut(auth);
-
-  function showGate(msg, { signIn = false, signOutBtn = false } = {}) {
+  function showGate(msg = "", { signIn = false, signOutBtn = false } = {}) {
     gate.style.display = "flex";
-    gateMsg.innerHTML = msg;
-    gateIn.style.display = signIn ? "flex" : "none";
-    gateOut.style.display = signOutBtn ? "flex" : "none";
-    if (gateGameBtn) gateGameBtn.style.display = "flex";
+    if (typeof window.initAccountsHub === "function") {
+      window.initAccountsHub("gate");
+    }
   }
   function hideGate() { gate.style.display = "none"; }
 
@@ -247,7 +230,13 @@ if (cfg.apiKey) {
     profile = null;
 
     if (!user) {
-      showGate("Vui lòng đăng nhập bằng tài khoản Google đã được cấp quyền.", { signIn: true });
+      // Nếu đã có tài khoản vận hành trò chơi lưu trong máy và đang active
+      const hasSavedOperator = (typeof currentUserAccount !== "undefined" && currentUserAccount.username && !currentUserAccount.isAdmin);
+      if (hasSavedOperator) {
+        hideGate();
+      } else {
+        showGate();
+      }
       return;
     }
     showGate(`Đang xác thực <b>${escapeHtml(user.email)}</b>...`);
@@ -303,6 +292,9 @@ if (cfg.apiKey) {
   // ---------------------------------------------------------------- API cho index.html
   window.SWFirebase = {
     enabled: true,
+    signInGoogle: () => signInWithPopup(auth, provider).catch(err => {
+      showAppToast("Đăng nhập Google thất bại: " + (err.code || err.message));
+    }),
     queueSync() {
       if (applyingRemote || !profile) return;
       if (appStore.currentGameId) dirtyGames.add(appStore.currentGameId);
