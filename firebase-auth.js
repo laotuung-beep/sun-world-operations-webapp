@@ -143,7 +143,12 @@ if (cfg.apiKey) {
   function canWrite(gameId) {
     if (!profile) return false;
     if (profile.role === "admin" || profile.role === "manager") return true;
-    return profile.role === "operator" && profile.assignedGame === gameId;
+    if (profile.role === "operator") {
+      if (profile.assignedGame === gameId) return true;
+      if (profile.assignedGame === "AIRSHIP" && (gameId === "AIRSHIP_1" || gameId === "AIRSHIP_2")) return true;
+      if (profile.assignedGame === "RAP_3D" && (gameId === "RAP_3D_1" || gameId === "RAP_3D_2")) return true;
+    }
+    return false;
   }
 
   async function flushSync() {

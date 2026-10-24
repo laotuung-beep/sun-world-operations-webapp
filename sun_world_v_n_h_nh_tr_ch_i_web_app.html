@@ -2968,7 +2968,8 @@
                 <option value="RAP_5D" data-mode="batch">5D</option>
                 <option value="KHU_RUNG_THAN_TIEN" data-mode="batch">Khu rừng thần tiên</option>
                 <option value="KIDS_WORLD" data-mode="batch">Kids World</option>
-                <option value="RAP_3D" data-mode="batch">3D</option>
+                <option value="RAP_3D_1" data-mode="batch">3D Rạp 1</option>
+                <option value="RAP_3D_2" data-mode="batch">3D Rạp 2</option>
                 <option value="THAP_ROI" data-mode="batch">Tháp rơi</option>
                 <option value="THAM_HIEM_LONG_DAT" data-mode="batch">Thám hiểm lòng đất</option>
                 <option value="LEO_NUI" data-mode="batch">Leo núi</option>
@@ -2976,7 +2977,8 @@
                 <option value="SWING" data-mode="batch">Swing</option>
                 <option value="HOPS" data-mode="batch">Hops</option>
                 <option value="HITS" data-mode="batch">Hits</option>
-                <option value="AIRSHIP" data-mode="batch">Airship (Rạp mắt bay)</option>
+                <option value="AIRSHIP_1" data-mode="batch">Rạp mắt bay 1</option>
+                <option value="AIRSHIP_2" data-mode="batch">Rạp mắt bay 2</option>
                 <option value="GIAO_LO_TRANG" data-mode="batch">Rạp Giao lộ trăng</option>
                 <option value="COI_XAY_GIO" data-mode="batch">Cối xay gió</option>
                 <option value="DINO" data-mode="batch">Dino</option>
@@ -3904,7 +3906,8 @@ function doGet(e) {
       { id: "KHU_RUNG_THAN_TIEN", name: "KHU RỪNG THẦN TIÊN", mode: "batch", color: "#f59e0b", yesterdayPax: 116, yesterdayShareDiff: "-30%", initPax: 0, initCycles: 0 },
       { id: "KIDS_WORLD", name: "KIDS WORLD", mode: "batch", color: "#22c55e", yesterdayPax: 146, yesterdayShareDiff: "+76%", initPax: 0, initCycles: 0 },
       // Hàng 3
-      { id: "RAP_3D", name: "3D", mode: "batch", color: "#14b8a6", yesterdayPax: 506, yesterdayShareDiff: "+14%", initPax: 0, initCycles: 0 },
+      { id: "RAP_3D_1", name: "3D RẠP 1", mode: "batch", color: "#14b8a6", yesterdayPax: 253, yesterdayShareDiff: "+14%", initPax: 0, initCycles: 0 },
+      { id: "RAP_3D_2", name: "3D RẠP 2", mode: "batch", color: "#0d9488", yesterdayPax: 253, yesterdayShareDiff: "+14%", initPax: 0, initCycles: 0 },
       { id: "THAP_ROI", name: "THÁP RƠI", mode: "batch", color: "#0ea5e9", yesterdayPax: 801, yesterdayShareDiff: "+30%", initPax: 0, initCycles: 0 },
       { id: "THAM_HIEM_LONG_DAT", name: "THÁM HIỂM LÒNG ĐẤT", mode: "batch", color: "#ef4444", yesterdayPax: 668, yesterdayShareDiff: "+24%", initPax: 0, initCycles: 0 },
       { id: "LEO_NUI", name: "LEO NÚI", mode: "batch", color: "#a855f7", yesterdayPax: 44, yesterdayShareDiff: "+65%", initPax: 0, initCycles: 0 },
@@ -3913,7 +3916,8 @@ function doGet(e) {
       // Hàng 4
       { id: "HOPS", name: "HOPS", mode: "batch", color: "#facc15", yesterdayPax: 49, yesterdayShareDiff: "-100%", initPax: 0, initCycles: 0 },
       { id: "HITS", name: "HITS", mode: "batch", color: "#a3e635", yesterdayPax: 0, yesterdayShareDiff: "+0%", initPax: 0, initCycles: 0 },
-      { id: "AIRSHIP", name: "RẠP MẮT BAY", mode: "batch", subAreas: ["Rạp 1", "Rạp 2"], color: "#34d399", yesterdayPax: 946, yesterdayShareDiff: "-20%", initPax: 0, initCycles: 0 },
+      { id: "AIRSHIP_1", name: "RẠP MẮT BAY 1", mode: "batch", color: "#34d399", yesterdayPax: 473, yesterdayShareDiff: "-20%", initPax: 0, initCycles: 0 },
+      { id: "AIRSHIP_2", name: "RẠP MẮT BAY 2", mode: "batch", color: "#10b981", yesterdayPax: 473, yesterdayShareDiff: "-20%", initPax: 0, initCycles: 0 },
       { id: "GIAO_LO_TRANG", name: "RẠP GIAO LỘ TRĂNG", mode: "batch", color: "#e11d48", yesterdayPax: 719, yesterdayShareDiff: "+6%", initPax: 0, initCycles: 0 },
       { id: "COI_XAY_GIO", name: "CỐI XAY GIÓ", mode: "batch", color: "#0284c7", yesterdayPax: 114, yesterdayShareDiff: "-20%", initPax: 0, initCycles: 0 },
       { id: "DINO", name: "DINO", mode: "batch", color: "#7c3aed", yesterdayPax: 0, yesterdayShareDiff: "+0%", initPax: 0, initCycles: 0 },
@@ -3935,7 +3939,8 @@ function doGet(e) {
       { code: "SW009", name: "Đỗ Quang Huy", role: "NV Vận hành", assignedGame: "RAP_5D" },
       { code: "SW010", name: "Ngô Ngọc Mai", role: "NV Vận hành", assignedGame: "KHU_RUNG_THAN_TIEN" },
       { code: "SW011", name: "Dương Gia Bảo", role: "NV Vận hành", assignedGame: "KIDS_WORLD" },
-      { code: "SW012", name: "Lý Thanh Tâm", role: "NV Vận hành", assignedGame: "RAP_3D" },
+      { code: "SW012", name: "Lý Thanh Tâm", role: "NV Vận hành", assignedGame: "RAP_3D_1" },
+      { code: "SW012B", name: "Lý Thanh Tùng", role: "NV Vận hành", assignedGame: "RAP_3D_2" },
       { code: "SW013", name: "Phan Trọng Nghĩa", role: "NV Vận hành", assignedGame: "THAP_ROI" },
       { code: "SW014", name: "Trương Mỹ Linh", role: "NV Vận hành", assignedGame: "THAM_HIEM_LONG_DAT" },
       { code: "SW015", name: "Đinh Tuấn Kiệt", role: "NV Vận hành", assignedGame: "LEO_NUI" },
@@ -3943,7 +3948,8 @@ function doGet(e) {
       { code: "SW017", name: "Cao Xuân Trường", role: "NV Vận hành", assignedGame: "SWING" },
       { code: "SW018", name: "Mai Nhật Minh", role: "NV Vận hành", assignedGame: "HOPS" },
       { code: "SW019", name: "Trịnh Kim Ngân", role: "NV Vận hành", assignedGame: "HITS" },
-      { code: "SW020", name: "Lâm Quốc Việt", role: "NV Vận hành", assignedGame: "AIRSHIP" },
+      { code: "SW020", name: "Lâm Quốc Việt", role: "NV Vận hành", assignedGame: "AIRSHIP_1" },
+      { code: "SW020B", name: "Lâm Quốc Cường", role: "NV Vận hành", assignedGame: "AIRSHIP_2" },
       { code: "SW021", name: "Võ Hoài Nam", role: "NV Vận hành", assignedGame: "GIAO_LO_TRANG" },
       { code: "SW022", name: "Châu Bảo Ngọc", role: "NV Vận hành", assignedGame: "COI_XAY_GIO" },
       { code: "SW023", name: "Lương Thế Vinh", role: "NV Vận hành", assignedGame: "DINO" },
@@ -4354,6 +4360,65 @@ function doGet(e) {
       });
     }
 
+        // Bảo lưu và chuyển tiếp trọn vẹn số khách khi tách Rạp mắt bay 1-2 & 3D Rạp 1-2
+    function migrateAirshipAndRap3D(gamesMap) {
+      if (!gamesMap) return;
+      if (gamesMap["AIRSHIP"]) {
+        const oldAir = gamesMap["AIRSHIP"];
+        const dStr = oldAir.date || (appStore && appStore.activeDate) || new Date().toISOString().slice(0, 10);
+        if (!gamesMap["AIRSHIP_1"]) {
+          gamesMap["AIRSHIP_1"] = createEmptyGameRecord("AIRSHIP_1", "RẠP MẮT BAY 1", "batch");
+          gamesMap["AIRSHIP_1"].date = dStr;
+        }
+        if (!gamesMap["AIRSHIP_2"]) {
+          gamesMap["AIRSHIP_2"] = createEmptyGameRecord("AIRSHIP_2", "RẠP MẮT BAY 2", "batch");
+          gamesMap["AIRSHIP_2"].date = dStr;
+        }
+        if (Array.isArray(oldAir.cycles) && oldAir.cycles.length > 0) {
+          const c1 = oldAir.cycles.filter(c => !c.subArea || c.subArea === "Rạp 1" || c.subArea.includes("1"));
+          const c2 = oldAir.cycles.filter(c => c.subArea === "Rạp 2" || c.subArea.includes("2"));
+          if ((!gamesMap["AIRSHIP_1"].cycles || gamesMap["AIRSHIP_1"].cycles.length === 0) && c1.length > 0) {
+            gamesMap["AIRSHIP_1"].cycles = JSON.parse(JSON.stringify(c1));
+          }
+          if ((!gamesMap["AIRSHIP_2"].cycles || gamesMap["AIRSHIP_2"].cycles.length === 0) && c2.length > 0) {
+            gamesMap["AIRSHIP_2"].cycles = JSON.parse(JSON.stringify(c2));
+          }
+        }
+        if (Array.isArray(oldAir.downtimes) && oldAir.downtimes.length > 0) {
+          if (!gamesMap["AIRSHIP_1"].downtimes || gamesMap["AIRSHIP_1"].downtimes.length === 0) {
+            gamesMap["AIRSHIP_1"].downtimes = JSON.parse(JSON.stringify(oldAir.downtimes));
+          }
+        }
+      }
+      if (gamesMap["RAP_3D"]) {
+        const old3D = gamesMap["RAP_3D"];
+        const dStr = old3D.date || (appStore && appStore.activeDate) || new Date().toISOString().slice(0, 10);
+        if (!gamesMap["RAP_3D_1"]) {
+          gamesMap["RAP_3D_1"] = createEmptyGameRecord("RAP_3D_1", "3D RẠP 1", "batch");
+          gamesMap["RAP_3D_1"].date = dStr;
+        }
+        if (!gamesMap["RAP_3D_2"]) {
+          gamesMap["RAP_3D_2"] = createEmptyGameRecord("RAP_3D_2", "3D RẠP 2", "batch");
+          gamesMap["RAP_3D_2"].date = dStr;
+        }
+        if (Array.isArray(old3D.cycles) && old3D.cycles.length > 0) {
+          const c1 = old3D.cycles.filter(c => !c.subArea || c.subArea === "Rạp 1" || c.subArea.includes("1"));
+          const c2 = old3D.cycles.filter(c => c.subArea === "Rạp 2" || c.subArea.includes("2"));
+          if (!gamesMap["RAP_3D_1"].cycles || gamesMap["RAP_3D_1"].cycles.length === 0) {
+            gamesMap["RAP_3D_1"].cycles = JSON.parse(JSON.stringify(c1.length > 0 ? c1 : old3D.cycles));
+          }
+          if ((!gamesMap["RAP_3D_2"].cycles || gamesMap["RAP_3D_2"].cycles.length === 0) && c2.length > 0) {
+            gamesMap["RAP_3D_2"].cycles = JSON.parse(JSON.stringify(c2));
+          }
+        }
+        if (Array.isArray(old3D.downtimes) && old3D.downtimes.length > 0) {
+          if (!gamesMap["RAP_3D_1"].downtimes || gamesMap["RAP_3D_1"].downtimes.length === 0) {
+            gamesMap["RAP_3D_1"].downtimes = JSON.parse(JSON.stringify(old3D.downtimes));
+          }
+        }
+      }
+    }
+    window.migrateAirshipAndRap3D = migrateAirshipAndRap3D;
     function initDefaultDemoIfEmpty() {
       const saved = safeGetStorage(STORAGE_KEY);
       if (saved) {
@@ -4366,9 +4431,11 @@ function doGet(e) {
 
           // Dọn dẹp triệt để dữ liệu mẫu lũy kế cũ trong LocalStorage cache
           sanitizeRecords(appStore.games);
+          migrateAirshipAndRap3D(appStore.games);
           if (appStore.historyByDate) {
             Object.keys(appStore.historyByDate).forEach(d => {
               sanitizeRecords(appStore.historyByDate[d]);
+              migrateAirshipAndRap3D(appStore.historyByDate[d]);
             });
           }
 
@@ -5163,6 +5230,7 @@ function doGet(e) {
 
       if (appStore.historyByDate[selectedDate]) {
         sanitizeRecords(appStore.historyByDate[selectedDate]);
+        migrateAirshipAndRap3D(appStore.historyByDate[selectedDate]);
         appStore.games = JSON.parse(JSON.stringify(appStore.historyByDate[selectedDate]));
       } else {
         const newDayGames = {};
@@ -5317,8 +5385,12 @@ function doGet(e) {
 
     function selectGameAndView(gameId) {
       if (currentUserAccount && !currentUserAccount.isAdmin && currentUserAccount.assignedGame && currentUserAccount.assignedGame !== "ALL") {
-        if (gameId !== currentUserAccount.assignedGame) {
-          showAppToast(`Tài khoản ${currentUserAccount.name} chỉ phụ trách ${currentUserAccount.assignedGame}!`);
+        const uGame = currentUserAccount.assignedGame;
+        const isMatch = gameId === uGame ||
+          (uGame === "AIRSHIP" && (gameId === "AIRSHIP_1" || gameId === "AIRSHIP_2")) ||
+          (uGame === "RAP_3D" && (gameId === "RAP_3D_1" || gameId === "RAP_3D_2"));
+        if (!isMatch) {
+          showAppToast(`Tài khoản ${currentUserAccount.name} chỉ phụ trách ${uGame}!`);
           return;
         }
       }
@@ -5821,6 +5893,8 @@ function doGet(e) {
       const tileGrid = document.getElementById("allGamesTileGrid");
 
       const dayGamesMap = (appStore.historyByDate && appStore.historyByDate[curDateStr]) || appStore.games || {};
+      migrateAirshipAndRap3D(dayGamesMap);
+      migrateAirshipAndRap3D(appStore.games);
 
       const metricsById = {};
       ALL_GAMES.forEach(g => {
