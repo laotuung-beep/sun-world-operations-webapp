@@ -152,6 +152,9 @@ if (cfg.apiKey) {
     for (const gameId of ids) {
       const rec = appStore.games[gameId];
       if (!rec || !canWrite(gameId)) continue;
+      if (Array.isArray(rec.cycles)) {
+        rec.cycles = rec.cycles.filter(c => !c.bulkCycles && !(c.subType && c.subType.toLowerCase().includes("kế")));
+      }
       try {
         await setDoc(doc(db, "games", gameId), {
           gameId,
@@ -175,7 +178,17 @@ if (cfg.apiKey) {
         const d = ch.doc.data();
         if (dirtyGames.has(d.gameId)) return; // đang có thay đổi cục bộ chưa gửi
         try {
-          appStore.games[d.gameId] = JSON.parse(d.recordJson);
+          const rec = JSON.parse(d.recordJson);
+          if (Array.isArray(rec.cycles)) {
+            rec.cycles = rec.cycles.filter(c => !c.bulkCycles && !(c.subType && c.subType.toLowerCase().includes("kế")));
+          }
+          const recDate = rec.date || appStore.activeDate || new Date().toISOString().slice(0, 10);
+          if (!appStore.historyByDate) appStore.historyByDate = {};
+          if (!appStore.historyByDate[recDate]) appStore.historyByDate[recDate] = {};
+          appStore.historyByDate[recDate][d.gameId] = rec;
+          if (recDate === appStore.activeDate) {
+            appStore.games[d.gameId] = rec;
+          }
           changed = true;
         } catch (e) { console.warn("Bản ghi hỏng", d.gameId); }
       });
