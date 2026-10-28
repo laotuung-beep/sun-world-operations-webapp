@@ -2773,7 +2773,7 @@
         </div>
 
         <nav class="header-nav-tabs" aria-label="Điều hướng chính">
-          <button type="button" id="navBtnTime" class="header-nav-link active" onclick="switchScreen('time')">Tổng quan</button>
+          <button type="button" id="navBtnTime" class="header-nav-link active" onclick="switchScreen('time')">Thông tin chung</button>
           <button type="button" id="navBtnCycles" class="header-nav-link" onclick="switchScreen('cycles')">Nhập liệu</button>
           <button type="button" id="navBtnDashboard" class="header-nav-link" onclick="switchScreen('dashboard')">Dashboard</button>
           <button type="button" id="navBtnStorage" class="header-nav-link" onclick="switchScreen('storage')">Dữ liệu</button>
@@ -2797,7 +2797,7 @@
       <!-- 3. Cụm bên phải: Nút Làm mới + Đổi Ngày/Đêm + Chuông Thông báo có badge + Avatar tròn -->
       <div class="header-right-tools">
         <!-- Nút Làm mới nhanh -->
-        <button type="button" class="header-minimal-icon-btn" onclick="resetCurrentRideData()" title="Làm mới dữ liệu ca hiện tại">
+        <button type="button" class="header-minimal-icon-btn" id="headerResetRideBtn" onclick="resetCurrentRideData()" title="Làm mới dữ liệu ca hiện tại">
           <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="23 4 23 10 17 10"></polyline><path d="M20.49 15a9 9 0 1 1-2.12-9.36L23 10"></path></svg>
         </button>
 
@@ -2836,10 +2836,10 @@
 
   <!-- MODAL TÀI KHOẢN & PHÂN QUYỀN GOOGLE (CHỈ GIỮ LẠI ADMIN) -->
   <div id="loginModalBackdrop" class="modal-backdrop" onclick="closeLoginModal(event)">
-    <div class="login-modal-card" onclick="event.stopPropagation()" style="max-width:520px;">
+    <div class="login-modal-card" onclick="event.stopPropagation()" style="max-width:780px; width:95%;">
       <div style="display:flex; justify-content:space-between; align-items:center; border-bottom:1px solid var(--border); padding-bottom:10px;">
-        <div style="font-size:0.95rem; font-weight:700; display:flex; align-items:center; gap:8px;">
-          <span>Tài Khoản Quản Trị Hệ Thống (Admin)</span>
+        <div style="font-size:0.98rem; font-weight:800; display:flex; align-items:center; gap:8px;">
+          <span id="loginModalTitleText">Quản Lý Tài Khoản & Phân Quyền Hệ Thống</span>
         </div>
         <button type="button" class="del-btn" style="font-size:1.1rem;" onclick="closeLoginModal()">✕</button>
       </div>
@@ -3125,8 +3125,19 @@
           </button>
         </div>
 
-        <!-- Bảng danh sách các lần ngừng vận hành đã nhập -->
-        <div class="table-wrap" style="margin-top:14px;">
+        <!-- Thanh điều khiển Thu gọn / Sổ ra Lịch sử thông tin dừng -->
+        <div class="history-collapse-bar" style="margin-top:14px;">
+          <span class="history-collapse-label">
+            Lịch sử thông tin dừng đã ghi nhận: <strong id="downtimeHistoryCountText" style="color:var(--text);">0 lần (0 phút)</strong>
+          </span>
+          <button type="button" id="btnToggleDowntimeHistory" class="history-toggle-btn" onclick="toggleDowntimeHistoryPanel()">
+            <span id="btnToggleDowntimeHistoryLabel">Hiển thị lịch sử</span>
+            <span id="btnToggleDowntimeHistoryCaret">▾</span>
+          </button>
+        </div>
+
+        <!-- Bảng danh sách các lần ngừng vận hành đã nhập (Mặc định thu gọn, bấm để hiển thị) -->
+        <div id="downtimeHistoryCollapsibleWrap" class="table-wrap" style="margin-top:10px; display:none;">
           <table>
             <thead>
               <tr>
@@ -3136,7 +3147,7 @@
                 <th>Thời gian kết thúc</th>
                 <th class="text-right">Số phút dừng</th>
                 <th>Ghi chú</th>
-                <th class="text-center">Xóa</th>
+                <th class="text-center" id="dtTableDeleteHeader">Xóa</th>
               </tr>
             </thead>
             <tbody id="downtimeTableBody"></tbody>
@@ -3958,9 +3969,16 @@ function doGet(e) {
     ];
 
     function getAssignedUserForGame(gameId) {
+      if (typeof currentUserAccount !== "undefined" && currentUserAccount && currentUserAccount.name) {
+        return {
+          code: currentUserAccount.code || "NV",
+          name: currentUserAccount.name,
+          role: currentUserAccount.role || "NV Vận hành"
+        };
+      }
       return {
         code: "ADMIN01",
-        name: "Ứng Lão (Admin Toàn Khu)",
+        name: "Ứng Lão",
         role: "Admin Hệ Thống (Toàn Quyền)"
       };
     }
@@ -4005,6 +4023,10 @@ function doGet(e) {
 
     // Chuyển đổi giữa 4 Danh mục dưới Logo: Tổng quan ('time') | Lượt chơi ('cycles') | Dashboard ('dashboard') | Lưu trữ dữ liệu ('storage')
     function switchScreen(mode) {
+      if (currentUserAccount && !currentUserAccount.isAdmin && (mode === "dashboard" || mode === "storage")) {
+        showAppToast("⚠️ Tài khoản của bạn chỉ được phép thao tác tại Thông tin chung và Nhập liệu!");
+        mode = "time";
+      }
       appStore.currentScreen = mode;
       const timeFrame = document.getElementById("screenTimeOps");
       const cycleFrame = document.getElementById("screenCycleOps");
@@ -4196,14 +4218,65 @@ function doGet(e) {
 
     function applyAccountPrivileges() {
       const gameSel = document.getElementById("gameSelect");
+      const navDash = document.getElementById("navBtnDashboard");
+      const navSto = document.getElementById("navBtnStorage");
+      const resetBtn = document.getElementById("headerResetRideBtn");
+      const staffInput = document.getElementById("staffName");
+      const modalTitle = document.getElementById("loginModalTitleText");
       if (!currentUserAccount) return;
-      if (currentUserAccount.isAdmin) {
-        if (gameSel) gameSel.disabled = false;
-        renderSubAreaSelector();
-      } else if (currentUserAccount.assignedGame && currentUserAccount.assignedGame !== "ALL") {
+
+      const isAdmin = Boolean(currentUserAccount.isAdmin);
+      if (navDash) navDash.style.display = isAdmin ? "" : "none";
+      if (navSto) navSto.style.display = isAdmin ? "" : "none";
+      if (resetBtn) resetBtn.style.display = isAdmin ? "" : "none";
+      if (modalTitle) {
+        modalTitle.textContent = isAdmin
+          ? "Trung Tâm Quản Trị & Phê Duyệt Tài Khoản (Admin)"
+          : "Hồ Sơ Tài Khoản Vận Hành";
+      }
+
+      // Tên nhân viên vận hành trong thông tin chung luôn lấy theo tên đăng nhập Google
+      if (staffInput && currentUserAccount.name) {
+        staffInput.value = currentUserAccount.name;
+        staffInput.readOnly = !isAdmin;
+        staffInput.style.background = !isAdmin ? "var(--surface-2)" : "";
+        staffInput.title = !isAdmin
+          ? "Tên nhân viên tự động đồng bộ từ tài khoản Google đã đăng nhập"
+          : "Nhập tên nhân viên vận hành";
+      }
+
+      if (isAdmin) {
         if (gameSel) {
-          gameSel.value = currentUserAccount.assignedGame;
-          gameSel.disabled = true;
+          Array.from(gameSel.options).forEach(opt => { opt.hidden = false; opt.disabled = false; });
+          gameSel.disabled = false;
+        }
+        renderSubAreaSelector();
+      } else {
+        // Tài khoản được duyệt chỉ được thao tác tại Thông tin chung và Nhập liệu
+        if (appStore.currentScreen === "dashboard" || appStore.currentScreen === "storage") {
+          switchScreen("time");
+        }
+        const assigned = currentUserAccount.assignedGame || "ALL";
+        if (gameSel) {
+          if (assigned !== "ALL") {
+            let targetVal = assigned;
+            if (assigned === "AIRSHIP") targetVal = "AIRSHIP_1";
+            if (assigned === "RAP_3D") targetVal = "RAP_3D_1";
+            Array.from(gameSel.options).forEach(opt => {
+              const allowed = opt.value === targetVal ||
+                (assigned === "AIRSHIP" && (opt.value === "AIRSHIP_1" || opt.value === "AIRSHIP_2")) ||
+                (assigned === "RAP_3D" && (opt.value === "RAP_3D_1" || opt.value === "RAP_3D_2"));
+              opt.hidden = !allowed;
+              opt.disabled = !allowed;
+            });
+            gameSel.value = targetVal;
+            // Nếu chỉ có đúng 1 trò chơi được duyệt thì khóa cố định ô chọn
+            const allowedCount = Array.from(gameSel.options).filter(o => !o.hidden).length;
+            gameSel.disabled = allowedCount <= 1;
+          } else {
+            Array.from(gameSel.options).forEach(opt => { opt.hidden = false; opt.disabled = false; });
+            gameSel.disabled = false;
+          }
         }
         onGameChange();
       }
@@ -5260,6 +5333,9 @@ function doGet(e) {
       const currentRec = appStore.games[appStore.currentGameId];
       if (currentRec) {
         syncShiftDropdownsFromRecord(currentRec);
+        if (window.SWFirebase && window.SWFirebase.enabled && currentUserAccount && currentUserAccount.name) {
+          currentRec.staff = currentUserAccount.name;
+        }
         const staffInput = document.getElementById("staffName");
         if (staffInput) staffInput.value = currentRec.staff || "";
       }
@@ -5371,6 +5447,9 @@ function doGet(e) {
       document.getElementById("opDate").value = actDate;
       const dashOpDateEl = document.getElementById("dashOpDate");
       if (dashOpDateEl) dashOpDateEl.value = actDate;
+      if (window.SWFirebase && window.SWFirebase.enabled && currentUserAccount && currentUserAccount.name) {
+        rec.staff = currentUserAccount.name;
+      }
       document.getElementById("staffName").value = rec.staff || "";
       syncShiftDropdownsFromRecord(rec);
       switchModeUI(rec.mode);
@@ -5470,6 +5549,10 @@ function doGet(e) {
     }
 
     function deleteDowntime(id) {
+      if (currentUserAccount && !currentUserAccount.isAdmin) {
+        showAppToast("⚠️ Tài khoản được duyệt chỉ được xem lịch sử, không có quyền xóa nội dung!");
+        return;
+      }
       const rec = getCurrentRecord();
       rec.downtimes = rec.downtimes.filter(d => d.id !== id);
       saveToLocalStorage();
@@ -5755,6 +5838,10 @@ function doGet(e) {
     }
 
     function deleteCycle(id) {
+      if (currentUserAccount && !currentUserAccount.isAdmin) {
+        showAppToast("⚠️ Tài khoản được duyệt chỉ được xem lịch sử, không có quyền xóa nội dung!");
+        return;
+      }
       const rec = getCurrentRecord();
       rec.cycles = rec.cycles.filter(c => c.id !== id);
       rec.cycles.forEach((c, idx) => { c.cycleNo = idx + 1; });
@@ -5984,6 +6071,24 @@ function doGet(e) {
       }
     }
 
+    let isDowntimeHistoryExpanded = false;
+
+    function toggleDowntimeHistoryPanel() {
+      isDowntimeHistoryExpanded = !isDowntimeHistoryExpanded;
+      const wrap = document.getElementById("downtimeHistoryCollapsibleWrap");
+      const labelEl = document.getElementById("btnToggleDowntimeHistoryLabel");
+      const caretEl = document.getElementById("btnToggleDowntimeHistoryCaret");
+      if (wrap) {
+        wrap.style.display = isDowntimeHistoryExpanded ? "block" : "none";
+      }
+      if (labelEl) {
+        labelEl.textContent = isDowntimeHistoryExpanded ? "Thu gọn lịch sử" : "Hiển thị lịch sử";
+      }
+      if (caretEl) {
+        caretEl.textContent = isDowntimeHistoryExpanded ? "▴" : "▾";
+      }
+    }
+
     let isCycleHistoryExpanded = false;
 
     function toggleCycleHistoryPanel() {
@@ -6004,8 +6109,18 @@ function doGet(e) {
 
     function renderDataEntryTables() {
       const rec = getCurrentRecord();
+      const canDelete = !currentUserAccount || Boolean(currentUserAccount.isAdmin);
 
       updateDowntimePreview();
+
+      const dtCountTextEl = document.getElementById("downtimeHistoryCountText");
+      if (dtCountTextEl) {
+        const totalDtMin = (rec.downtimes || []).reduce((acc, d) => acc + (d.durationMin || 0), 0);
+        dtCountTextEl.textContent = `${formatVNNumber(rec.downtimes.length)} lần (${formatVNNumber(totalDtMin)} phút)`;
+      }
+
+      const dtDelHead = document.getElementById("dtTableDeleteHeader");
+      if (dtDelHead) dtDelHead.style.display = canDelete ? "" : "none";
 
       const countTextEl = document.getElementById("cycleHistoryCountText");
       if (countTextEl) {
@@ -6015,8 +6130,9 @@ function doGet(e) {
       }
 
       const dtBody = document.getElementById("downtimeTableBody");
+      const dtColSpan = canDelete ? 7 : 6;
       if (rec.downtimes.length === 0) {
-        dtBody.innerHTML = `<tr><td colspan="7" class="text-center" style="color:var(--text-muted); padding:12px;">Chưa có phát sinh ngừng vận hành trong ca</td></tr>`;
+        dtBody.innerHTML = `<tr><td colspan="${dtColSpan}" class="text-center" style="color:var(--text-muted); padding:12px;">Chưa có phát sinh ngừng vận hành trong ca</td></tr>`;
       } else {
         dtBody.innerHTML = rec.downtimes.map((d, idx) => `
           <tr>
@@ -6026,13 +6142,14 @@ function doGet(e) {
             <td>${d.end}</td>
             <td class="text-right" style="font-weight:700; color:var(--danger);">${d.durationMin} phút</td>
             <td>${d.note || ""}</td>
-            <td class="text-center"><button class="del-btn" onclick="deleteDowntime(${d.id})">✕</button></td>
+            ${canDelete ? `<td class="text-center"><button class="del-btn" onclick="deleteDowntime(${d.id})" title="Xóa bản ghi">✕</button></td>` : ""}
           </tr>
         `).join("");
       }
 
       const cyHead = document.getElementById("cycleTableHead");
       const cyBody = document.getElementById("cycleTableBody");
+      const delThHtml = canDelete ? `<th class="text-center">Xóa</th>` : "";
 
       if (rec.mode === "coaster") {
         cyHead.innerHTML = `
@@ -6043,7 +6160,7 @@ function doGet(e) {
             <th class="text-right">TG chuyến tiếp theo xuất phát</th>
             <th class="text-right">Công suất tải tức thời</th>
             <th class="text-right">Số khách</th>
-            <th class="text-center">Xóa</th>
+            ${delThHtml}
           </tr>
         `;
       } else {
@@ -6055,16 +6172,18 @@ function doGet(e) {
             <th>Tiễn khách</th>
             <th class="text-right">Thời gian chu kỳ</th>
             <th class="text-right">Số khách</th>
-            <th class="text-center">Xóa</th>
+            ${delThHtml}
           </tr>
         `;
       }
 
+      const cyColSpan = canDelete ? 7 : 6;
       if (rec.cycles.length === 0) {
-        cyBody.innerHTML = `<tr><td colspan="7" class="text-center" style="color:var(--text-muted); padding:12px;">Chưa có chuyến / lượt chơi nào được ghi nhận</td></tr>`;
+        cyBody.innerHTML = `<tr><td colspan="${cyColSpan}" class="text-center" style="color:var(--text-muted); padding:12px;">Chưa có chuyến / lượt chơi nào được ghi nhận</td></tr>`;
       } else {
         cyBody.innerHTML = [...rec.cycles].reverse().map(c => {
           const areaBadge = c.subArea ? `<span class="subarea-Tag">${c.subArea}</span>` : "";
+          const delTdHtml = canDelete ? `<td class="text-center"><button class="del-btn" onclick="deleteCycle(${c.id})" title="Xóa lượt">✕</button></td>` : "";
           if (rec.mode === "coaster") {
             const intervalText = c.durationSec > 0 ? `${formatDurationMMSS(c.durationSec)} (${c.durationSec}s)` : "Chuyến mở đầu";
             const capText = c.durationSec > 0 ? `~ ${Math.round(3600 / c.durationSec)} xe/giờ` : "--";
@@ -6076,7 +6195,7 @@ function doGet(e) {
                 <td class="text-right" style="font-weight:700; color:var(--accent);">${intervalText}</td>
                 <td class="text-right" style="font-weight:700; color:var(--primary);">${capText}</td>
                 <td class="text-right" style="font-weight:800; color:var(--success);">${formatVNNumber(c.pax)} khách</td>
-                <td class="text-center"><button class="del-btn" onclick="deleteCycle(${c.id})">✕</button></td>
+                ${delTdHtml}
               </tr>
             `;
           } else {
@@ -6088,7 +6207,7 @@ function doGet(e) {
                 <td>${c.end}</td>
                 <td class="text-right" style="font-weight:700;">${formatDurationMMSS(c.durationSec)}</td>
                 <td class="text-right" style="font-weight:800; color:var(--success);">${formatVNNumber(c.pax)} khách</td>
-                <td class="text-center"><button class="del-btn" onclick="deleteCycle(${c.id})">✕</button></td>
+                ${delTdHtml}
               </tr>
             `;
           }
@@ -6110,6 +6229,10 @@ function doGet(e) {
     }
 
     function resetCurrentRideData() {
+      if (currentUserAccount && !currentUserAccount.isAdmin) {
+        showAppToast("⚠️ Chỉ Admin mới có quyền làm mới / xóa dữ liệu ca!");
+        return;
+      }
       showAppToast("Đã làm mới dữ liệu ca hiện tại của trò chơi!");
       const meta = getCurrentGameMeta();
       appStore.games[meta.id] = createEmptyGameRecord(meta.id, meta.name, meta.mode);
