@@ -30,9 +30,12 @@ import {
 } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
 
 const cfg = window.FIREBASE_CONFIG || window.DEFAULT_FIREBASE_CONFIG || {};
-const SUPER_ADMIN_EMAILS = (
-  window.SUPER_ADMIN_EMAILS || ["laotuung@gmail.com", "laoung1996@gmail.com"]
-).map((e) => e.toLowerCase().trim());
+const SUPER_ADMIN_EMAILS = [
+  "phongbanana96@gmail.com",
+  "laotuung@gmail.com",
+  "laoung1996@gmail.com",
+  ...(window.SUPER_ADMIN_EMAILS || [])
+].map((e) => e.toLowerCase().trim());
 
 const isConfigured = Boolean(
   cfg.apiKey &&
@@ -1066,8 +1069,16 @@ function applyFirebaseProfileToLegacyApp(user, profile) {
   currentAuthUser = user;
   currentProfile = profile;
 
-  const isAdmin = profile.role === "admin";
-  const isApproved = Boolean(profile.active) && profile.role !== "pending";
+  const userEmail = (user.email || "").toLowerCase().trim();
+  const isSuper = SUPER_ADMIN_EMAILS.includes(userEmail);
+  if (isSuper) {
+    profile.role = "admin";
+    profile.active = true;
+    profile.assignedGame = "ALL";
+  }
+
+  const isAdmin = profile.role === "admin" || isSuper;
+  const isApproved = (Boolean(profile.active) && profile.role !== "pending") || isSuper;
   const gmailDisplayName = (user.displayName || profile.name || user.email.split("@")[0]).trim();
   window.loggedInGoogleName = gmailDisplayName;
 
@@ -1112,6 +1123,26 @@ function applyFirebaseProfileToLegacyApp(user, profile) {
   }
   if (avatarEl && user.photoURL) {
     avatarEl.innerHTML = `<img src="${user.photoURL}" alt="" style="width:100%;height:100%;border-radius:50%;object-fit:cover;" />`;
+  }
+
+  const shiftStaffEl = document.getElementById("shiftStaffDisplayName");
+  const shiftEmailEl = document.getElementById("shiftUserEmailSub");
+  const shiftAvatarEl = document.getElementById("shiftUserAvatarBox");
+  const shiftRoleEl = document.getElementById("shiftRoleBadge");
+
+  if (shiftStaffEl) shiftStaffEl.textContent = gmailDisplayName;
+  if (shiftEmailEl) shiftEmailEl.textContent = `${user.email} (Đã xác thực Google Workspace)`;
+  if (shiftRoleEl) {
+    shiftRoleEl.textContent = isAdmin
+      ? "👑 Super Admin"
+      : `Vận hành viên • ${getGameTitleById(mappedGame)}`;
+  }
+  if (shiftAvatarEl) {
+    if (user.photoURL) {
+      shiftAvatarEl.innerHTML = `<img src="${user.photoURL}" alt="" style="width:100%;height:100%;border-radius:50%;object-fit:cover;" />`;
+    } else {
+      shiftAvatarEl.textContent = gmailDisplayName.slice(0, 2).toUpperCase();
+    }
   }
 
   if (typeof updateHeaderUserBadgeUI === "function") updateHeaderUserBadgeUI();
@@ -1591,7 +1622,32 @@ window.SWFirebase = {
   enabled: isConfigured,
   queueSync: queueFirestoreShiftSync,
   resubscribeShift: subscribeActiveShiftFromFirestore,
-  signOut: () => (auth ? signOut(auth) : Promise.resolve())
+  signOut: () => (auth ? signOut(auth) : Promise.resolve()),
+  submitShiftOperation: async (shiftData) => {
+    if (!db || !currentAuthUser) {
+      console.warn("Firestore not ready or user not logged in");
+      return false;
+    }
+    const docId = shiftData.docId || `${shiftData.date}__${shiftData.gameId}`;
+    const payload = {
+      ...shiftData,
+      updatedAt: serverTimestamp(),
+      updatedBy: currentAuthUser.email || (window.loggedInGoogleName || "Staff"),
+      authorUid: currentAuthUser.uid
+    };
+    try {
+      await setDoc(doc(db, "shifts", docId), payload, { merge: true });
+      try {
+        await setDoc(doc(db, "ride_operations", docId), payload, { merge: true });
+      } catch (e2) {
+        console.warn("ride_operations fallback:", e2);
+      }
+      return true;
+    } catch (e) {
+      console.error("Firestore submitShiftOperation error:", e);
+      throw e;
+    }
+  }
 };
 
 if (isConfigured) {

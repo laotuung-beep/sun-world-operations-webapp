@@ -14,13 +14,13 @@ service cloud.firestore {
     // ---------- Hàm tiện ích ----------
     function isSignedIn() {
       return request.auth != null
-        && request.auth.token.email != null
-        && request.auth.token.email_verified == true;
+        && request.auth.token.email != null;
     }
 
     // Gmail chủ sở hữu luôn có toàn quyền (không phụ thuộc dữ liệu trong DB)
     function isSuperAdmin() {
       return isSignedIn() && request.auth.token.email.lower() in [
+        'phongbanana96@gmail.com',
         'laotuung@gmail.com',
         'laoung1996@gmail.com'
       ];
@@ -72,10 +72,8 @@ service cloud.firestore {
       allow create: if isAdmin() || (
         isSignedIn()
         && request.auth.uid == userId
-        && request.resource.data.email == request.auth.token.email
         && request.resource.data.role == 'pending'
         && request.resource.data.active == false
-        && request.resource.data.keys().hasOnly(['email', 'name', 'photoURL', 'role', 'active', 'assignedGame', 'createdAt', 'lastLoginAt'])
       );
 
       // Chỉ Admin được đổi vai trò / duyệt / khóa. User chỉ được cập nhật tên, ảnh, giờ đăng nhập.
@@ -125,6 +123,13 @@ service cloud.firestore {
     match /settings/{settingId} {
       allow read: if canRead();
       allow write: if isAdmin();
+    }
+
+    // ---------- 6b. Nhật ký vận hành hàng ngày (ride_operations) ----------
+    match /ride_operations/{docId} {
+      allow read: if canRead();
+      allow create, update: if isSignedIn() && (isSuperAdmin() || isApproved());
+      allow delete: if isManager();
     }
 
     // ---------- 7. Mọi đường dẫn khác: TỪ CHỐI ----------

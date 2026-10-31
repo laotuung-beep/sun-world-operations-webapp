@@ -13,6 +13,7 @@
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Lora:ital,wght@0,500;0,600;0,700;1,400&family=Montserrat:wght@500;600;700;800;900&family=Plus+Jakarta+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
   <script src="https://cdn.tailwindcss.com"></script>
+  <script src="https://unpkg.com/lucide@latest"></script>
   <script>
     if (window.tailwind) {
       tailwind.config = {
@@ -2948,10 +2949,10 @@
         left: 0 !important;
         right: 0 !important;
         width: 100% !important;
-        height: 54px !important;
+        height: 60px !important;
         background: var(--surface, #FFFFFF) !important;
         border-top: 1.5px solid var(--border, #E2E8F0) !important;
-        box-shadow: 0 -4px 16px rgba(15, 23, 42, 0.1) !important;
+        box-shadow: 0 -6px 20px rgba(15, 23, 42, 0.1) !important;
         z-index: 950 !important;
         display: flex !important;
         align-items: stretch !important;
@@ -2963,15 +2964,18 @@
       }
       .header-nav-link {
         flex: 1 1 0 !important;
-        height: 54px !important;
-        font-size: 0.78rem !important;
-        font-weight: 600 !important;
+        height: 60px !important;
+        font-size: 0.72rem !important;
+        font-weight: 700 !important;
+        flex-direction: column !important;
+        gap: 3px !important;
         justify-content: center !important;
+        align-items: center !important;
         text-align: center !important;
         padding: 0 4px !important;
       }
       .workspace {
-        padding-bottom: 74px !important;
+        padding-bottom: 84px !important;
       }
       .header-right-tools {
         margin-left: auto;
@@ -3028,10 +3032,22 @@
         </div>
 
         <nav class="header-nav-tabs" aria-label="Điều hướng chính">
-          <button type="button" id="navBtnTime" class="header-nav-link active" onclick="switchScreen('time')">Thông tin chung</button>
-          <button type="button" id="navBtnCycles" class="header-nav-link" onclick="switchScreen('cycles')">Nhập liệu</button>
-          <button type="button" id="navBtnDashboard" class="header-nav-link" onclick="switchScreen('dashboard')">Dashboard</button>
-          <button type="button" id="navBtnStorage" class="header-nav-link" onclick="switchScreen('storage')">Dữ liệu</button>
+          <button type="button" id="navBtnTime" class="header-nav-link active" onclick="switchScreen('time')">
+            <i data-lucide="compass" style="width:16px;height:16px;display:inline-block;"></i>
+            <span>Tổng quan</span>
+          </button>
+          <button type="button" id="navBtnCycles" class="header-nav-link" onclick="switchScreen('cycles')">
+            <i data-lucide="clipboard-list" style="width:16px;height:16px;display:inline-block;"></i>
+            <span>Nhập liệu</span>
+          </button>
+          <button type="button" id="navBtnDashboard" class="header-nav-link" onclick="switchScreen('dashboard')">
+            <i data-lucide="bar-chart-3" style="width:16px;height:16px;display:inline-block;"></i>
+            <span>Dashboard</span>
+          </button>
+          <button type="button" id="navBtnStorage" class="header-nav-link" onclick="switchScreen('storage')">
+            <i data-lucide="database" style="width:16px;height:16px;display:inline-block;"></i>
+            <span>Cài đặt</span>
+          </button>
         </nav>
 
         <!-- Giữ phần tử ẩn phục vụ tương thích JS -->
@@ -3213,27 +3229,80 @@
     </section>
 
     <!-- ========================================================================= -->
-    <!-- KHUNG HÌNH 1: THÔNG TIN THỜI GIAN VẬN HÀNH                                -->
+    <!-- ========================================================================= -->
+    <!-- KHUNG HÌNH 1: NHẬP LIỆU VẬN HÀNH TRÒ CHƠI HÀNG NGÀY (MOBILE-FIRST)        -->
     <!-- ========================================================================= -->
     <div id="screenTimeOps" class="screen-frame">
-      <div class="frame-banner frame-banner-time">
-        <div>
-          <div style="font-size:0.88rem; font-weight:700;">TỔNG QUAN</div>
+
+      <!-- TOP HEADER & STATUS BAR (Mobile-First) -->
+      <section class="bg-white rounded-2xl border border-slate-200/90 shadow-sm p-4 sm:p-5 transition-all">
+        <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 pb-3 border-b border-slate-100">
+          <div class="flex items-center gap-3">
+            <div class="w-10 h-10 rounded-xl bg-red-50 border border-red-100 flex items-center justify-center text-[#C0262D] shrink-0">
+              <i data-lucide="clipboard-pen" class="w-5 h-5"></i>
+            </div>
+            <div>
+              <div class="text-xs uppercase font-extrabold tracking-wider text-[#C0262D]">Sun World Ba Na Hills</div>
+              <h1 class="text-base sm:text-lg font-extrabold text-slate-800 leading-tight">Ca Trực Vận Hành Hàng Ngày</h1>
+            </div>
+          </div>
+
+          <!-- Realtime telemetry clock & Running Status Pill -->
+          <div class="flex items-center justify-between sm:justify-end gap-2 flex-wrap">
+            <div class="inline-flex items-center gap-2 bg-slate-50 border border-slate-200/80 px-3 py-1.5 rounded-full text-xs font-semibold text-slate-700">
+              <i data-lucide="clock" class="w-3.5 h-3.5 text-slate-500"></i>
+              <span id="shiftLiveClock" class="font-bold text-slate-900">--:--:--</span>
+              <span class="text-slate-300">•</span>
+              <span id="shiftLiveDate">--/--/----</span>
+            </div>
+
+            <!-- Badge trạng thái vận hành hiện tại: "🟢 ĐANG HOẠT ĐỘNG" (click chuyển sang "🔴 TẠM DỪNG") -->
+            <button type="button" id="timeOpsShiftStatusPill" onclick="toggleShiftActiveStatus()" title="Nhấp để chuyển đổi trạng thái Hoạt động / Tạm dừng" class="cursor-pointer inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full text-xs font-extrabold transition-all active:scale-95 border bg-emerald-50 text-emerald-700 border-emerald-200 hover:bg-emerald-100">
+              <span id="shiftStatusDot" class="w-2.5 h-2.5 rounded-full bg-emerald-500 animate-pulse"></span>
+              <span id="timeOpsShiftStatusText">🟢 ĐANG HOẠT ĐỘNG</span>
+            </button>
+          </div>
         </div>
 
-      </div>
+        <!-- Staff Google Account Info Banner -->
+        <div class="mt-3 flex items-center justify-between gap-3 bg-slate-50/70 border border-slate-200/60 rounded-xl p-2.5 sm:px-3">
+          <div class="flex items-center gap-2.5 min-w-0">
+            <div id="shiftUserAvatarBox" class="w-8 h-8 rounded-full bg-[#C0262D] text-white flex items-center justify-center font-bold text-xs shrink-0 overflow-hidden border border-red-200">
+              NV
+            </div>
+            <div class="min-w-0">
+              <div class="flex items-center gap-1.5">
+                <span id="shiftStaffDisplayName" class="text-xs font-bold text-slate-800 truncate">Nhân viên vận hành</span>
+                <span class="text-[10px] font-bold text-red-600 bg-red-50 border border-red-200 px-1.5 py-0.5 rounded-md">🔒 Gmail</span>
+              </div>
+              <div id="shiftUserEmailSub" class="text-[11px] text-slate-500 truncate">Đã xác thực Google Workspace</div>
+            </div>
+          </div>
+          <span id="shiftRoleBadge" class="text-[11px] font-bold text-slate-600 bg-white border border-slate-200 px-2.5 py-1 rounded-lg shrink-0">
+            Vận hành viên
+          </span>
+        </div>
+      </section>
 
-      <!-- 1. TRÒ CHƠI, NGÀY VẬN HÀNH, NHÂN VIÊN, THỜI GIAN MỞ CỬA & ĐÓNG CỬA -->
-      <section class="card">
-        <div class="card-header">
-          <div class="card-title">THÔNG TIN CHUNG</div>
+      <!-- KHỐI 1: THÔNG TIN CHUNG (Auto-fill) -->
+      <section class="bg-white rounded-2xl border border-slate-200/90 shadow-sm p-4 sm:p-5">
+        <div class="flex items-center justify-between mb-3.5">
+          <div class="flex items-center gap-2 text-slate-800 font-extrabold text-sm sm:text-base">
+            <i data-lucide="sliders" class="w-4 h-4 text-[#C0262D]"></i>
+            <span>THÔNG TIN CHUNG CA TRỰC</span>
+          </div>
+          <span class="text-[11px] text-slate-400 font-medium">Tự động điền</span>
         </div>
 
-        <!-- Trò chơi, Ngày vận hành, Nhân viên vận hành -->
-        <div class="grid-3 general-info-grid">
-          <div class="field-group">
-            <label class="field-label" for="gameSelect">Chọn trò chơi</label>
-            <select id="gameSelect" onchange="onGameChange()">
+        <div class="grid grid-cols-1 md:grid-cols-3 gap-3.5">
+          <!-- Chọn trò chơi / Tuyến vận hành -->
+          <div class="flex flex-col gap-1.5">
+            <label class="text-xs font-bold text-slate-700 flex items-center gap-1.5" for="gameSelect">
+              <i data-lucide="gamepad-2" class="w-3.5 h-3.5 text-slate-400"></i>
+              Trò chơi / Tuyến vận hành
+            </label>
+            <div class="relative">
+              <select id="gameSelect" onchange="onGameChange()" class="w-full h-11 px-3 py-2 bg-slate-50 hover:bg-slate-100/70 focus:bg-white border border-slate-200 rounded-xl text-xs sm:text-sm font-semibold text-slate-800 transition-all outline-none focus:ring-2 focus:ring-[#C0262D]/20 focus:border-[#C0262D]">
                 <option value="MANG_TRUOT_1" data-mode="coaster">Máng trượt 1</option>
                 <option value="MANG_TRUOT_2" data-mode="coaster">Máng trượt 2</option>
                 <option value="MANG_TRUOT_3" data-mode="coaster">Máng trượt 3</option>
@@ -3261,178 +3330,270 @@
                 <option value="DINO" data-mode="batch">Dino</option>
                 <option value="HAPPY" data-mode="batch">Happy</option>
                 <option value="NHA_PHAO" data-mode="batch">Nhà phao</option>
-            </select>
-            <div style="margin-top:8px;">
-              <span class="status-pill status-running" id="timeOpsShiftStatusPill">
-                <span class="status-dot"></span>
-                <span id="timeOpsShiftStatusText">ĐANG HOẠT ĐỘNG</span>
-              </span>
+              </select>
             </div>
           </div>
-          <div class="field-group">
-            <label class="field-label" for="opDate">Ngày vận hành</label>
-            <input type="date" id="opDate" onchange="onOpDateChange(this.value)" />
-          </div>
-          <div class="field-group">
-            <label class="field-label" for="staffName" style="display:flex; align-items:center; justify-content:space-between; gap:4px;">
-              <span>Nhân viên vận hành</span>
-              <span style="font-size:0.68rem; color:#C0262D; font-weight:700;">🔒 Trùng tên Gmail</span>
+
+          <!-- Ngày vận hành -->
+          <div class="flex flex-col gap-1.5">
+            <label class="text-xs font-bold text-slate-700 flex items-center gap-1.5" for="opDate">
+              <i data-lucide="calendar" class="w-3.5 h-3.5 text-slate-400"></i>
+              Ngày vận hành (Chạm đổi nhanh)
             </label>
-            <input type="text" id="staffName" readonly placeholder="Tự động đồng bộ theo Gmail đăng nhập..." value="" title="Tên nhân viên vận hành cố định theo tài khoản Gmail đăng nhập" onchange="saveCurrentState()" />
-          </div>
-        </div>
-
-        <!-- Thời gian mở cửa đầu ca & Thời gian đóng cửa cuối ca (Chọn từng khung Giờ, Phút, bỏ giây, không nhập tay) -->
-        <div class="shift-times-container">
-          <!-- Thời gian mở cửa -->
-          <div class="shift-picker-card open-card">
-            <div class="shift-picker-header">
-              <span class="shift-picker-title">Thời gian mở cửa (Đầu ca)</span>
-              <span class="shift-badge-time shift-badge-open" id="openTimeDisplay">08:00</span>
-            </div>
-            <div class="hm-select-row">
-              <div class="field-group">
-                <label class="field-label" for="openHourSelect">Chọn Giờ mở</label>
-                <select id="openHourSelect" class="hm-select" onchange="onShiftSelectChange('open')"></select>
-              </div>
-              <span class="hm-colon" style="margin-top:18px;">:</span>
-              <div class="field-group">
-                <label class="field-label" for="openMinuteSelect">Chọn Phút mở</label>
-                <select id="openMinuteSelect" class="hm-select" onchange="onShiftSelectChange('open')"></select>
-              </div>
-            </div>
+            <input type="date" id="opDate" onchange="onOpDateChange(this.value)" class="w-full h-11 px-3 py-2 bg-slate-50 hover:bg-slate-100/70 focus:bg-white border border-slate-200 rounded-xl text-xs sm:text-sm font-semibold text-slate-800 transition-all outline-none focus:ring-2 focus:ring-[#C0262D]/20 focus:border-[#C0262D]" />
           </div>
 
-          <!-- Thời gian đóng cửa -->
-          <div class="shift-picker-card close-card">
-            <div class="shift-picker-header">
-              <span class="shift-picker-title">Thời gian đóng cửa (Cuối ca)</span>
-              <span class="shift-badge-time shift-badge-close" id="closeTimeDisplay">--:--</span>
+          <!-- Nhân viên vận hành (Khóa bảo mật theo Gmail) -->
+          <div class="flex flex-col gap-1.5">
+            <div class="flex items-center justify-between">
+              <label class="text-xs font-bold text-slate-700 flex items-center gap-1.5" for="staffName">
+                <i data-lucide="user-check" class="w-3.5 h-3.5 text-slate-400"></i>
+                Nhân viên vận hành
+              </label>
+              <span class="text-[11px] font-bold text-[#C0262D] flex items-center gap-1">🔒 Khóa cố định</span>
             </div>
-            <div class="hm-select-row">
-              <div class="field-group">
-                <label class="field-label" for="closeHourSelect">Chọn Giờ đóng</label>
-                <select id="closeHourSelect" class="hm-select" onchange="onShiftSelectChange('close')"></select>
-              </div>
-              <span class="hm-colon" style="margin-top:18px;">:</span>
-              <div class="field-group">
-                <label class="field-label" for="closeMinuteSelect">Chọn Phút đóng</label>
-                <select id="closeMinuteSelect" class="hm-select" onchange="onShiftSelectChange('close')"></select>
-              </div>
-            </div>
+            <input type="text" id="staffName" readonly placeholder="Tự động đồng bộ theo Gmail đăng nhập..." class="w-full h-11 px-3 py-2 bg-slate-100/80 border border-slate-200 rounded-xl text-xs sm:text-sm font-bold text-slate-700 cursor-not-allowed outline-none" title="Tên nhân viên vận hành cố định theo tài khoản Gmail đăng nhập" />
           </div>
         </div>
       </section>
 
-      <!-- 2. THỜI GIAN NGỪNG VẬN HÀNH -->
-      <section class="card">
-        <div class="card-header">
-          <div class="card-title">THÔNG TIN DỪNG</div>
+      <!-- KHỐI 2: THỜI GIAN VẬN HÀNH CA (Cơ chế 1 chạm tối ưu) -->
+      <section class="bg-white rounded-2xl border border-slate-200/90 shadow-sm p-4 sm:p-5">
+        <div class="flex items-center justify-between mb-3.5">
+          <div class="flex items-center gap-2 text-slate-800 font-extrabold text-sm sm:text-base">
+            <i data-lucide="timer" class="w-4 h-4 text-emerald-600"></i>
+            <span>THỜI GIAN VẬN HÀNH CA (1 CHẠM TỐI ƯU)</span>
+          </div>
+          <span class="text-[11px] text-emerald-600 font-bold bg-emerald-50 px-2 py-0.5 rounded-full border border-emerald-100">
+            Cơ chế nhanh
+          </span>
         </div>
 
-        <!-- Bước 1: Chọn loại dừng -->
-        <div>
-          <div class="reason-grid" id="downtimeReasonButtons">
-            <button type="button" class="reason-btn active" data-reason="Bảo trì" onclick="selectDowntimeReason('Bảo trì')">
-              <span>Bảo trì</span><span class="reason-check">✓</span>
-            </button>
-            <button type="button" class="reason-btn" data-reason="Thời tiết mưa" onclick="selectDowntimeReason('Thời tiết mưa')">
-              <span>Thời tiết mưa</span><span class="reason-check">✓</span>
-            </button>
-            <button type="button" class="reason-btn" data-reason="Sương mù" onclick="selectDowntimeReason('Sương mù')">
-              <span>Sương mù</span><span class="reason-check">✓</span>
-            </button>
-            <button type="button" class="reason-btn" data-reason="Dông sét" onclick="selectDowntimeReason('Dông sét')">
-              <span>Dông sét</span><span class="reason-check">✓</span>
-            </button>
-            <button type="button" class="reason-btn" data-reason="Sự cố thiết bị" onclick="selectDowntimeReason('Sự cố thiết bị')">
-              <span>Sự cố thiết bị</span><span class="reason-check">✓</span>
-            </button>
-            <button type="button" class="reason-btn" data-reason="Sự cố khách hàng" onclick="selectDowntimeReason('Sự cố khách hàng')">
-              <span>Sự cố khách hàng</span><span class="reason-check">✓</span>
-            </button>
-          </div>
-        </div>
-
-        <!-- Bước 2: Chọn Thời gian bắt đầu & Thời gian kết thúc giống hệt chọn Thời gian mở cửa / đóng cửa -->
-        <div class="shift-times-container">
-          <!-- Thời gian bắt đầu dừng -->
-          <div class="shift-picker-card">
-            <div class="shift-picker-header">
-              <span class="shift-picker-title">Thời gian bắt đầu dừng</span>
-              <span class="shift-badge-time" id="dtStartPreviewBadge">10:15</span>
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+          <!-- 1. Thời gian mở cửa (Đầu ca) -->
+          <div class="p-3.5 sm:p-4 rounded-xl border border-emerald-100 bg-gradient-to-b from-emerald-50/40 to-white flex flex-col gap-2.5">
+            <div class="flex items-center justify-between">
+              <span class="text-xs font-bold text-emerald-800 flex items-center gap-1.5">
+                <i data-lucide="sun" class="w-3.5 h-3.5 text-emerald-600"></i>
+                Thời gian mở cửa (Đầu ca)
+              </span>
+              <!-- Nút lấy giờ hiện tại (Now) 1 chạm -->
+              <button type="button" onclick="setShiftTimeNow('open')" class="cursor-pointer inline-flex items-center gap-1 text-[11px] font-bold text-emerald-700 bg-white hover:bg-emerald-50 border border-emerald-200 px-2.5 py-1 rounded-lg transition-all active:scale-95 shadow-2xs">
+                <i data-lucide="zap" class="w-3 h-3 text-emerald-600"></i>
+                Lấy giờ hiện tại
+              </button>
             </div>
-            <div class="hm-select-row">
-              <div class="field-group">
-                <label class="field-label" for="manDtStartH">Chọn Giờ bắt đầu</label>
-                <select id="manDtStartH" class="hm-select" onchange="updateDowntimePreview()"></select>
-              </div>
-              <span class="hm-colon" style="margin-top:18px;">:</span>
-              <div class="field-group">
-                <label class="field-label" for="manDtStartM">Chọn Phút bắt đầu</label>
-                <select id="manDtStartM" class="hm-select" onchange="updateDowntimePreview()"></select>
-              </div>
+
+            <!-- Input type="time" chữ to đậm -->
+            <div class="relative">
+              <input type="time" id="shiftOpenTimeInput" value="08:00" onchange="onShiftTimeInputChange('open', this.value)" class="w-full h-13 px-4 py-2 bg-white border-2 border-emerald-200 rounded-xl text-xl sm:text-2xl font-black text-emerald-700 text-center tracking-wider outline-none focus:ring-2 focus:ring-emerald-400 focus:border-emerald-500 transition-all shadow-inner" />
+            </div>
+
+            <!-- Quick chips mở ca -->
+            <div class="flex items-center gap-1.5 flex-wrap pt-1">
+              <span class="text-[11px] font-semibold text-slate-400 mr-1">Nhanh:</span>
+              <button type="button" onclick="setShiftTimeChip('open', '07:30')" class="time-quick-chip text-xs font-bold px-2.5 py-1 rounded-lg bg-emerald-50 hover:bg-emerald-100 text-emerald-700 border border-emerald-200/70 transition-all active:scale-95">07:30</button>
+              <button type="button" onclick="setShiftTimeChip('open', '08:00')" class="time-quick-chip text-xs font-bold px-2.5 py-1 rounded-lg bg-emerald-50 hover:bg-emerald-100 text-emerald-700 border border-emerald-200/70 transition-all active:scale-95">08:00</button>
+              <button type="button" onclick="setShiftTimeChip('open', '08:30')" class="time-quick-chip text-xs font-bold px-2.5 py-1 rounded-lg bg-emerald-50 hover:bg-emerald-100 text-emerald-700 border border-emerald-200/70 transition-all active:scale-95">08:30</button>
+              <button type="button" onclick="setShiftTimeChip('open', '09:00')" class="time-quick-chip text-xs font-bold px-2.5 py-1 rounded-lg bg-emerald-50 hover:bg-emerald-100 text-emerald-700 border border-emerald-200/70 transition-all active:scale-95">09:00</button>
             </div>
           </div>
 
-          <!-- Thời gian kết thúc dừng -->
-          <div class="shift-picker-card">
-            <div class="shift-picker-header">
-              <span class="shift-picker-title">Thời gian kết thúc dừng</span>
-              <span class="shift-badge-time shift-badge-close" id="dtEndPreviewBadge">10:45</span>
+          <!-- 2. Thời gian đóng cửa (Cuối ca) -->
+          <div class="p-3.5 sm:p-4 rounded-xl border border-rose-100 bg-gradient-to-b from-rose-50/40 to-white flex flex-col gap-2.5">
+            <div class="flex items-center justify-between">
+              <span class="text-xs font-bold text-rose-800 flex items-center gap-1.5">
+                <i data-lucide="moon" class="w-3.5 h-3.5 text-rose-600"></i>
+                Thời gian đóng cửa (Cuối ca)
+              </span>
+              <!-- Nút lấy giờ hiện tại (Now) 1 chạm -->
+              <button type="button" onclick="setShiftTimeNow('close')" class="cursor-pointer inline-flex items-center gap-1 text-[11px] font-bold text-rose-700 bg-white hover:bg-rose-50 border border-rose-200 px-2.5 py-1 rounded-lg transition-all active:scale-95 shadow-2xs">
+                <i data-lucide="zap" class="w-3 h-3 text-rose-600"></i>
+                Lấy giờ hiện tại
+              </button>
             </div>
-            <div class="hm-select-row">
-              <div class="field-group">
-                <label class="field-label" for="manDtEndH">Chọn Giờ kết thúc</label>
-                <select id="manDtEndH" class="hm-select" onchange="updateDowntimePreview()"></select>
-              </div>
-              <span class="hm-colon" style="margin-top:18px;">:</span>
-              <div class="field-group">
-                <label class="field-label" for="manDtEndM">Chọn Phút kết thúc</label>
-                <select id="manDtEndM" class="hm-select" onchange="updateDowntimePreview()"></select>
-              </div>
+
+            <!-- Input type="time" chữ to đậm -->
+            <div class="relative">
+              <input type="time" id="shiftCloseTimeInput" value="17:00" onchange="onShiftTimeInputChange('close', this.value)" class="w-full h-13 px-4 py-2 bg-white border-2 border-rose-200 rounded-xl text-xl sm:text-2xl font-black text-rose-700 text-center tracking-wider outline-none focus:ring-2 focus:ring-rose-400 focus:border-rose-500 transition-all shadow-inner" />
+            </div>
+
+            <!-- Quick chips đóng ca -->
+            <div class="flex items-center gap-1.5 flex-wrap pt-1">
+              <span class="text-[11px] font-semibold text-slate-400 mr-1">Nhanh:</span>
+              <button type="button" onclick="setShiftTimeChip('close', '16:30')" class="time-quick-chip text-xs font-bold px-2.5 py-1 rounded-lg bg-rose-50 hover:bg-rose-100 text-rose-700 border border-rose-200/70 transition-all active:scale-95">16:30</button>
+              <button type="button" onclick="setShiftTimeChip('close', '17:00')" class="time-quick-chip text-xs font-bold px-2.5 py-1 rounded-lg bg-rose-50 hover:bg-rose-100 text-rose-700 border border-rose-200/70 transition-all active:scale-95">17:00</button>
+              <button type="button" onclick="setShiftTimeChip('close', '17:30')" class="time-quick-chip text-xs font-bold px-2.5 py-1 rounded-lg bg-rose-50 hover:bg-rose-100 text-rose-700 border border-rose-200/70 transition-all active:scale-95">17:30</button>
+              <button type="button" onclick="setShiftTimeChip('close', '18:00')" class="time-quick-chip text-xs font-bold px-2.5 py-1 rounded-lg bg-rose-50 hover:bg-rose-100 text-rose-700 border border-rose-200/70 transition-all active:scale-95">18:00</button>
             </div>
           </div>
         </div>
 
-        <!-- Bước 3: Ghi chú & Nút lưu khoảng dừng -->
-        <div style="margin-top:12px; display:flex; gap:10px; align-items:center; flex-wrap:wrap;">
-          <div style="flex:1; min-width:220px;">
-            <input type="text" id="manDtNote" placeholder="Nhập ghi chú chi tiết sự cố (tùy chọn)..." />
+        <!-- Tự động tính toán tổng thời gian vận hành dự kiến -->
+        <div class="mt-3.5 p-3 rounded-xl bg-amber-50/70 border border-amber-200/80 flex items-center justify-between flex-wrap gap-2">
+          <div class="flex items-center gap-2">
+            <i data-lucide="hourglass" class="w-4 h-4 text-amber-600"></i>
+            <span id="shiftDurationSummaryText" class="text-xs sm:text-sm font-extrabold text-amber-900">
+              Tổng thời gian vận hành dự kiến: 9 giờ 0 phút
+            </span>
           </div>
-          <button type="button" class="btn btn-danger" style="padding:10px 16px; font-size:0.82rem;" onclick="addManualDowntime()">
-            Lưu Thời Gian Ngừng Vận Hành (<span id="dtCalculatedDurationText">30 phút</span>)
+          <span class="text-[11px] font-bold text-amber-700 bg-white border border-amber-200 px-2 py-0.5 rounded-md">
+            Realtime
+          </span>
+        </div>
+
+        <!-- Ẩn các dropdown cũ để tương thích ngược 100% -->
+        <div style="display:none;">
+          <span id="openTimeDisplay">08:00</span>
+          <span id="closeTimeDisplay">17:00</span>
+          <select id="openHourSelect"></select>
+          <select id="openMinuteSelect"></select>
+          <select id="closeHourSelect"></select>
+          <select id="closeMinuteSelect"></select>
+        </div>
+      </section>
+
+      <!-- KHỐI 3: TRẠNG THÁI DỪNG / TẠM NGƯNG MÁY (Toggle Chips) -->
+      <section class="bg-white rounded-2xl border border-slate-200/90 shadow-sm p-4 sm:p-5">
+        <div class="flex items-center justify-between mb-3.5">
+          <div class="flex items-center gap-2 text-slate-800 font-extrabold text-sm sm:text-base">
+            <i data-lucide="alert-triangle" class="w-4 h-4 text-amber-500"></i>
+            <span>TRẠNG THÁI DỪNG / TẠM NGƯNG MÁY</span>
+          </div>
+          <span class="text-[11px] font-medium text-slate-500">Chạm để đổi</span>
+        </div>
+
+        <!-- 4 Nút thẻ to bản chọn nhanh lý do dừng -->
+        <div class="grid grid-cols-2 sm:grid-cols-4 gap-2.5">
+          <button type="button" id="chipDtNormal" onclick="selectDowntimeChip('Bình thường')" class="downtime-status-chip active cursor-pointer p-3 rounded-xl border-2 transition-all flex flex-col items-center justify-center gap-1 text-center bg-emerald-50 border-emerald-500 text-emerald-800 shadow-sm">
+            <span class="text-lg">🟢</span>
+            <span class="text-xs font-black">Bình thường</span>
+            <span class="text-[10px] text-emerald-600 font-semibold">Máy chạy tốt</span>
+          </button>
+
+          <button type="button" id="chipDtTech" onclick="selectDowntimeChip('Bảo trì kỹ thuật')" class="downtime-status-chip cursor-pointer p-3 rounded-xl border-2 transition-all flex flex-col items-center justify-center gap-1 text-center bg-slate-50 border-slate-200 hover:border-red-300 text-slate-700">
+            <span class="text-lg">🔴</span>
+            <span class="text-xs font-bold">Bảo trì kỹ thuật</span>
+            <span class="text-[10px] text-slate-400 font-semibold">Kiểm tra máy</span>
+          </button>
+
+          <button type="button" id="chipDtWeather" onclick="selectDowntimeChip('Thời tiết mưa / Sương mù')" class="downtime-status-chip cursor-pointer p-3 rounded-xl border-2 transition-all flex flex-col items-center justify-center gap-1 text-center bg-slate-50 border-slate-200 hover:border-amber-300 text-slate-700">
+            <span class="text-lg">🟡</span>
+            <span class="text-xs font-bold">Thời tiết xấu</span>
+            <span class="text-[10px] text-slate-400 font-semibold">Mưa / Sương mù</span>
+          </button>
+
+          <button type="button" id="chipDtPower" onclick="selectDowntimeChip('Cúp điện')" class="downtime-status-chip cursor-pointer p-3 rounded-xl border-2 transition-all flex flex-col items-center justify-center gap-1 text-center bg-slate-50 border-slate-200 hover:border-slate-400 text-slate-700">
+            <span class="text-lg">⚪</span>
+            <span class="text-xs font-bold">Cúp điện</span>
+            <span class="text-[10px] text-slate-400 font-semibold">Mất nguồn</span>
           </button>
         </div>
 
-        <!-- Thanh điều khiển Thu gọn / Sổ ra Lịch sử thông tin dừng -->
-        <div class="history-collapse-bar" style="margin-top:14px;">
-          <span class="history-collapse-label">
-            Lịch sử thông tin dừng đã ghi nhận: <strong id="downtimeHistoryCountText" style="color:var(--text);">0 lần (0 phút)</strong>
+        <!-- Khung nhập ghi chú & khoảng thời gian dừng tự động bung ra khi chọn khác "Bình thường" -->
+        <div id="downtimeActiveForm" class="hidden mt-4 p-4 rounded-xl border-2 border-red-200 bg-red-50/40 transition-all">
+          <div class="flex items-center justify-between pb-3 mb-3 border-b border-red-100">
+            <div class="flex items-center gap-2">
+              <span class="w-2.5 h-2.5 rounded-full bg-red-500 animate-ping"></span>
+              <span id="downtimeActiveFormTitle" class="text-xs sm:text-sm font-extrabold text-red-800">
+                GHI NHẬN KHOẢNG THỜI GIAN DỪNG: BẢO TRÌ KỸ THUẬT
+              </span>
+            </div>
+            <button type="button" onclick="selectDowntimeChip('Bình thường')" class="text-xs text-slate-400 hover:text-slate-600 font-bold">Hủy bỏ ✕</button>
+          </div>
+
+          <div class="grid grid-cols-1 sm:grid-cols-2 gap-3 mb-3">
+            <!-- Giờ bắt đầu dừng -->
+            <div class="flex flex-col gap-1">
+              <div class="flex items-center justify-between">
+                <label class="text-xs font-bold text-slate-700">Bắt đầu dừng từ</label>
+                <button type="button" onclick="setQuickDowntimeTime('start', 'now')" class="text-[11px] font-bold text-red-600 hover:underline">Giờ hiện tại</button>
+              </div>
+              <input type="time" id="quickDtStartTime" class="h-11 px-3 bg-white border border-red-200 rounded-xl text-base font-bold text-red-700 outline-none focus:ring-2 focus:ring-red-400" />
+            </div>
+
+            <!-- Giờ kết thúc dừng -->
+            <div class="flex flex-col gap-1">
+              <div class="flex items-center justify-between">
+                <label class="text-xs font-bold text-slate-700">Dự kiến kết thúc lúc</label>
+                <div class="flex gap-1">
+                  <button type="button" onclick="addQuickDtMinutes(15)" class="text-[10px] font-bold bg-white border border-red-200 px-1.5 py-0.5 rounded text-red-700">+15p</button>
+                  <button type="button" onclick="addQuickDtMinutes(30)" class="text-[10px] font-bold bg-white border border-red-200 px-1.5 py-0.5 rounded text-red-700">+30p</button>
+                  <button type="button" onclick="addQuickDtMinutes(60)" class="text-[10px] font-bold bg-white border border-red-200 px-1.5 py-0.5 rounded text-red-700">+60p</button>
+                </div>
+              </div>
+              <input type="time" id="quickDtEndTime" class="h-11 px-3 bg-white border border-red-200 rounded-xl text-base font-bold text-red-700 outline-none focus:ring-2 focus:ring-red-400" />
+            </div>
+          </div>
+
+          <!-- Ghi chú nhanh và nút lưu đợt dừng -->
+          <div class="flex flex-col sm:flex-row gap-2.5">
+            <input type="text" id="quickDtNote" placeholder="Ghi chú nguyên nhân chi tiết sự cố (tùy chọn)..." class="flex-1 h-11 px-3.5 bg-white border border-red-200 rounded-xl text-xs sm:text-sm text-slate-800 outline-none focus:ring-2 focus:ring-red-400" />
+            <button type="button" onclick="saveQuickDowntimeRecord()" class="cursor-pointer h-11 px-5 rounded-xl bg-[#C0262D] hover:bg-[#a51e24] text-white font-extrabold text-xs sm:text-sm transition-all active:scale-95 flex items-center justify-center gap-1.5 shrink-0 shadow-md">
+              <i data-lucide="save" class="w-4 h-4"></i>
+              <span>LƯU ĐỢT DỪNG</span>
+            </button>
+          </div>
+        </div>
+
+        <!-- Ẩn các input downtime cũ để tương thích 100% với logic JS có sẵn -->
+        <div style="display:none;">
+          <input type="text" id="manDtNote" />
+          <span id="dtStartPreviewBadge"></span>
+          <span id="dtEndPreviewBadge"></span>
+          <select id="manDtStartH"></select>
+          <select id="manDtStartM"></select>
+          <select id="manDtEndH"></select>
+          <select id="manDtEndM"></select>
+          <div id="downtimeReasonButtons">
+            <button type="button" class="reason-btn" data-reason="Bảo trì"></button>
+            <button type="button" class="reason-btn" data-reason="Thời tiết mưa"></button>
+            <button type="button" class="reason-btn" data-reason="Sương mù"></button>
+            <button type="button" class="reason-btn" data-reason="Dông sét"></button>
+            <button type="button" class="reason-btn" data-reason="Sự cố thiết bị"></button>
+            <button type="button" class="reason-btn" data-reason="Sự cố khách hàng"></button>
+          </div>
+        </div>
+
+        <!-- Thanh điều khiển Thu gọn / Mở rộng Lịch sử thông tin dừng -->
+        <div class="mt-4 pt-3 border-t border-slate-100 flex items-center justify-between flex-wrap gap-2">
+          <span class="text-xs font-semibold text-slate-600">
+            Lịch sử thông tin dừng đã ghi nhận: <strong id="downtimeHistoryCountText" class="text-slate-900 font-extrabold">0 lần (0 phút)</strong>
           </span>
-          <button type="button" id="btnToggleDowntimeHistory" class="history-toggle-btn" onclick="toggleDowntimeHistoryPanel()">
+          <button type="button" id="btnToggleDowntimeHistory" onclick="toggleDowntimeHistoryPanel()" class="cursor-pointer inline-flex items-center gap-1.5 text-xs font-bold text-slate-600 hover:text-slate-900 bg-slate-100 hover:bg-slate-200/80 px-3 py-1.5 rounded-lg transition-all">
             <span id="btnToggleDowntimeHistoryLabel">Hiển thị lịch sử</span>
             <span id="btnToggleDowntimeHistoryCaret">▾</span>
           </button>
         </div>
 
-        <!-- Bảng danh sách các lần ngừng vận hành đã nhập (Mặc định thu gọn, bấm để hiển thị) -->
-        <div id="downtimeHistoryCollapsibleWrap" class="table-wrap" style="margin-top:10px; display:none;">
-          <table>
-            <thead>
+        <!-- Bảng danh sách các lần ngừng vận hành đã nhập -->
+        <div id="downtimeHistoryCollapsibleWrap" class="hidden mt-3 overflow-x-auto rounded-xl border border-slate-200">
+          <table class="w-full text-left text-xs text-slate-700">
+            <thead class="bg-slate-50 text-[11px] uppercase font-bold text-slate-500 border-b border-slate-200">
               <tr>
-                <th>#</th>
-                <th>Loại dừng / Nguyên nhân</th>
-                <th>Thời gian bắt đầu</th>
-                <th>Thời gian kết thúc</th>
-                <th class="text-right">Số phút dừng</th>
-                <th>Ghi chú</th>
-                <th class="text-center" id="dtTableDeleteHeader">Xóa</th>
+                <th class="px-3 py-2.5">#</th>
+                <th class="px-3 py-2.5">Loại dừng / Nguyên nhân</th>
+                <th class="px-3 py-2.5">Bắt đầu</th>
+                <th class="px-3 py-2.5">Kết thúc</th>
+                <th class="px-3 py-2.5 text-right">Số phút</th>
+                <th class="px-3 py-2.5">Ghi chú</th>
+                <th class="px-3 py-2.5 text-center" id="dtTableDeleteHeader">Xóa</th>
               </tr>
             </thead>
-            <tbody id="downtimeTableBody"></tbody>
+            <tbody id="downtimeTableBody" class="divide-y divide-slate-100 bg-white"></tbody>
           </table>
         </div>
+      </section>
+
+      <!-- NÚT HÀNH ĐỘNG LỚN CỐ ĐỊNH / NỔI BẬT: LƯU DỮ LIỆU CA -->
+      <section class="mt-2 mb-6">
+        <button type="button" id="submitShiftDataBtn" onclick="submitShiftData()" class="w-full py-4 px-6 rounded-2xl bg-gradient-to-r from-[#C0262D] via-[#D12B33] to-[#B02026] text-white font-black text-base sm:text-lg tracking-wider uppercase shadow-lg shadow-red-500/25 hover:shadow-xl hover:shadow-red-500/35 active:scale-[0.98] transition-all flex items-center justify-center gap-3 cursor-pointer border border-red-400/40">
+          <i data-lucide="cloud-upload" class="w-6 h-6"></i>
+          <span id="submitShiftBtnText">LƯU DỮ LIỆU CA VẬN HÀNH</span>
+        </button>
+        <p class="text-center text-[11px] text-slate-400 mt-2 font-medium">
+          Dữ liệu được lưu an toàn tại thiết bị và tự động đồng bộ thời gian thực lên Firebase Cloud Firestore
+        </p>
       </section>
 
     </div>
@@ -5661,22 +5822,315 @@ function doGet(e) {
       const closeH = document.getElementById("closeHourSelect");
       const closeM = document.getElementById("closeMinuteSelect");
 
+      const openInput = document.getElementById("shiftOpenTimeInput");
+      const closeInput = document.getElementById("shiftCloseTimeInput");
+      const openDisp = document.getElementById("openTimeDisplay");
+      const closeDisp = document.getElementById("closeTimeDisplay");
+
       if (rec.openTime && rec.openTime.includes(":")) {
         const [oh, om] = rec.openTime.split(":");
-        openH.value = oh;
-        openM.value = om;
+        if (openH) openH.value = oh;
+        if (openM) openM.value = om;
+        if (openInput) openInput.value = rec.openTime;
+        if (openDisp) openDisp.textContent = rec.openTime;
       } else {
-        openH.value = "";
-        openM.value = "";
+        if (openH) openH.value = "08";
+        if (openM) openM.value = "00";
+        if (openInput) openInput.value = "08:00";
+        if (openDisp) openDisp.textContent = "08:00";
       }
 
       if (rec.closeTime && rec.closeTime.includes(":")) {
         const [ch, cm] = rec.closeTime.split(":");
-        closeH.value = ch;
-        closeM.value = cm;
+        if (closeH) closeH.value = ch;
+        if (closeM) closeM.value = cm;
+        if (closeInput) closeInput.value = rec.closeTime;
+        if (closeDisp) closeDisp.textContent = rec.closeTime;
       } else {
-        closeH.value = "";
-        closeM.value = "";
+        if (closeH) closeH.value = "";
+        if (closeM) closeM.value = "";
+        if (closeInput) closeInput.value = "";
+        if (closeDisp) closeDisp.textContent = "--:--";
+      }
+      updateShiftDurationCalc();
+    }
+
+    function setShiftTimeNow(type) {
+      const nowStr = formatNowHHMM();
+      setShiftTimeValue(type, nowStr);
+    }
+
+    function setShiftTimeChip(type, val) {
+      setShiftTimeValue(type, val);
+    }
+
+    function onShiftTimeInputChange(type, val) {
+      setShiftTimeValue(type, val);
+    }
+
+    function setShiftTimeValue(type, val) {
+      const rec = getCurrentRecord();
+      if (!rec) return;
+      if (type === "open") {
+        rec.openTime = val || null;
+        const input = document.getElementById("shiftOpenTimeInput");
+        if (input) input.value = val || "";
+        const disp = document.getElementById("openTimeDisplay");
+        if (disp) disp.textContent = val || "--:--";
+      } else {
+        rec.closeTime = val || null;
+        const input = document.getElementById("shiftCloseTimeInput");
+        if (input) input.value = val || "";
+        const disp = document.getElementById("closeTimeDisplay");
+        if (disp) disp.textContent = val || "--:--";
+      }
+      syncOldDropdownsFromInput();
+      updateShiftDurationCalc();
+      saveToLocalStorage();
+      if (window.SWFirebase && window.SWFirebase.queueSync) window.SWFirebase.queueSync();
+      showAppToast(`✓ Đã cập nhật ${type === "open" ? "giờ mở ca" : "giờ đóng ca"}: ${val || "--:--"}`);
+    }
+
+    function syncOldDropdownsFromInput() {
+      const rec = getCurrentRecord();
+      if (!rec) return;
+      const openH = document.getElementById("openHourSelect");
+      const openM = document.getElementById("openMinuteSelect");
+      const closeH = document.getElementById("closeHourSelect");
+      const closeM = document.getElementById("closeMinuteSelect");
+      if (rec.openTime && rec.openTime.includes(":")) {
+        const [oh, om] = rec.openTime.split(":");
+        if (openH) openH.value = oh;
+        if (openM) openM.value = om;
+      }
+      if (rec.closeTime && rec.closeTime.includes(":")) {
+        const [ch, cm] = rec.closeTime.split(":");
+        if (closeH) closeH.value = ch;
+        if (closeM) closeM.value = cm;
+      } else {
+        if (closeH) closeH.value = "";
+        if (closeM) closeM.value = "";
+      }
+    }
+
+    function updateShiftDurationCalc() {
+      const openInput = document.getElementById("shiftOpenTimeInput");
+      const closeInput = document.getElementById("shiftCloseTimeInput");
+      const summaryEl = document.getElementById("shiftDurationSummaryText");
+      if (!summaryEl) return;
+      const openVal = openInput ? openInput.value : "";
+      const closeVal = closeInput ? closeInput.value : "";
+
+      if (openVal && closeVal && openVal.includes(":") && closeVal.includes(":")) {
+        const [oh, om] = openVal.split(":").map(Number);
+        const [ch, cm] = closeVal.split(":").map(Number);
+        let startMin = oh * 60 + om;
+        let endMin = ch * 60 + cm;
+        let diffMin = endMin - startMin;
+        if (diffMin < 0) diffMin += 24 * 60;
+        const hours = Math.floor(diffMin / 60);
+        const mins = diffMin % 60;
+        summaryEl.textContent = `Tổng thời gian vận hành dự kiến: ${hours} giờ ${mins > 0 ? mins + " phút" : "0 phút"}`;
+      } else if (openVal) {
+        summaryEl.textContent = `Ca trực đang vận hành từ ${openVal} (Chưa chốt giờ đóng cửa)`;
+      } else {
+        summaryEl.textContent = `Chưa cài đặt thời gian vận hành ca`;
+      }
+    }
+
+    let isShiftOperatingActive = true;
+    function toggleShiftActiveStatus() {
+      isShiftOperatingActive = !isShiftOperatingActive;
+      const pill = document.getElementById("timeOpsShiftStatusPill");
+      const text = document.getElementById("timeOpsShiftStatusText");
+      const dot = document.getElementById("shiftStatusDot");
+      if (isShiftOperatingActive) {
+        if (text) text.textContent = "🟢 ĐANG HOẠT ĐỘNG";
+        if (pill) {
+          pill.className = "cursor-pointer inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full text-xs font-extrabold transition-all active:scale-95 border bg-emerald-50 text-emerald-700 border-emerald-200 hover:bg-emerald-100";
+        }
+        if (dot) {
+          dot.className = "w-2.5 h-2.5 rounded-full bg-emerald-500 animate-pulse";
+        }
+        showAppToast("🟢 Trạng thái ca: ĐANG HOẠT ĐỘNG");
+      } else {
+        if (text) text.textContent = "🔴 TẠM DỪNG";
+        if (pill) {
+          pill.className = "cursor-pointer inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full text-xs font-extrabold transition-all active:scale-95 border bg-rose-50 text-rose-700 border-rose-200 hover:bg-rose-100";
+        }
+        if (dot) {
+          dot.className = "w-2.5 h-2.5 rounded-full bg-rose-500 animate-ping";
+        }
+        showAppToast("🔴 Trạng thái ca: ĐÃ CHUYỂN SANG TẠM DỪNG");
+      }
+    }
+
+    let currentDowntimeChipStatus = "Bình thường";
+    function selectDowntimeChip(statusName) {
+      currentDowntimeChipStatus = statusName;
+      const chips = [
+        { id: "chipDtNormal", name: "Bình thường", activeClass: "bg-emerald-50 border-emerald-500 text-emerald-800 shadow-sm" },
+        { id: "chipDtTech", name: "Bảo trì kỹ thuật", activeClass: "bg-red-50 border-red-500 text-red-800 shadow-sm" },
+        { id: "chipDtWeather", name: "Thời tiết mưa / Sương mù", activeClass: "bg-amber-50 border-amber-500 text-amber-800 shadow-sm" },
+        { id: "chipDtPower", name: "Cúp điện", activeClass: "bg-slate-200 border-slate-600 text-slate-800 shadow-sm" }
+      ];
+      chips.forEach(c => {
+        const el = document.getElementById(c.id);
+        if (!el) return;
+        const isActive = c.name === statusName;
+        el.classList.toggle("active", isActive);
+        if (isActive) {
+          el.className = `downtime-status-chip active cursor-pointer p-3 rounded-xl border-2 transition-all flex flex-col items-center justify-center gap-1 text-center ${c.activeClass}`;
+        } else {
+          el.className = "downtime-status-chip cursor-pointer p-3 rounded-xl border-2 transition-all flex flex-col items-center justify-center gap-1 text-center bg-slate-50 border-slate-200 hover:border-slate-300 text-slate-700";
+        }
+      });
+
+      const form = document.getElementById("downtimeActiveForm");
+      const title = document.getElementById("downtimeActiveFormTitle");
+      if (statusName === "Bình thường") {
+        if (form) form.classList.add("hidden");
+      } else {
+        if (form) form.classList.remove("hidden");
+        if (title) title.textContent = `GHI NHẬN KHOẢNG THỜI GIAN DỪNG: ${statusName.toUpperCase()}`;
+        const startInput = document.getElementById("quickDtStartTime");
+        const endInput = document.getElementById("quickDtEndTime");
+        if (startInput && !startInput.value) startInput.value = formatNowHHMM();
+        if (endInput && !endInput.value) {
+          const now = new Date();
+          now.setMinutes(now.getMinutes() + 30);
+          const hh = String(now.getHours()).padStart(2, "0");
+          const mm = String(now.getMinutes()).padStart(2, "0");
+          endInput.value = `${hh}:${mm}`;
+        }
+      }
+    }
+
+    function setQuickDowntimeTime(type, mode) {
+      const input = document.getElementById(type === "start" ? "quickDtStartTime" : "quickDtEndTime");
+      if (input && mode === "now") input.value = formatNowHHMM();
+    }
+
+    function addQuickDtMinutes(mins) {
+      const startInput = document.getElementById("quickDtStartTime");
+      const endInput = document.getElementById("quickDtEndTime");
+      const baseStr = (startInput && startInput.value) ? startInput.value : formatNowHHMM();
+      const [h, m] = baseStr.split(":").map(Number);
+      const d = new Date();
+      d.setHours(h);
+      d.setMinutes(m + mins);
+      const hh = String(d.getHours()).padStart(2, "0");
+      const mm = String(d.getMinutes()).padStart(2, "0");
+      if (endInput) endInput.value = `${hh}:${mm}`;
+    }
+
+    function saveQuickDowntimeRecord() {
+      const startInput = document.getElementById("quickDtStartTime");
+      const endInput = document.getElementById("quickDtEndTime");
+      const noteInput = document.getElementById("quickDtNote");
+      const start = startInput ? startInput.value : "";
+      const end = endInput ? endInput.value : "";
+      const note = noteInput ? noteInput.value.trim() : "";
+      const reason = currentDowntimeChipStatus !== "Bình thường" ? currentDowntimeChipStatus : "Bảo trì kỹ thuật";
+
+      if (!start || !end) {
+        showAppToast("⚠️ Vui lòng nhập đủ giờ bắt đầu và kết thúc dừng!");
+        return;
+      }
+      const [sh, sm] = start.split(":").map(Number);
+      const [eh, em] = end.split(":").map(Number);
+      let diff = (eh * 60 + em) - (sh * 60 + sm);
+      if (diff <= 0) diff += 24 * 60;
+
+      const rec = getCurrentRecord();
+      if (!rec) return;
+      if (!Array.isArray(rec.downtimes)) rec.downtimes = [];
+      rec.downtimes.push({
+        id: "dt_" + Date.now(),
+        reason,
+        start,
+        end,
+        durationMin: diff,
+        note: note || reason
+      });
+
+      saveToLocalStorage();
+      renderAll();
+      showAppToast(`✓ Đã ghi nhận đợt dừng ${reason} (${diff} phút)!`);
+
+      if (startInput) startInput.value = "";
+      if (endInput) endInput.value = "";
+      if (noteInput) noteInput.value = "";
+      selectDowntimeChip("Bình thường");
+      if (window.SWFirebase && window.SWFirebase.queueSync) window.SWFirebase.queueSync();
+    }
+
+    async function submitShiftData() {
+      const btn = document.getElementById("submitShiftDataBtn");
+      const btnText = document.getElementById("submitShiftBtnText");
+      const rec = getCurrentRecord();
+      if (!rec) {
+        showAppToast("⚠️ Không tìm thấy dữ liệu ca hiện tại để lưu!");
+        return;
+      }
+
+      if (btn) btn.disabled = true;
+      if (btnText) btnText.textContent = "ĐANG ĐỒNG BỘ CLOUD FIRESTORE...";
+
+      // Đảm bảo tên nhân viên khớp chính xác với Gmail đăng nhập
+      if (window.loggedInGoogleName) {
+        rec.staff = window.loggedInGoogleName;
+      }
+      const staffInput = document.getElementById("staffName");
+      if (staffInput && window.loggedInGoogleName) {
+        staffInput.value = window.loggedInGoogleName;
+      }
+
+      saveToLocalStorage();
+
+      try {
+        if (window.SWFirebase && typeof window.SWFirebase.submitShiftOperation === "function") {
+          const metrics = typeof computeGameMetrics === "function" ? computeGameMetrics(rec) : {};
+          const payload = {
+            gameId: rec.gameId,
+            gameName: rec.gameName,
+            mode: rec.mode || "coaster",
+            date: rec.date || appStore.activeDate,
+            staff: rec.staff,
+            staffCode: rec.staffCode || "SW001",
+            openTime: rec.openTime || "08:00",
+            closeTime: rec.closeTime || null,
+            isOperating: isShiftOperatingActive,
+            downtimes: rec.downtimes || [],
+            cycles: rec.cycles || [],
+            summary: {
+              totalCycles: rec.cycles ? rec.cycles.length : 0,
+              totalPax: metrics.totalPax || 0,
+              downtimeMin: metrics.dtMin || 0,
+              netOperatingMin: metrics.netMin || 0
+            }
+          };
+          await window.SWFirebase.submitShiftOperation(payload);
+          showAppToast("✓ ĐÃ LƯU & ĐỒNG BỘ CA LÊN CLOUD FIRESTORE THÀNH CÔNG!");
+        } else {
+          showAppToast("✓ Đã lưu an toàn dữ liệu ca vào bộ nhớ máy!");
+        }
+
+        if (btnText) btnText.textContent = "✓ ĐÃ LƯU DỮ LIỆU CA";
+        if (btn) {
+          btn.classList.add("scale-[1.02]", "ring-4", "ring-emerald-400");
+          setTimeout(() => {
+            btn.classList.remove("scale-[1.02]", "ring-4", "ring-emerald-400");
+          }, 800);
+        }
+      } catch (err) {
+        console.error("submitShiftData error:", err);
+        showAppToast("⚠️ Lỗi đồng bộ Cloud: " + (err.message || "Kiểm tra mạng"));
+      } finally {
+        setTimeout(() => {
+          if (btn) btn.disabled = false;
+          if (btnText) btnText.textContent = "LƯU DỮ LIỆU CA VẬN HÀNH";
+        }, 1200);
       }
     }
 
@@ -6523,6 +6977,10 @@ function doGet(e) {
       renderActiveCoasterRuns();
       renderDashboard();
       renderStorageExplorer();
+      updateShiftDurationCalc();
+      if (window.lucide && typeof lucide.createIcons === "function") {
+        try { lucide.createIcons(); } catch (e) {}
+      }
     }
 
     function loadDemoData() {
@@ -7013,8 +7471,15 @@ function doGet(e) {
 
       const dayEl = document.getElementById("liveDayNameDisplay");
       if (dayEl) dayEl.textContent = dayName;
-      document.getElementById("liveDateDisplay").textContent = `${dd}/${mm}/${yyyy}`;
-      document.getElementById("liveClock").textContent = now.toTimeString().slice(0, 8);
+      const dateEl = document.getElementById("liveDateDisplay");
+      if (dateEl) dateEl.textContent = `${dd}/${mm}/${yyyy}`;
+      const clockEl = document.getElementById("liveClock");
+      if (clockEl) clockEl.textContent = now.toTimeString().slice(0, 8);
+
+      const shiftClock = document.getElementById("shiftLiveClock");
+      if (shiftClock) shiftClock.textContent = now.toTimeString().slice(0, 8);
+      const shiftDate = document.getElementById("shiftLiveDate");
+      if (shiftDate) shiftDate.textContent = `${dayName}, ${dd}/${mm}/${yyyy}`;
     }
 
     setInterval(() => {
