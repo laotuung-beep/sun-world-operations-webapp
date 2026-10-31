@@ -17,6 +17,7 @@
   <script>
     if (window.tailwind) {
       tailwind.config = {
+        darkMode: ['selector', '[data-theme="dark"]'],
         corePlugins: { preflight: false },
         theme: {
           extend: {
@@ -2776,15 +2777,16 @@
 
     /* 3. GIAO DIỆN PHONE / ĐIỆN THOẠI (<= 680px) */
     body[data-device="phone"] .header-top {
-      flex-wrap: wrap;
-      padding: 8px 12px;
-      gap: 6px;
+      flex-wrap: nowrap !important;
+      padding: 6px 10px !important;
+      gap: 6px !important;
+      min-height: 48px !important;
     }
 
     body[data-device="phone"] .header-left-nav {
       width: auto;
       justify-content: flex-start;
-      gap: 8px;
+      gap: 6px;
     }
 
     /* Đẩy thanh chọn mục (Thông tin chung / Nhập liệu / Dashboard / Dữ liệu) xuống dưới cùng màn hình điện thoại */
@@ -2848,8 +2850,41 @@
     }
 
     body[data-device="phone"] .header-center-pills {
-      flex: 1 1 100%;
-      justify-content: center;
+      flex: 0 1 auto !important;
+      order: 2 !important;
+      margin: 0 !important;
+      border-top: none !important;
+      padding-top: 0 !important;
+    }
+
+    body[data-device="phone"] .header-info-capsule {
+      padding: 3px 8px !important;
+      height: 30px !important;
+    }
+
+    body[data-device="phone"] .header-info-capsule .telemetry-day-pill,
+    body[data-device="phone"] .header-info-capsule .telemetry-date-text,
+    body[data-device="phone"] .header-info-capsule span[style*="opacity"] {
+      display: none !important;
+    }
+
+    body[data-device="phone"] .telemetry-clock-pill {
+      font-size: 0.8rem !important;
+    }
+
+    body[data-device="phone"] .header-right-tools {
+      order: 3 !important;
+      margin-left: auto !important;
+      gap: 4px !important;
+    }
+
+    body[data-device="phone"] #headerAdminBadgeText {
+      display: none !important;
+    }
+
+    body[data-device="phone"] .user-avatar-circle-btn {
+      padding: 0 4px !important;
+      height: 32px !important;
     }
 
     body[data-device="phone"] .workspace {
@@ -2922,7 +2957,7 @@
       cursor: default !important;
     }
 
-    @media (max-width: 1080px) {
+    @media (max-width: 1080px) and (min-width: 681px) {
       .header-top {
         flex-wrap: wrap;
         gap: 8px;
@@ -2938,10 +2973,47 @@
     }
 
     @media (max-width: 680px) {
+      .header-top {
+        flex-wrap: nowrap !important;
+        padding: 6px 10px !important;
+        gap: 6px !important;
+        min-height: 48px !important;
+      }
       .header-left-nav {
         width: auto;
         justify-content: flex-start;
         gap: 6px;
+      }
+      .header-center-pills {
+        order: 2 !important;
+        width: auto !important;
+        margin: 0 !important;
+        border-top: none !important;
+        padding-top: 0 !important;
+      }
+      .header-info-capsule {
+        padding: 3px 8px !important;
+        height: 30px !important;
+      }
+      .header-info-capsule .telemetry-day-pill,
+      .header-info-capsule .telemetry-date-text,
+      .header-info-capsule span[style*="opacity"] {
+        display: none !important;
+      }
+      .telemetry-clock-pill {
+        font-size: 0.8rem !important;
+      }
+      .header-right-tools {
+        order: 3 !important;
+        margin-left: auto !important;
+        gap: 4px !important;
+      }
+      #headerAdminBadgeText {
+        display: none !important;
+      }
+      .user-avatar-circle-btn {
+        padding: 0 4px !important;
+        height: 32px !important;
       }
       .header-nav-tabs {
         position: fixed !important;
@@ -3015,6 +3087,133 @@
       body[data-device="phone"] .batch-action-grid {
         grid-template-columns: 1fr !important;
       }
+    }
+
+    /* ========================================================================= */
+    /* NÂNG CẤP UI/UX CHUYÊN BIỆT: MÀN HÌNH NHẬP LIỆU CA TRỰC (#screenTimeOps)   */
+    /* ========================================================================= */
+    .ops-hero-bar {
+      margin-bottom: 12px;
+    }
+
+    /* ĐỒNG BỘ DARK MODE CHO TOÀN BỘ CÁC KHỐI #screenTimeOps */
+    body[data-theme="dark"] #screenTimeOps section {
+      background: var(--surface) !important;
+      border-color: var(--border) !important;
+      color: var(--text) !important;
+      box-shadow: 0 4px 14px rgba(0, 0, 0, 0.3) !important;
+    }
+
+    body[data-theme="dark"] #screenTimeOps h1,
+    body[data-theme="dark"] #screenTimeOps h2,
+    body[data-theme="dark"] #screenTimeOps h3,
+    body[data-theme="dark"] #screenTimeOps .text-slate-800,
+    body[data-theme="dark"] #screenTimeOps .text-slate-700 {
+      color: #F8FAFC !important;
+    }
+
+    body[data-theme="dark"] #screenTimeOps .text-slate-500,
+    body[data-theme="dark"] #screenTimeOps .text-slate-400 {
+      color: #94A3B8 !important;
+    }
+
+    body[data-theme="dark"] #screenTimeOps select,
+    body[data-theme="dark"] #screenTimeOps input[type="date"],
+    body[data-theme="dark"] #screenTimeOps input[type="text"],
+    body[data-theme="dark"] #screenTimeOps input[type="time"],
+    body[data-theme="dark"] #screenTimeOps textarea {
+      background: #111827 !important;
+      border-color: #374151 !important;
+      color: #F9FAFB !important;
+    }
+
+    body[data-theme="dark"] #screenTimeOps .bg-slate-50,
+    body[data-theme="dark"] #screenTimeOps .bg-slate-100 {
+      background: #111827 !important;
+      border-color: #374151 !important;
+    }
+
+    body[data-theme="dark"] #screenTimeOps .bg-slate-100\/80 {
+      background: #1F2937 !important;
+      color: #E2E8F0 !important;
+    }
+
+    body[data-theme="dark"] #screenTimeOps .border-emerald-100 {
+      border-color: rgba(16, 185, 129, 0.3) !important;
+      background: rgba(6, 78, 59, 0.25) !important;
+    }
+    body[data-theme="dark"] #screenTimeOps .border-rose-100 {
+      border-color: rgba(244, 63, 94, 0.3) !important;
+      background: rgba(136, 19, 55, 0.25) !important;
+    }
+    body[data-theme="dark"] #screenTimeOps .text-emerald-800,
+    body[data-theme="dark"] #screenTimeOps .text-emerald-700 {
+      color: #34D399 !important;
+    }
+    body[data-theme="dark"] #screenTimeOps .text-rose-800,
+    body[data-theme="dark"] #screenTimeOps .text-rose-700 {
+      color: #FB7185 !important;
+    }
+    body[data-theme="dark"] #screenTimeOps .time-quick-chip {
+      background: #1F2937 !important;
+      border-color: #374151 !important;
+      color: #E2E8F0 !important;
+    }
+    body[data-theme="dark"] #screenTimeOps .time-quick-chip:hover {
+      background: #374151 !important;
+      color: #FFFFFF !important;
+    }
+
+    /* BADGE TRẠNG THÁI CA TRỰC ĐỘC LẬP - ĐỘ TƯƠNG PHẢN CAO, KHÔNG BỊ TRONG SUỐT */
+    .ops-status-badge {
+      display: inline-flex !important;
+      align-items: center !important;
+      font-weight: 800 !important;
+      letter-spacing: 0.02em !important;
+      border-radius: 999px !important;
+      box-shadow: 0 1px 3px rgba(0,0,0,0.08) !important;
+      transition: all 0.2s ease !important;
+      text-transform: none !important;
+    }
+    .ops-status-badge.status-running {
+      background: #DCFCE7 !important;
+      color: #14532D !important;
+      border: 1.5px solid #86EFAC !important;
+    }
+    body[data-theme="dark"] .ops-status-badge.status-running {
+      background: rgba(6, 78, 59, 0.85) !important;
+      color: #A7F3D0 !important;
+      border-color: #059669 !important;
+    }
+    .ops-status-badge.status-paused {
+      background: #FEF08A !important;
+      color: #854D0E !important;
+      border: 1.5px solid #FDE047 !important;
+    }
+    body[data-theme="dark"] .ops-status-badge.status-paused {
+      background: rgba(120, 53, 15, 0.85) !important;
+      color: #FDE68A !important;
+      border-color: #D97706 !important;
+    }
+    .ops-status-badge.status-closed {
+      background: #F1F5F9 !important;
+      color: #334155 !important;
+      border: 1.5px solid #CBD5E1 !important;
+    }
+    body[data-theme="dark"] .ops-status-badge.status-closed {
+      background: #1E293B !important;
+      color: #94A3B8 !important;
+      border-color: #475569 !important;
+    }
+    .ops-status-badge.status-unopened {
+      background: #F1F5F9 !important;
+      color: #475569 !important;
+      border: 1.5px solid #CBD5E1 !important;
+    }
+    body[data-theme="dark"] .ops-status-badge.status-unopened {
+      background: #1E293B !important;
+      color: #94A3B8 !important;
+      border-color: #475569 !important;
     }
 
   </style>
@@ -3230,54 +3429,23 @@
     <!-- ========================================================================= -->
     <div id="screenTimeOps" class="screen-frame">
 
-      <!-- TOP HEADER & STATUS BAR (Mobile-First) -->
-      <section class="bg-white rounded-2xl border border-slate-200/90 shadow-sm p-4 sm:p-5 transition-all">
-        <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 pb-3 border-b border-slate-100">
-          <div class="flex items-center gap-3">
-            <div class="w-10 h-10 rounded-xl bg-red-50 border border-red-100 flex items-center justify-center text-[#C0262D] shrink-0">
-              <i data-lucide="clipboard-pen" class="w-5 h-5"></i>
-            </div>
-            <div>
-              <div class="text-xs uppercase font-extrabold tracking-wider text-[#C0262D]">Sun World Ba Na Hills</div>
-              <h1 class="text-base sm:text-lg font-extrabold text-slate-800 leading-tight">Ca Trực Vận Hành Hàng Ngày</h1>
-            </div>
+      <!-- THANH TRẠNG THÁI CA TRỰC SIÊU TINH GỌN (Mobile-First Operational Strip) -->
+      <section class="ops-hero-bar flex items-center justify-between gap-3 px-3.5 py-2.5 rounded-2xl bg-white border border-slate-200/90 shadow-sm transition-all mb-3">
+        <div class="flex items-center gap-2.5 min-w-0">
+          <div class="w-8 h-8 rounded-xl bg-red-50 text-[#C0262D] flex items-center justify-center shrink-0 border border-red-100">
+            <i data-lucide="clipboard-pen" class="w-4 h-4"></i>
           </div>
-
-          <!-- Realtime telemetry clock & Running Status Pill -->
-          <div class="flex items-center justify-between sm:justify-end gap-2 flex-wrap">
-            <div class="inline-flex items-center gap-2 bg-slate-50 border border-slate-200/80 px-3 py-1.5 rounded-full text-xs font-semibold text-slate-700">
-              <i data-lucide="clock" class="w-3.5 h-3.5 text-slate-500"></i>
-              <span id="shiftLiveClock" class="font-bold text-slate-900">--:--:--</span>
-              <span class="text-slate-300">•</span>
-              <span id="shiftLiveDate">--/--/----</span>
-            </div>
-
-            <!-- Badge trạng thái vận hành hiện tại: "🟢 ĐANG HOẠT ĐỘNG" (click chuyển sang "🔴 TẠM DỪNG") -->
-            <button type="button" id="timeOpsShiftStatusPill" onclick="toggleShiftActiveStatus()" title="Nhấp để chuyển đổi trạng thái Hoạt động / Tạm dừng" class="cursor-pointer inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full text-xs font-extrabold transition-all active:scale-95 border bg-emerald-50 text-emerald-700 border-emerald-200 hover:bg-emerald-100">
-              <span id="shiftStatusDot" class="w-2.5 h-2.5 rounded-full bg-emerald-500 animate-pulse"></span>
-              <span id="timeOpsShiftStatusText">🟢 ĐANG HOẠT ĐỘNG</span>
-            </button>
+          <div class="min-w-0">
+            <h1 class="text-xs sm:text-sm font-extrabold text-slate-800 leading-tight">Nhật Ký Ca Trực</h1>
+            <div class="text-[10px] text-slate-500 font-medium">Đồng bộ Cloud • Thời gian thực</div>
           </div>
         </div>
 
-        <!-- Staff Google Account Info Banner -->
-        <div class="mt-3 flex items-center justify-between gap-3 bg-slate-50/70 border border-slate-200/60 rounded-xl p-2.5 sm:px-3">
-          <div class="flex items-center gap-2.5 min-w-0">
-            <div id="shiftUserAvatarBox" class="w-8 h-8 rounded-full bg-[#C0262D] text-white flex items-center justify-center font-bold text-xs shrink-0 overflow-hidden border border-red-200">
-              NV
-            </div>
-            <div class="min-w-0">
-              <div class="flex items-center gap-1.5">
-                <span id="shiftStaffDisplayName" class="text-xs font-bold text-slate-800 truncate">Nhân viên vận hành</span>
-                <span class="text-[10px] font-bold text-red-600 bg-red-50 border border-red-200 px-1.5 py-0.5 rounded-md">🔒 Gmail</span>
-              </div>
-              <div id="shiftUserEmailSub" class="text-[11px] text-slate-500 truncate">Đã xác thực Google Workspace</div>
-            </div>
-          </div>
-          <span id="shiftRoleBadge" class="text-[11px] font-bold text-slate-600 bg-white border border-slate-200 px-2.5 py-1 rounded-lg shrink-0">
-            Vận hành viên
-          </span>
-        </div>
+        <!-- Nút Trạng Thái Ca 1 Chạm (Touch Target chuẩn >40px, tương phản cao, nhấp để chuyển Hoạt động/Tạm dừng) -->
+        <button type="button" id="timeOpsShiftStatusPill" onclick="toggleShiftActiveStatus()" title="Nhấp để chuyển đổi trạng thái Hoạt động / Tạm dừng ca trực" class="ops-status-badge status-running cursor-pointer inline-flex items-center gap-2 px-3 py-1.5 rounded-full text-xs font-extrabold transition-all active:scale-95 border shrink-0 shadow-sm">
+          <span id="shiftStatusDot" class="w-2.5 h-2.5 rounded-full bg-emerald-500 animate-pulse shrink-0"></span>
+          <span id="timeOpsShiftStatusText" class="font-extrabold tracking-wide">ĐANG HOẠT ĐỘNG</span>
+        </button>
       </section>
 
       <!-- KHỐI 1: THÔNG TIN CHUNG (Auto-fill) -->
@@ -4533,11 +4701,15 @@ function doGet(e) {
       const iconEl = document.getElementById("themeToggleIcon");
       if (theme === "dark") {
         document.body.setAttribute("data-theme", "dark");
+        document.documentElement.setAttribute("data-theme", "dark");
+        document.documentElement.classList.add("dark");
         if (iconEl) iconEl.innerHTML = '<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="5"></circle><line x1="12" y1="1" x2="12" y2="3"></line><line x1="12" y1="21" x2="12" y2="23"></line><line x1="4.22" y1="4.22" x2="5.64" y2="5.64"></line><line x1="18.36" y1="18.36" x2="19.78" y2="19.78"></line><line x1="1" y1="12" x2="3" y2="12"></line><line x1="21" y1="12" x2="23" y2="12"></line><line x1="4.22" y1="19.78" x2="5.64" y2="18.36"></line><line x1="18.36" y1="5.64" x2="19.78" y2="4.22"></line></svg>';
         if (logoImg) logoImg.src = DARK_LOGO_URI;
         if (authLogoImg) authLogoImg.src = LIGHT_LOGO_URI;
       } else {
         document.body.removeAttribute("data-theme");
+        document.documentElement.removeAttribute("data-theme");
+        document.documentElement.classList.remove("dark");
         if (iconEl) iconEl.innerHTML = '<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"></path></svg>';
         if (logoImg) logoImg.src = LIGHT_LOGO_URI;
         if (authLogoImg) authLogoImg.src = LIGHT_LOGO_URI;
@@ -5941,21 +6113,21 @@ function doGet(e) {
       const text = document.getElementById("timeOpsShiftStatusText");
       const dot = document.getElementById("shiftStatusDot");
       if (isShiftOperatingActive) {
-        if (text) text.textContent = "🟢 ĐANG HOẠT ĐỘNG";
+        if (text) text.textContent = "ĐANG HOẠT ĐỘNG";
         if (pill) {
-          pill.className = "cursor-pointer inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full text-xs font-extrabold transition-all active:scale-95 border bg-emerald-50 text-emerald-700 border-emerald-200 hover:bg-emerald-100";
+          pill.className = "ops-status-badge status-running cursor-pointer inline-flex items-center gap-2 px-3 py-1.5 rounded-full text-xs font-extrabold transition-all active:scale-95 border shrink-0 shadow-sm";
         }
         if (dot) {
-          dot.className = "w-2.5 h-2.5 rounded-full bg-emerald-500 animate-pulse";
+          dot.className = "w-2.5 h-2.5 rounded-full bg-emerald-500 animate-pulse shrink-0";
         }
         showAppToast("🟢 Trạng thái ca: ĐANG HOẠT ĐỘNG");
       } else {
-        if (text) text.textContent = "🔴 TẠM DỪNG";
+        if (text) text.textContent = "TẠM DỪNG";
         if (pill) {
-          pill.className = "cursor-pointer inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full text-xs font-extrabold transition-all active:scale-95 border bg-rose-50 text-rose-700 border-rose-200 hover:bg-rose-100";
+          pill.className = "ops-status-badge status-paused cursor-pointer inline-flex items-center gap-2 px-3 py-1.5 rounded-full text-xs font-extrabold transition-all active:scale-95 border shrink-0 shadow-sm";
         }
         if (dot) {
-          dot.className = "w-2.5 h-2.5 rounded-full bg-rose-500 animate-ping";
+          dot.className = "w-2.5 h-2.5 rounded-full bg-rose-500 animate-ping shrink-0";
         }
         showAppToast("🔴 Trạng thái ca: ĐÃ CHUYỂN SANG TẠM DỪNG");
       }
@@ -6631,22 +6803,30 @@ function doGet(e) {
       const timeOpsPillText = document.getElementById("timeOpsShiftStatusText");
 
       let statusClass = "status-pill status-unopened";
+      let opsBadgeClass = "ops-status-badge status-unopened cursor-pointer inline-flex items-center gap-2 px-3 py-1.5 rounded-full text-xs font-extrabold transition-all active:scale-95 border shrink-0 shadow-sm";
       let statusLabel = "CHƯA MỞ CA";
+      let opsLabel = "CHƯA MỞ CA";
       if (activeDowntimeState) {
         statusClass = "status-pill status-paused";
+        opsBadgeClass = "ops-status-badge status-paused cursor-pointer inline-flex items-center gap-2 px-3 py-1.5 rounded-full text-xs font-extrabold transition-all active:scale-95 border shrink-0 shadow-sm";
         statusLabel = `TẠM DỪNG: ${activeDowntimeState.reason}`;
+        opsLabel = `TẠM DỪNG`;
       } else if (rec.closeTime) {
         statusClass = "status-pill status-closed";
+        opsBadgeClass = "ops-status-badge status-closed cursor-pointer inline-flex items-center gap-2 px-3 py-1.5 rounded-full text-xs font-extrabold transition-all active:scale-95 border shrink-0 shadow-sm";
         statusLabel = `ĐÃ ĐÓNG CA (${rec.closeTime})`;
+        opsLabel = `ĐÃ ĐÓNG CA`;
       } else if (rec.openTime) {
         statusClass = "status-pill status-running";
+        opsBadgeClass = "ops-status-badge status-running cursor-pointer inline-flex items-center gap-2 px-3 py-1.5 rounded-full text-xs font-extrabold transition-all active:scale-95 border shrink-0 shadow-sm";
         statusLabel = `ĐANG HOẠT ĐỘNG (Mở: ${rec.openTime})`;
+        opsLabel = `ĐANG HOẠT ĐỘNG`;
       }
 
       if (pill) pill.className = statusClass;
       if (pillText) pillText.textContent = statusLabel;
-      if (timeOpsPill) timeOpsPill.className = statusClass;
-      if (timeOpsPillText) timeOpsPillText.textContent = statusLabel;
+      if (timeOpsPill) timeOpsPill.className = opsBadgeClass;
+      if (timeOpsPillText) timeOpsPillText.textContent = opsLabel;
 
       const dashCollapsedNameEl = document.getElementById("dashCollapsedGameNameText");
       if (dashCollapsedNameEl) {
