@@ -11,7 +11,34 @@
   <meta name="apple-mobile-web-app-title" content="Sun World Ops" />
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@500;600;700;800;900&display=swap" rel="stylesheet">
+  <link href="https://fonts.googleapis.com/css2?family=Lora:ital,wght@0,500;0,600;0,700;1,400&family=Montserrat:wght@500;600;700;800;900&family=Plus+Jakarta+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script>
+    if (window.tailwind) {
+      tailwind.config = {
+        corePlugins: { preflight: false },
+        theme: {
+          extend: {
+            colors: {
+              wabi: {
+                bg: '#F5F2EB',
+                card: '#FAF8F5',
+                border: '#E6DFD3',
+                cta: '#7C5A43',
+                ctaHover: '#634632',
+                ink: '#2C2623',
+                muted: '#787067'
+              }
+            },
+            fontFamily: {
+              serif: ['Lora', 'Georgia', 'serif'],
+              sans: ['Plus Jakarta Sans', '-apple-system', 'BlinkMacSystemFont', 'sans-serif']
+            }
+          }
+        }
+      };
+    }
+  </script>
   <style>
     :root {
       /* Bộ 5 màu chuẩn theo bảng màu đề xuất */

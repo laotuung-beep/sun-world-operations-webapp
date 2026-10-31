@@ -1,5 +1,6 @@
 // ============================================================================
 // SUN WORLD BA NA HILLS — FIREBASE AUTH, RBAC & CLOUD FIRESTORE SYNC MODULE
+// Giao diện Đăng nhập Wabi-sabi tối giản, ấm áp (Quy tắc màu 60-30-10)
 // ============================================================================
 import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
 import {
@@ -8,6 +9,12 @@ import {
   signInWithPopup,
   signInWithRedirect,
   getRedirectResult,
+  signInWithEmailAndPassword,
+  createUserWithEmailAndPassword,
+  sendPasswordResetEmail,
+  setPersistence,
+  browserLocalPersistence,
+  browserSessionPersistence,
   signOut,
   onAuthStateChanged
 } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js";
@@ -34,311 +41,322 @@ const isConfigured = Boolean(
     !String(cfg.projectId).includes("PASTE_YOUR")
 );
 
-function getActiveBrandLogoSrc() {
-  const headerLogo = document.getElementById("headerBrandLogoImg");
-  if (headerLogo && headerLogo.src) return headerLogo.src;
-  if (window.LIGHT_LOGO_URI) return window.LIGHT_LOGO_URI;
-  return "";
+// Tự động nạp Google Fonts 'Lora' & 'Plus Jakarta Sans' nếu chưa có
+if (!document.querySelector('link[href*="Plus+Jakarta+Sans"]')) {
+  const fontLink = document.createElement("link");
+  fontLink.rel = "stylesheet";
+  fontLink.href =
+    "https://fonts.googleapis.com/css2?family=Lora:ital,wght@0,500;0,600;0,700;1,400&family=Plus+Jakarta+Sans:wght@400;500;600;700&display=swap";
+  document.head.appendChild(fontLink);
 }
 
-// Inject CSS tương thích 100% với bố cục, bảng màu Sáng/Tối bên trong Web App
-// và đáp ứng đầy đủ trên Điện thoại (<=680px), Máy tính bảng (681-1080px), PC (>1080px)
+// Inject CSS chuẩn Wabi-sabi (60% #F5F2EB - 30% #FAF8F5/#E6DFD3 - 10% #7C5A43/#634632)
+// Kết hợp cùng các lớp tiện ích Tailwind CSS (Mobile-first)
 const styleEl = document.createElement("style");
 styleEl.textContent = `
   #fbAuthGate {
     position: fixed;
     inset: 0;
     z-index: 99999;
-    background: var(--bg, #F4F6F9);
+    background-color: #F5F2EB;
+    background-image:
+      radial-gradient(circle at 15% 15%, rgba(230, 223, 211, 0.55) 0%, transparent 45%),
+      radial-gradient(circle at 85% 85%, rgba(124, 90, 67, 0.06) 0%, transparent 50%);
+    color: #2C2623;
+    font-family: 'Plus Jakarta Sans', -apple-system, BlinkMacSystemFont, sans-serif;
     display: flex;
     flex-direction: column;
     align-items: center;
     justify-content: center;
-    padding: 16px;
-    font-family: var(--font-main, 'Be Vietnam Pro', -apple-system, BlinkMacSystemFont, sans-serif);
-    color: var(--text, #1E293B);
+    min-height: 100vh;
+    min-height: 100dvh;
+    padding: 20px 16px;
     overflow-y: auto;
+    -webkit-font-smoothing: antialiased;
   }
 
-  .sw-login-card {
+  #fbAuthGate * {
+    box-sizing: border-box;
+  }
+
+  .wabi-card {
     width: 100%;
     max-width: 440px;
-    background: var(--surface, #FFFFFF);
-    border: 1px solid var(--border, #E2E8F0);
-    border-radius: 16px;
-    box-shadow: 0 12px 32px rgba(15, 23, 42, 0.12);
-    overflow: hidden;
+    background-color: #FAF8F5;
+    border: 1px solid #E6DFD3;
+    border-radius: 1rem; /* rounded-2xl */
+    box-shadow:
+      0 20px 50px -12px rgba(44, 38, 35, 0.08),
+      0 4px 16px -4px rgba(124, 90, 67, 0.04);
+    padding: 28px 24px;
     margin: auto;
+    position: relative;
+    transition: transform 0.3s ease, box-shadow 0.3s ease;
   }
 
-  /* Thanh tiêu đề Đỏ Sun World (#C0262D) đồng bộ với Header bên trong Web App */
-  .sw-login-header {
-    background: #C0262D;
-    border-bottom: 3px solid #FFC928;
-    padding: 16px 20px;
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    gap: 12px;
+  @media (min-width: 640px) {
+    #fbAuthGate {
+      padding: 40px 24px;
+    }
+    .wabi-card {
+      padding: 40px 38px;
+    }
   }
 
-  body[data-theme="dark"] .sw-login-header {
-    background: #151F32;
-    border-bottom: 2px solid #FFC928;
+  .wabi-serif-title {
+    font-family: 'Lora', Georgia, Cambria, serif;
+    color: #2C2623;
+    font-weight: 600;
+    font-size: 1.65rem;
+    line-height: 1.25;
+    letter-spacing: -0.01em;
+    margin: 0;
   }
 
-  .sw-login-header-brand {
-    display: flex;
-    align-items: center;
-    gap: 12px;
-    min-width: 0;
+  @media (min-width: 640px) {
+    .wabi-serif-title {
+      font-size: 1.85rem;
+    }
   }
 
-  .sw-login-logo-img {
-    height: 40px;
-    width: auto;
-    object-fit: contain;
+  .wabi-subtitle {
+    font-family: 'Plus Jakarta Sans', sans-serif;
+    color: #787067;
+    font-size: 0.875rem;
+    line-height: 1.55;
+    margin-top: 8px;
+  }
+
+  .wabi-label {
     display: block;
-    flex-shrink: 0;
+    font-family: 'Plus Jakarta Sans', sans-serif;
+    font-size: 0.8125rem;
+    font-weight: 600;
+    color: #2C2623;
+    margin-bottom: 6px;
+    letter-spacing: 0.01em;
   }
 
-  .sw-login-brand-titles {
-    display: flex;
-    flex-direction: column;
-    gap: 2px;
-    min-width: 0;
+  /* Override toàn cục cho input bên trong #fbAuthGate để không bị ảnh hưởng bởi CSS bên trong app */
+  #fbAuthGate .wabi-input {
+    width: 100% !important;
+    height: 46px !important;
+    padding: 11px 14px !important;
+    border-radius: 0.75rem !important;
+    border: 1px solid #E6DFD3 !important;
+    background-color: #FFFFFF !important;
+    color: #2C2623 !important;
+    font-family: 'Plus Jakarta Sans', sans-serif !important;
+    font-size: 0.9rem !important;
+    font-weight: 400 !important;
+    line-height: 1.4 !important;
+    transition: border-color 0.2s ease, box-shadow 0.2s ease, background-color 0.2s ease !important;
+    outline: none !important;
   }
 
-  .sw-login-brand-sub {
-    font-size: 0.68rem;
-    font-weight: 700;
-    color: #FFC928;
-    text-transform: uppercase;
-    letter-spacing: 0.05em;
+  #fbAuthGate .wabi-input::placeholder {
+    color: #A39B90 !important;
+    font-weight: 400 !important;
   }
 
-  .sw-login-brand-main {
-    font-size: 0.92rem;
-    font-weight: 800;
-    color: #FFFFFF;
-    white-space: nowrap;
-    overflow: hidden;
-    text-overflow: ellipsis;
+  #fbAuthGate .wabi-input:hover {
+    border-color: #D2C7B6 !important;
   }
 
-  .sw-login-theme-btn {
-    width: 34px;
-    height: 34px;
+  #fbAuthGate .wabi-input:focus {
+    border-color: #7C5A43 !important;
+    background-color: #FFFFFF !important;
+    box-shadow: 0 0 0 3.5px rgba(124, 90, 67, 0.14) !important;
+  }
+
+  #fbAuthGate .wabi-input-pwd {
+    padding-right: 44px !important;
+  }
+
+  .wabi-pwd-toggle {
+    position: absolute;
+    right: 10px;
+    top: 50%;
+    transform: translateY(-50%);
+    width: 32px;
+    height: 32px;
     border-radius: 8px;
-    border: 1px solid rgba(255, 255, 255, 0.28);
-    background: rgba(255, 255, 255, 0.12);
-    color: #FFFFFF;
-    display: inline-flex;
-    align-items: center;
-    justify-content: center;
-    cursor: pointer;
-    flex-shrink: 0;
-    transition: background 0.15s ease;
-  }
-  .sw-login-theme-btn:hover {
-    background: rgba(255, 255, 255, 0.22);
-  }
-
-  .sw-login-body {
-    padding: 20px 22px 22px;
-    display: flex;
-    flex-direction: column;
-    gap: 14px;
-  }
-
-  .sw-login-section-title {
-    font-size: 1.05rem;
-    font-weight: 800;
-    color: var(--text, #1E293B);
-    margin: 0;
-  }
-
-  .sw-login-section-desc {
-    font-size: 0.82rem;
-    color: var(--text-muted, #64748B);
-    line-height: 1.45;
-    margin: 0;
-  }
-
-  /* Danh sách các bước thao tác cụ thể, tinh gọn */
-  .sw-action-steps {
-    display: flex;
-    flex-direction: column;
-    gap: 8px;
-    background: var(--surface-alt, #F8FAFC);
-    border: 1px solid var(--border, #E2E8F0);
-    border-radius: 12px;
-    padding: 12px 14px;
-  }
-
-  .sw-step-row {
-    display: flex;
-    align-items: flex-start;
-    gap: 10px;
-    font-size: 0.8rem;
-    line-height: 1.4;
-    color: var(--text, #1E293B);
-  }
-
-  .sw-step-num {
-    width: 20px;
-    height: 20px;
-    border-radius: 50%;
-    background: #C0262D;
-    color: #FFFFFF;
-    font-size: 0.7rem;
-    font-weight: 800;
-    display: inline-flex;
-    align-items: center;
-    justify-content: center;
-    flex-shrink: 0;
-    margin-top: 1px;
-  }
-
-  /* Nút đăng nhập Google chính */
-  .sw-google-btn {
-    width: 100%;
-    min-height: 46px;
-    padding: 11px 16px;
-    border-radius: 10px;
     border: none;
-    background: #C0262D;
-    color: #FFFFFF;
-    font-size: 0.9rem;
-    font-weight: 700;
-    font-family: inherit;
+    background: transparent;
+    color: #787067;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
     cursor: pointer;
+    transition: color 0.2s ease, background-color 0.2s ease;
+  }
+
+  .wabi-pwd-toggle:hover {
+    color: #2C2623;
+    background-color: rgba(230, 223, 211, 0.45);
+  }
+
+  .wabi- pwd-toggle:focus-visible {
+    outline: 2px solid #7C5A43;
+    outline-offset: 1px;
+  }
+
+  .wabi-checkbox {
+    width: 16px;
+    height: 16px;
+    border-radius: 4px;
+    border: 1.5px solid #C8BCAE;
+    accent-color: #7C5A43;
+    cursor: pointer;
+    transition: all 0.15s ease;
+  }
+
+  .wabi-link {
+    font-size: 0.8125rem;
+    font-weight: 600;
+    color: #7C5A43;
+    text-decoration: none;
+    background: none;
+    border: none;
+    padding: 0;
+    cursor: pointer;
+    transition: color 0.2s ease;
+  }
+
+  .wabi-link:hover {
+    color: #634632;
+    text-decoration: underline;
+    text-underline-offset: 3px;
+  }
+
+  /* Điểm nhấn CTA (10%): Nút Đăng nhập màu nâu đất trầm (#7C5A43), hover (#634632) */
+  .wabi-btn-primary {
+    width: 100%;
+    height: 46px;
+    padding: 0 20px;
+    border-radius: 0.75rem;
+    border: 1px solid transparent;
+    background-color: #7C5A43;
+    color: #FAF8F5;
+    font-family: 'Plus Jakarta Sans', sans-serif;
+    font-size: 0.925rem;
+    font-weight: 600;
+    letter-spacing: 0.01em;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+    cursor: pointer;
+    box-shadow: 0 6px 18px -4px rgba(124, 90, 67, 0.32);
+    transition: background-color 0.22s ease, transform 0.15s ease, box-shadow 0.22s ease;
+  }
+
+  .wabi-btn-primary:hover {
+    background-color: #634632;
+    box-shadow: 0 10px 22px -4px rgba(99, 70, 50, 0.38);
+    transform: translateY(-1px);
+  }
+
+  .wabi-btn-primary:active {
+    transform: translateY(0);
+  }
+
+  .wabi-btn-primary:focus-visible {
+    outline: none;
+    box-shadow: 0 0 0 3.5px rgba(124, 90, 67, 0.28);
+  }
+
+  .wabi-btn-primary:disabled {
+    opacity: 0.65;
+    cursor: wait;
+    transform: none;
+  }
+
+  /* Nút Tiếp tục với Google */
+  .wabi-btn-google {
+    width: 100%;
+    height: 46px;
+    padding: 0 18px;
+    border-radius: 0.75rem;
+    border: 1px solid #E6DFD3;
+    background-color: #FFFFFF;
+    color: #2C2623;
+    font-family: 'Plus Jakarta Sans', sans-serif;
+    font-size: 0.9rem;
+    font-weight: 600;
     display: inline-flex;
     align-items: center;
     justify-content: center;
     gap: 10px;
-    box-shadow: 0 4px 12px rgba(192, 38, 45, 0.25);
-    transition: background 0.15s ease, transform 0.1s ease;
+    cursor: pointer;
+    box-shadow: 0 2px 6px rgba(44, 38, 35, 0.03);
+    transition: background-color 0.2s ease, border-color 0.2s ease, transform 0.15s ease, box-shadow 0.2s ease;
   }
-  .sw-google-btn:hover {
-    background: #9E1C22;
+
+  .wabi-btn-google:hover {
+    background-color: #F5F2EB;
+    border-color: #D2C7B6;
+    box-shadow: 0 4px 12px rgba(44, 38, 35, 0.06);
+    transform: translateY(-1px);
   }
-  .sw-google-btn:active {
-    transform: scale(0.99);
+
+  .wabi-btn-google:active {
+    transform: translateY(0);
   }
-  .sw-google-btn:disabled {
+
+  .wabi-btn-google:focus-visible {
+    outline: none;
+    border-color: #7C5A43;
+    box-shadow: 0 0 0 3.5px rgba(124, 90, 67, 0.15);
+  }
+
+  .wabi-btn-google:disabled {
     opacity: 0.65;
     cursor: wait;
   }
 
-  .sw-google-icon-box {
-    width: 26px;
-    height: 26px;
-    border-radius: 6px;
-    background: #FFFFFF;
-    display: inline-flex;
-    align-items: center;
-    justify-content: center;
-    flex-shrink: 0;
-  }
-
-  .sw-secondary-btn {
-    width: 100%;
-    min-height: 42px;
-    padding: 9px 14px;
-    border-radius: 10px;
-    border: 1.5px solid var(--border, #CBD5E1);
-    background: var(--surface, #FFFFFF);
-    color: var(--text, #1E293B);
-    font-size: 0.82rem;
-    font-weight: 700;
-    font-family: inherit;
-    cursor: pointer;
-    display: inline-flex;
-    align-items: center;
-    justify-content: center;
-    gap: 8px;
-    transition: border-color 0.15s ease, background 0.15s ease;
-  }
-  .sw-secondary-btn:hover {
-    border-color: #C0262D;
-    color: #C0262D;
-    background: var(--surface-alt, #F8FAFC);
-  }
-
-  /* Khung hiển thị tài khoản Gmail đang đăng nhập */
-  .sw-user-profile-box {
+  .wabi-divider {
     display: flex;
     align-items: center;
-    gap: 12px;
-    padding: 12px 14px;
-    border-radius: 12px;
-    background: var(--surface-alt, #F8FAFC);
-    border: 1.5px solid var(--border, #E2E8F0);
+    gap: 14px;
+    margin: 22px 0;
   }
 
-  .sw-user-avatar {
-    width: 42px;
-    height: 42px;
-    border-radius: 50%;
-    background: #C0262D;
-    color: #FFFFFF;
-    font-weight: 800;
-    font-size: 0.95rem;
-    display: inline-flex;
-    align-items: center;
-    justify-content: center;
-    flex-shrink: 0;
-    object-fit: cover;
-    border: 2px solid #FFC928;
-  }
-
-  .sw-user-meta {
-    min-width: 0;
+  .wabi-divider-line {
     flex: 1;
+    height: 1px;
+    background-color: #E6DFD3;
   }
 
-  .sw-user-name {
-    font-size: 0.9rem;
-    font-weight: 800;
-    color: var(--text, #1E293B);
-    white-space: nowrap;
-    overflow: hidden;
-    text-overflow: ellipsis;
+  .wabi-divider-text {
+    font-size: 0.75rem;
+    font-weight: 500;
+    color: #787067;
+    letter-spacing: 0.04em;
+    text-transform: lowercase;
   }
 
-  .sw-user-email {
-    font-size: 0.76rem;
-    color: var(--text-muted, #64748B);
-    white-space: nowrap;
-    overflow: hidden;
-    text-overflow: ellipsis;
+  .wabi-alert {
+    padding: 11px 14px;
+    border-radius: 0.75rem;
+    font-size: 0.8125rem;
+    line-height: 1.45;
+    margin-bottom: 18px;
+    border: 1px solid #E6DFD3;
+    background-color: #F5F2EB;
+    color: #2C2623;
   }
 
-  .sw-status-badge-pending {
-    display: inline-flex;
-    align-items: center;
-    gap: 5px;
-    margin-top: 4px;
-    padding: 2px 8px;
-    border-radius: 999px;
-    font-size: 0.68rem;
-    font-weight: 800;
-    background: #FFF8E1;
-    color: #B45309;
-    border: 1px solid #FFC928;
+  .wabi-alert-error {
+    background-color: #FDF6F4;
+    border-color: #EBCBC4;
+    color: #8C3A2B;
   }
 
-  .sw-login-footer {
-    padding: 10px 20px;
-    background: var(--surface-alt, #F8FAFC);
-    border-top: 1px solid var(--border, #E2E8F0);
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    font-size: 0.72rem;
-    color: var(--text-muted, #64748B);
-    font-weight: 600;
+  .wabi-alert-success {
+    background-color: #F4F7F2;
+    border-color: #C9D8C0;
+    color: #3B5932;
   }
 
   /* Bảng Quản trị Phê duyệt Tài khoản bên trong Modal */
@@ -450,35 +468,13 @@ styleEl.textContent = `
     height: 34px !important;
   }
 
-  /* Responsive cho Máy tính bảng (681px - 1080px) */
   @media (max-width: 1080px) {
     .fb-user-controls-grid {
       grid-template-columns: 1fr 1fr;
     }
   }
 
-  /* Responsive cho Điện thoại (<= 680px) */
   @media (max-width: 680px) {
-    #fbAuthGate {
-      padding: 10px;
-    }
-    .sw-login-card {
-      max-width: 100%;
-      border-radius: 14px;
-    }
-    .sw-login-header {
-      padding: 12px 14px;
-    }
-    .sw-login-logo-img {
-      height: 34px;
-    }
-    .sw-login-brand-main {
-      font-size: 0.84rem;
-    }
-    .sw-login-body {
-      padding: 16px 14px 18px;
-      gap: 12px;
-    }
     .sw-admin-stats-grid {
       grid-template-columns: repeat(2, 1fr);
     }
@@ -489,58 +485,45 @@ styleEl.textContent = `
 `;
 document.head.appendChild(styleEl);
 
-// Tạo cổng đăng nhập (#fbAuthGate) sử dụng đúng Logo & màu sắc bên trong Web App
+// Tạo cổng đăng nhập (#fbAuthGate) theo phong cách Wabi-sabi
 const gateEl = document.createElement("div");
 gateEl.id = "fbAuthGate";
+gateEl.className = "min-h-screen w-full bg-[#F5F2EB] text-[#2C2623] flex flex-col items-center justify-center px-4 py-8 sm:px-6 lg:px-8";
 gateEl.style.display = isConfigured ? "flex" : "none";
 
 function renderAuthGateShell(innerBodyHtml) {
-  const logoSrc = getActiveBrandLogoSrc();
   gateEl.innerHTML = `
-    <div class="sw-login-card">
-      <div class="sw-login-header">
-        <div class="sw-login-header-brand">
-          ${logoSrc ? `<img src="${logoSrc}" alt="Sun World Ba Na Hills" class="sw-login-logo-img" id="swAuthGateLogoImg" />` : ""}
-          <div class="sw-login-brand-titles">
-            <span class="sw-login-brand-sub">SUN WORLD BA NA HILLS</span>
-            <span class="sw-login-brand-main">VẬN HÀNH TRÒ CHƠI</span>
-          </div>
+    <div class="wabi-card w-full max-w-[440px] bg-[#FAF8F5] border border-[#E6DFD3] rounded-2xl p-6 sm:p-10">
+      <!-- Biểu tượng Wabi-sabi tối giản, tinh tế -->
+      <div class="flex flex-col items-center text-center mb-7" style="display:flex;flex-direction:column;align-items:center;text-align:center;margin-bottom:26px;">
+        <div style="width:44px;height:44px;border-radius:9999px;background:#F5F2EB;border:1px solid #E6DFD3;display:flex;align-items:center;justify-content:center;margin-bottom:14px;color:#7C5A43;">
+          <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M12 3c.132 0 .263 0 .393 0a7.5 7.5 0 0 0 7.92 12.446a9 9 0 1 1 -8.313 -12.454z"/>
+            <path d="M17 4a2 2 0 0 0 2 2a2 2 0 0 0 -2 2a2 2 0 0 0 -2 -2a2 2 0 0 0 2 -2"/>
+          </svg>
         </div>
-        <button type="button" class="sw-login-theme-btn" id="swLoginThemeToggleBtn" title="Đổi giao diện Sáng / Tối">
-          🌓
-        </button>
+        <span style="font-size:0.7rem;font-weight:600;letter-spacing:0.16em;text-transform:uppercase;color:#787067;margin-bottom:6px;">
+          SUN WORLD BA NA HILLS
+        </span>
+        <div id="fbGateHeaderSlot"></div>
       </div>
-      <div class="sw-login-body" id="fbGateContent">
+
+      <div id="fbGateContent">
         ${innerBodyHtml}
-      </div>
-      <div class="sw-login-footer">
-        <span>🔒 Xác thực tài khoản Gmail</span>
-        <span>Sun World Ops</span>
       </div>
     </div>
   `;
-
-  const themeBtn = gateEl.querySelector("#swLoginThemeToggleBtn");
-  if (themeBtn) {
-    themeBtn.onclick = () => {
-      if (typeof window.toggleTheme === "function") {
-        window.toggleTheme();
-      }
-    };
-  }
 }
 
 renderAuthGateShell(`
-  <h2 class="sw-login-section-title">Đang kiểm tra phiên đăng nhập...</h2>
-  <p class="sw-login-section-desc">Vui lòng chờ giây lát để đồng bộ tài khoản Gmail.</p>
+  <div style="text-align:center;padding:12px 0;">
+    <h1 class="wabi-serif-title">Đang đồng bộ phiên</h1>
+    <p class="wabi-subtitle">Vui lòng chờ giây lát...</p>
+  </div>
 `);
 
 document.addEventListener("DOMContentLoaded", () => {
   document.body.appendChild(gateEl);
-  const logoEl = document.getElementById("swAuthGateLogoImg");
-  if (logoEl && !logoEl.getAttribute("src")) {
-    logoEl.src = getActiveBrandLogoSrc();
-  }
 });
 
 let app = null;
@@ -595,47 +578,234 @@ function lockStaffNameToGmail(gmailDisplayName) {
   }
 }
 
-function showSignInPrompt(errorMessage = "") {
+function showSignInPrompt(errorMessage = "", successMessage = "") {
   gateEl.style.display = "flex";
+  let rememberedEmail = "";
+  try {
+    rememberedEmail = localStorage.getItem("SW_WABI_REMEMBER_EMAIL") || "";
+  } catch (e) {}
+
   renderAuthGateShell(`
-    <div>
-      <h2 class="sw-login-section-title">Đăng nhập ca vận hành</h2>
-      <p class="sw-login-section-desc" style="margin-top:4px;">
-        Sử dụng tài khoản Google (Gmail) để vào giao diện trò chơi được phân công.
+    <div style="text-align:center;margin-bottom:24px;margin-top:-18px;">
+      <h1 class="wabi-serif-title font-serif text-[#2C2623]">Chào mừng trở lại</h1>
+      <p class="wabi-subtitle font-sans text-[#787067]">
+        Đăng nhập nhẹ nhàng để bắt đầu ca vận hành của bạn
       </p>
     </div>
 
-    ${
-      errorMessage
-        ? `<div style="padding:10px 12px;border-radius:10px;background:#FEF2F2;border:1px solid #FECACA;color:#B91C1C;font-size:0.78rem;font-weight:600;line-height:1.4;">⚠️ ${errorMessage}</div>`
-        : ""
-    }
-
-    <div class="sw-action-steps">
-      <div class="sw-step-row">
-        <span class="sw-step-num">1</span>
-        <span>Nhấn <strong>Đăng nhập bằng Gmail</strong> và chọn tài khoản của bạn.</span>
-      </div>
-      <div class="sw-step-row">
-        <span class="sw-step-num">2</span>
-        <span>Admin duyệt tài khoản và chọn <strong>Trò chơi phụ trách</strong>.</span>
-      </div>
-      <div class="sw-step-row">
-        <span class="sw-step-num">3</span>
-        <span>Thao tác tại <strong>Thông tin chung</strong> &amp; <strong>Nhập liệu</strong> (Tên NV tự động lấy theo tên Gmail).</span>
-      </div>
+    <div id="wabiAlertBox">
+      ${
+        errorMessage
+          ? `<div class="wabi-alert wabi-alert-error">${errorMessage}</div>`
+          : successMessage
+          ? `<div class="wabi-alert wabi-alert-success">${successMessage}</div>`
+          : ""
+      }
     </div>
 
-    <button type="button" class="sw-google-btn" id="fbSignInBtn">
-      <span class="sw-google-icon-box">
-        <svg width="16" height="16" viewBox="0 0 48 48"><path fill="#FFC107" d="M43.611,20.083H42V20H24v8h11.303c-1.649,4.657-6.08,8-11.303,8c-6.627,0-12-5.373-12-12c0-6.627,5.373-12,12-12c3.059,0,5.842,1.154,7.961,3.039l5.657-5.657C34.046,6.053,29.268,4,24,4C12.955,4,4,12.955,4,24c0,11.045,8.955,20,20,20c11.045,0,20-8.955,20-20C44,22.659,43.862,21.35,43.611,20.083z"/><path fill="#FF3D00" d="M6.306,14.691l6.571,4.819C14.655,15.108,18.961,12,24,12c3.059,0,5.842,1.154,7.961,3.039l5.657-5.657C34.046,6.053,29.268,4,24,4C16.318,4,9.656,8.337,6.306,14.691z"/><path fill="#4CAF50" d="M24,44c5.166,0,9.86-1.977,13.409-5.192l-6.19-5.238C29.211,35.091,26.715,36,24,36c-5.202,0-9.619-3.317-11.283-7.946l-6.522,5.025C9.505,39.556,16.227,44,24,44z"/><path fill="#1976D2" d="M43.611,20.083H42V20H24v8h11.303c-0.792,2.237-2.231,4.166-4.087,5.571c0.001-0.001,0.002-0.001,0.003-0.002l6.19,5.238C36.971,39.205,44,34,44,24C44,22.659,43.862,21.35,43.611,20.083z"/></svg>
-      </span>
-      <span>Đăng nhập bằng tài khoản Gmail</span>
+    <form id="wabiLoginForm" class="space-y-5" style="display:flex;flex-direction:column;gap:18px;" novalidate>
+      <!-- Ô nhập Email -->
+      <div>
+        <label for="wabiEmailInput" class="wabi-label">Email</label>
+        <input
+          type="email"
+          id="wabiEmailInput"
+          class="wabi-input"
+          placeholder="tenban@gmail.com"
+          value="${rememberedEmail.replace(/"/g, "&quot;")}"
+          autocomplete="email"
+          required
+        />
+      </div>
+
+      <!-- Ô nhập Mật khẩu (có nút ẩn/hiện) -->
+      <div>
+        <label for="wabiPasswordInput" class="wabi-label">Mật khẩu</label>
+        <div style="position:relative;">
+          <input
+            type="password"
+            id="wabiPasswordInput"
+            class="wabi-input wabi-input-pwd"
+            placeholder="Nhập mật khẩu của bạn"
+            autocomplete="current-password"
+            required
+          />
+          <button
+            type="button"
+            id="wabiTogglePwdBtn"
+            class="wabi-pwd-toggle"
+            aria-label="Ẩn hoặc hiện mật khẩu"
+            title="Hiện / Ẩn mật khẩu"
+          >
+            <!-- Eye icon (mặc định) -->
+            <svg id="wabiEyeOpenIcon" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round">
+              <path d="M2 12s3-7 10-7 10 7 10 7-3 7-10 7-10-7-10-7Z"/>
+              <circle cx="12" cy="12" r="3"/>
+            </svg>
+            <!-- Eye-off icon (ẩn) -->
+            <svg id="wabiEyeClosedIcon" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" style="display:none;">
+              <path d="M9.88 9.88a3 3 0 1 0 4.24 4.24"/>
+              <path d="M10.73 5.08A10.43 10.43 0 0 1 12 5c7 0 10 7 10 7a13.16 13.16 0 0 1-1.67 2.68"/>
+              <path d="M6.61 6.61A13.526 13.526 0 0 0 2 12s3 7 10 7a9.74 9.74 0 0 0 5.39-1.61"/>
+              <line x1="2" x2="22" y1="2" y2="22"/>
+            </svg>
+          </button>
+        </div>
+      </div>
+
+      <!-- Checkbox 'Ghi nhớ tôi' & Link 'Quên mật khẩu?' -->
+      <div style="display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap;padding-top:2px;">
+        <label for="wabiRememberCheck" style="display:inline-flex;align-items:center;gap:8px;cursor:pointer;font-size:0.8125rem;color:#787067;user-select:none;">
+          <input
+            type="checkbox"
+            id="wabiRememberCheck"
+            class="wabi-checkbox"
+            ${rememberedEmail ? "checked" : ""}
+          />
+          <span>Ghi nhớ tôi</span>
+        </label>
+        <a href="#forgot-password" id="wabiForgotPwdLink" class="wabi-link">
+          Quên mật khẩu?
+        </a>
+      </div>
+
+      <!-- Điểm nhấn CTA (10%): Nút 'Đăng nhập' màu nâu đất trầm (#7C5A43), hover (#634632) -->
+      <button
+        type="submit"
+        id="wabiSubmitLoginBtn"
+        class="wabi-btn-primary bg-[#7C5A43] hover:bg-[#634632] text-[#FAF8F5] rounded-xl"
+      >
+        Đăng nhập
+      </button>
+    </form>
+
+    <!-- Đường phân cách tinh tế -->
+    <div class="wabi-divider">
+      <span class="wabi-divider-line"></span>
+      <span class="wabi-divider-text">hoặc</span>
+      <span class="wabi-divider-line"></span>
+    </div>
+
+    <!-- Nút 'Tiếp tục với Google' -->
+    <button
+      type="button"
+      id="fbSignInBtn"
+      class="wabi-btn-google rounded-xl border border-[#E6DFD3]"
+    >
+      <svg width="18" height="18" viewBox="0 0 48 48" aria-hidden="true">
+        <path fill="#FFC107" d="M43.611,20.083H42V20H24v8h11.303c-1.649,4.657-6.08,8-11.303,8c-6.627,0-12-5.373-12-12c0-6.627,5.373-12,12-12c3.059,0,5.842,1.154,7.961,3.039l5.657-5.657C34.046,6.053,29.268,4,24,4C12.955,4,4,12.955,4,24c0,11.045,8.955,20,20,20c11.045,0,20-8.955,20-20C44,22.659,43.862,21.35,43.611,20.083z"/>
+        <path fill="#FF3D00" d="M6.306,14.691l6.571,4.819C14.655,15.108,18.961,12,24,12c3.059,0,5.842,1.154,7.961,3.039l5.657-5.657C34.046,6.053,29.268,4,24,4C16.318,4,9.656,8.337,6.306,14.691z"/>
+        <path fill="#4CAF50" d="M24,44c5.166,0,9.86-1.977,13.409-5.192l-6.19-5.238C29.211,35.091,26.715,36,24,36c-5.202,0-9.619-3.317-11.283-7.946l-6.522,5.025C9.505,39.556,16.227,44,24,44z"/>
+        <path fill="#1976D2" d="M43.611,20.083H42V20H24v8h11.303c-0.792,2.237-2.231,4.166-4.087,5.571c0.001-0.001,0.002-0.001,0.003-0.002l6.19,5.238C36.971,39.205,44,34,44,24C44,22.659,43.862,21.35,43.611,20.083z"/>
+      </svg>
+      <span>Tiếp tục với Google</span>
     </button>
   `);
 
-  const btn = document.getElementById("fbSignInBtn");
-  if (btn) btn.onclick = triggerGoogleSignIn;
+  // Gắn sự kiện Ẩn / Hiện mật khẩu
+  const pwdInput = document.getElementById("wabiPasswordInput");
+  const togglePwdBtn = document.getElementById("wabiTogglePwdBtn");
+  const eyeOpen = document.getElementById("wabiEyeOpenIcon");
+  const eyeClosed = document.getElementById("wabiEyeClosedIcon");
+  if (togglePwdBtn && pwdInput) {
+    togglePwdBtn.onclick = () => {
+      const isHidden = pwdInput.type === "password";
+      pwdInput.type = isHidden ? "text" : "password";
+      if (eyeOpen && eyeClosed) {
+        eyeOpen.style.display = isHidden ? "none" : "block";
+        eyeClosed.style.display = isHidden ? "block" : "none";
+      }
+      pwdInput.focus();
+    };
+  }
+
+  // Gắn sự kiện Quên mật khẩu?
+  const forgotLink = document.getElementById("wabiForgotPwdLink");
+  if (forgotLink) {
+    forgotLink.onclick = async (ev) => {
+      ev.preventDefault();
+      const emailEl = document.getElementById("wabiEmailInput");
+      const emailVal = emailEl ? emailEl.value.trim() : "";
+      if (!emailVal || !emailVal.includes("@")) {
+        showSignInPrompt("Vui lòng nhập địa chỉ Email của bạn vào ô Email trước khi nhấn 'Quên mật khẩu?'.");
+        const newEmailEl = document.getElementById("wabiEmailInput");
+        if (newEmailEl) newEmailEl.focus();
+        return;
+      }
+      try {
+        await sendPasswordResetEmail(auth, emailVal);
+        showSignInPrompt("", `Đã gửi liên kết đặt lại mật khẩu tới ${emailVal}. Vui lòng kiểm tra hộp thư.`);
+      } catch (err) {
+        showSignInPrompt(
+          `Bạn có thể nhấn nút "Tiếp tục với Google" bên dưới để đăng nhập nhanh bằng tài khoản ${emailVal} mà không cần mật khẩu.`
+        );
+      }
+    };
+  }
+
+  // Gắn sự kiện Submit form Email / Mật khẩu
+  const loginForm = document.getElementById("wabiLoginForm");
+  if (loginForm) {
+    loginForm.onsubmit = async (ev) => {
+      ev.preventDefault();
+      const emailEl = document.getElementById("wabiEmailInput");
+      const passEl = document.getElementById("wabiPasswordInput");
+      const rememberEl = document.getElementById("wabiRememberCheck");
+      const submitBtn = document.getElementById("wabiSubmitLoginBtn");
+
+      const emailVal = emailEl ? emailEl.value.trim() : "";
+      const passVal = passEl ? passEl.value : "";
+
+      if (!emailVal || !emailVal.includes("@")) {
+        showSignInPrompt("Vui lòng nhập địa chỉ Email hợp lệ.");
+        return;
+      }
+      if (!passVal) {
+        showSignInPrompt("Vui lòng nhập mật khẩu hoặc chọn 'Tiếp tục với Google'.");
+        return;
+      }
+
+      try {
+        if (rememberEl && rememberEl.checked) {
+          localStorage.setItem("SW_WABI_REMEMBER_EMAIL", emailVal);
+          await setPersistence(auth, browserLocalPersistence);
+        } else {
+          localStorage.removeItem("SW_WABI_REMEMBER_EMAIL");
+          await setPersistence(auth, browserSessionPersistence);
+        }
+      } catch (e) {}
+
+      if (submitBtn) {
+        submitBtn.disabled = true;
+        submitBtn.textContent = "Đang đăng nhập...";
+      }
+
+      try {
+        await signInWithEmailAndPassword(auth, emailVal, passVal);
+      } catch (err) {
+        // Nếu tài khoản chưa có mật khẩu và mật khẩu >= 6 ký tự, thử khởi tạo hoặc chuyển sang Google OAuth
+        if (
+          passVal.length >= 6 &&
+          err &&
+          (err.code === "auth/user-not-found" || err.code === "auth/invalid-credential")
+        ) {
+          try {
+            await createUserWithEmailAndPassword(auth, emailVal, passVal);
+            return;
+          } catch (createErr) {
+            // Nếu Email/Password chưa bật trên Firebase hoặc email đã dùng Google OAuth
+          }
+        }
+        showSignInPrompt(
+          `Tài khoản ${emailVal} sử dụng xác thực Google. Vui lòng nhấn nút "Tiếp tục với Google" bên dưới để đăng nhập.`
+        );
+      }
+    };
+  }
+
+  // Gắn sự kiện nút Tiếp tục với Google
+  const googleBtn = document.getElementById("fbSignInBtn");
+  if (googleBtn) googleBtn.onclick = triggerGoogleSignIn;
 }
 
 function showPendingPrompt(user, profile) {
@@ -643,43 +813,38 @@ function showPendingPrompt(user, profile) {
   const displayName = (user.displayName || (profile && profile.name) || user.email.split("@")[0]).trim();
   const initials = displayName.slice(0, 2).toUpperCase();
   const avatarHtml = user.photoURL
-    ? `<img src="${user.photoURL}" alt="" class="sw-user-avatar" />`
-    : `<span class="sw-user-avatar">${initials}</span>`;
+    ? `<img src="${user.photoURL}" alt="" style="width:44px;height:44px;border-radius:50%;object-fit:cover;border:1.5px solid #E6DFD3;flex-shrink:0;" />`
+    : `<span style="width:44px;height:44px;border-radius:50%;background:#7C5A43;color:#FAF8F5;font-weight:600;font-size:0.9rem;display:inline-flex;align-items:center;justify-content:center;flex-shrink:0;">${initials}</span>`;
 
   renderAuthGateShell(`
-    <div>
-      <h2 class="sw-login-section-title">Tài khoản đang chờ Admin duyệt</h2>
-      <p class="sw-login-section-desc" style="margin-top:4px;">
-        Đã ghi nhận Gmail đăng nhập. Vui lòng thực hiện theo hướng dẫn dưới đây:
+    <div style="text-align:center;margin-bottom:22px;margin-top:-18px;">
+      <h1 class="wabi-serif-title font-serif text-[#2C2623]">Chờ phê duyệt</h1>
+      <p class="wabi-subtitle font-sans text-[#787067]">
+        Tài khoản của bạn đã được ghi nhận và đang chờ Quản trị viên gán trò chơi phụ trách.
       </p>
     </div>
 
-    <div class="sw-user-profile-box">
+    <div style="display:flex;align-items:center;gap:12px;padding:14px 16px;border-radius:12px;background:#F5F2EB;border:1px solid #E6DFD3;margin-bottom:18px;">
       ${avatarHtml}
-      <div class="sw-user-meta">
-        <div class="sw-user-name">${displayName}</div>
-        <div class="sw-user-email">${user.email}</div>
-        <span class="sw-status-badge-pending">⏳ Chờ Admin phê duyệt</span>
+      <div style="min-width:0;flex:1;">
+        <div style="font-size:0.92rem;font-weight:600;color:#2C2623;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">
+          ${displayName}
+        </div>
+        <div style="font-size:0.78rem;color:#787067;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">
+          ${user.email}
+        </div>
+        <span style="display:inline-flex;align-items:center;gap:4px;margin-top:5px;padding:2px 9px;border-radius:999px;font-size:0.7rem;font-weight:600;background:#FAF8F5;color:#7C5A43;border:1px solid #E6DFD3;">
+          ⏳ Đang chờ Admin duyệt
+        </span>
       </div>
     </div>
 
-    <div class="sw-action-steps">
-      <div class="sw-step-row">
-        <span class="sw-step-num">1</span>
-        <span>Báo Admin mở mục <strong>Tài khoản</strong> → chọn <strong>Trò chơi phụ trách</strong> → bấm <strong>Duyệt &amp; Kích hoạt</strong>.</span>
-      </div>
-      <div class="sw-step-row">
-        <span class="sw-step-num">2</span>
-        <span>Màn hình sẽ <strong>tự động mở vào ứng dụng</strong> ngay khi Admin bấm duyệt.</span>
-      </div>
-    </div>
-
-    <div style="display:flex; flex-direction:column; gap:8px;">
-      <button type="button" class="sw-google-btn" id="fbRefreshApprovalBtn">
-        🔄 Kiểm tra trạng thái duyệt ngay
+    <div style="display:flex;flex-direction:column;gap:10px;">
+      <button type="button" class="wabi-btn-primary" id="fbRefreshApprovalBtn">
+        Kiểm tra trạng thái duyệt
       </button>
-      <button type="button" class="sw-secondary-btn" id="fbPendingSignOutBtn">
-        Đổi tài khoản Gmail khác
+      <button type="button" class="wabi-btn-google" id="fbPendingSignOutBtn">
+        Đổi tài khoản khác
       </button>
     </div>
   `);
@@ -688,7 +853,7 @@ function showPendingPrompt(user, profile) {
   if (refreshBtn) {
     refreshBtn.onclick = async () => {
       refreshBtn.disabled = true;
-      refreshBtn.textContent = "Đang kiểm tra trạng thái...";
+      refreshBtn.textContent = "Đang kiểm tra...";
       try {
         const snap = await getDoc(doc(db, "users", user.uid));
         if (snap.exists()) {
@@ -699,10 +864,10 @@ function showPendingPrompt(user, profile) {
           }
         }
         refreshBtn.disabled = false;
-        refreshBtn.textContent = "⏳ Chưa được duyệt — Nhấn để kiểm tra lại";
+        refreshBtn.textContent = "Chưa được duyệt — Nhấn để kiểm tra lại";
       } catch (e) {
         refreshBtn.disabled = false;
-        refreshBtn.textContent = "🔄 Kiểm tra trạng thái duyệt ngay";
+        refreshBtn.textContent = "Kiểm tra trạng thái duyệt";
       }
     };
   }
@@ -714,9 +879,17 @@ function showPendingPrompt(user, profile) {
 async function triggerGoogleSignIn() {
   if (!auth) return;
   const btn = document.getElementById("fbSignInBtn");
+  const emailInput = document.getElementById("wabiEmailInput");
+  const rememberEl = document.getElementById("wabiRememberCheck");
+  if (emailInput && emailInput.value.trim() && rememberEl && rememberEl.checked) {
+    try {
+      localStorage.setItem("SW_WABI_REMEMBER_EMAIL", emailInput.value.trim());
+    } catch (e) {}
+  }
+
   if (btn) {
     btn.disabled = true;
-    btn.innerHTML = `<span>Đang mở cửa sổ đăng nhập Gmail...</span>`;
+    btn.innerHTML = `<span>Đang kết nối với Google...</span>`;
   }
   const provider = new GoogleAuthProvider();
   provider.setCustomParameters({ prompt: "select_account" });
@@ -735,7 +908,7 @@ async function triggerGoogleSignIn() {
     showSignInPrompt(
       err && err.code === "auth/unauthorized-domain"
         ? `Tên miền ${location.hostname} chưa được thêm vào Authorized Domains trên Firebase.`
-        : `Đã hủy hoặc chưa hoàn tất đăng nhập Gmail (${err.code || err.message}).`
+        : `Chưa hoàn tất đăng nhập với Google (${err.code || err.message}).`
     );
   }
 }
@@ -755,7 +928,6 @@ async function ensureUserProfile(user) {
   }
 
   if (!snap || !snap.exists()) {
-    // Hồ sơ mới: Thử tạo với quyền tương ứng, nếu Firestore Rules từ chối admin thì tự động tạo ở trạng thái pending
     const initialProfile = {
       uid: user.uid,
       email,
@@ -774,7 +946,6 @@ async function ensureUserProfile(user) {
       await setDoc(ref, initialProfile);
       return initialProfile;
     } catch (writeErr) {
-      // Fallback sang hồ sơ pending hợp lệ theo Firestore Rules cho mọi tài khoản Gmail
       const safePendingProfile = {
         ...initialProfile,
         code: "NV_" + user.uid.slice(0, 5).toUpperCase(),
@@ -790,7 +961,6 @@ async function ensureUserProfile(user) {
     }
   } else {
     const data = snap.data();
-    // Chỉ cập nhật các trường được phép theo Firestore Rules
     if (isSuper && (data.role !== "admin" || !data.active)) {
       try {
         await updateDoc(ref, {
@@ -814,9 +984,7 @@ async function ensureUserProfile(user) {
           photoURL: user.photoURL || "",
           lastLoginAt: serverTimestamp()
         });
-      } catch (e) {
-        // Bỏ qua nếu không cần thiết
-      }
+      } catch (e) {}
     }
     data.name = gmailName;
     return data;
@@ -829,7 +997,6 @@ function applyFirebaseProfileToLegacyApp(user, profile) {
 
   const isAdmin = profile.role === "admin";
   const isApproved = Boolean(profile.active) && profile.role !== "pending";
-  // Tên nhân viên vận hành LUÔN cố định trùng với tên tài khoản Gmail đăng nhập
   const gmailDisplayName = (user.displayName || profile.name || user.email.split("@")[0]).trim();
   window.loggedInGoogleName = gmailDisplayName;
 
@@ -863,7 +1030,6 @@ function applyFirebaseProfileToLegacyApp(user, profile) {
     };
   }
 
-  // Khóa cố định ô Nhân viên vận hành (#staffName) trùng với tên Gmail đăng nhập
   lockStaffNameToGmail(gmailDisplayName);
 
   const badgeTextEl = document.getElementById("headerAdminBadgeText");
@@ -1009,7 +1175,6 @@ function queueFirestoreShiftSync() {
   }, 350);
 }
 
-// Render bảng Quản lý Tài khoản & Phê duyệt trong Modal
 function renderAccountModalControls() {
   const modalCard = document.querySelector("#loginModalBackdrop .login-modal-card");
   if (!modalCard || !currentAuthUser || !currentProfile) return;
@@ -1341,9 +1506,7 @@ if (isConfigured) {
               applyFirebaseProfileToLegacyApp(user, snap.data());
             }
           },
-          () => {
-            // Giữ nguyên trạng thái initialProfile nếu listener gặp giới hạn quyền tạm thời
-          }
+          () => {}
         );
       } catch (err) {
         console.error("Firebase profile load fallback:", err);
