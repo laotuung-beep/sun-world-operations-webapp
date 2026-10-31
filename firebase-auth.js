@@ -18,7 +18,11 @@ import {
 } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
 
 const cfg = window.DEFAULT_FIREBASE_CONFIG || {};
-const SUPER_ADMIN_EMAILS = (window.SUPER_ADMIN_EMAILS || []).map(e => e.toLowerCase());
+const SUPER_ADMIN_EMAILS = [
+    "phongbanana96@gmail.com",
+    "laotuung@gmail.com",
+    ...(window.SUPER_ADMIN_EMAILS || [])
+  ].map(e => String(e).toLowerCase().trim());
 const ROLE_LABELS = {
   admin: "Admin Hệ Thống (Toàn Quyền)",
   manager: "Quản lý khu trò chơi",
@@ -68,109 +72,118 @@ if (cfg.apiKey) {
       position: fixed;
       inset: 0;
       z-index: 2500;
-      background: radial-gradient(125% 62% at 50% -10%, rgba(4, 6, 15, 0.72) 0%, rgba(4, 6, 15, 0.88) 100%);
+      background: radial-gradient(125% 62% at 50% -10%, rgba(4, 6, 15, 0.72) 0%, rgba(4, 6, 15, 0.9) 100%);
       backdrop-filter: blur(10px);
       -webkit-backdrop-filter: blur(10px);
       display: flex;
       align-items: center;
       justify-content: center;
-      padding: 20px;
+      padding: 24px 16px;
+      overflow-y: auto;
+      -webkit-overflow-scrolling: touch;
       font-family: 'Inter', 'Montserrat', system-ui, -apple-system, sans-serif;
     }
     .mobbin-auth-shell {
       width: 100%;
-      max-width: 940px;
-      min-height: 520px;
-      background: rgba(12, 18, 38, 0.76);
+      max-width: 920px;
+      margin: auto;
+      background: rgba(12, 18, 38, 0.82);
       backdrop-filter: blur(24px);
       -webkit-backdrop-filter: blur(24px);
-      border: 1px solid rgba(255, 183, 3, 0.28);
+      border: 1px solid rgba(255, 183, 3, 0.3);
       border-radius: 24px;
-      box-shadow: 0 30px 80px -20px rgba(0, 0, 0, 0.85), 0 0 45px rgba(255, 183, 3, 0.15);
+      box-shadow: 0 30px 80px -20px rgba(0, 0, 0, 0.9), 0 0 45px rgba(255, 183, 3, 0.15);
       display: grid;
       grid-template-columns: 1.08fr 1fr;
       overflow: hidden;
       color: #f8fafc;
     }
-    @media (max-width: 760px) {
+    @media (max-width: 768px) {
       .mobbin-auth-shell {
         grid-template-columns: 1fr;
-        max-width: 440px;
-        min-height: auto;
+        max-width: 460px;
       }
       .mobbin-auth-showcase {
+        display: none !important;
+      }
+    }
+    .mobbin-auth-showcase {
       background: linear-gradient(160deg, rgba(192, 38, 45, 0.94) 0%, rgba(120, 20, 30, 0.92) 50%, rgba(12, 18, 38, 0.96) 100%);
-      padding: 38px 34px;
+      padding: 34px 30px;
       display: flex;
       flex-direction: column;
       justify-content: space-between;
       position: relative;
       overflow: hidden;
+      border-right: 1px solid rgba(255, 183, 3, 0.18);
     }
     .mobbin-auth-showcase::after {
       content: "";
       position: absolute;
-      width: 280px;
-      height: 280px;
-      right: -80px;
-      bottom: -80px;
-      background: radial-gradient(circle, rgba(251, 191, 36, 0.24) 0%, transparent 70%);
+      width: 260px;
+      height: 260px;
+      right: -70px;
+      bottom: -70px;
+      background: radial-gradient(circle, rgba(255, 183, 3, 0.22) 0%, transparent 70%);
       pointer-events: none;
     }
     .mobbin-brand-pill {
       display: inline-flex;
       align-items: center;
       gap: 8px;
-      padding: 6px 13px;
-      background: rgba(255, 255, 255, 0.12);
-      border: 1px solid rgba(255, 255, 255, 0.22);
+      padding: 6px 14px;
+      background: rgba(255, 183, 3, 0.18);
+      border: 1px solid rgba(255, 183, 3, 0.35);
       border-radius: 999px;
-      font-size: 0.72rem;
+      font-size: 0.74rem;
       font-weight: 700;
       letter-spacing: 0.6px;
       text-transform: uppercase;
-      color: #fde68a;
+      color: #fef08a;
       width: fit-content;
     }
     .mobbin-feature-list {
       display: flex;
       flex-direction: column;
-      gap: 14px;
-      margin: 26px 0;
+      gap: 12px;
+      margin: 22px 0 20px;
     }
     .mobbin-feature-item {
       display: flex;
       align-items: flex-start;
       gap: 12px;
-      background: rgba(15, 23, 42, 0.32);
-      border: 1px solid rgba(255, 255, 255, 0.1);
+      background: rgba(12, 18, 38, 0.6);
+      border: 1px solid rgba(255, 255, 255, 0.12);
       padding: 12px 14px;
-      border-radius: 12px;
+      border-radius: 14px;
+      backdrop-filter: blur(10px);
     }
     .mobbin-feature-icon {
       width: 32px;
       height: 32px;
-      border-radius: 8px;
-      background: rgba(255, 255, 255, 0.14);
+      border-radius: 9px;
+      background: rgba(255, 183, 3, 0.16);
+      border: 1px solid rgba(255, 183, 3, 0.28);
       display: inline-flex;
       align-items: center;
       justify-content: center;
-      font-size: 0.95rem;
+      font-size: 1rem;
       flex-shrink: 0;
+      color: #ffb703;
     }
     .mobbin-auth-panel {
-      padding: 38px 34px;
+      padding: 34px 30px;
       display: flex;
       flex-direction: column;
       justify-content: center;
-      gap: 18px;
-      background: rgba(15, 23, 42, 0.94);
+      gap: 16px;
+      background: rgba(12, 18, 38, 0.88);
     }
     .mobbin-google-btn {
       width: 100%;
       padding: 13px 18px;
-      border-radius: 12px;
-      border: 1px solid rgba(255, 255, 255, 0.18);
+      border-radius: 14px;
+      border: 1px solid rgba(255, 183, 3, 0.45);
       background: #ffffff;
       color: #0f172a;
       font-size: 0.92rem;
@@ -180,38 +193,43 @@ if (cfg.apiKey) {
       justify-content: center;
       gap: 10px;
       cursor: pointer;
-      transition: all 0.18s ease;
-      box-shadow: 0 6px 18px rgba(0, 0, 0, 0.25);
+      transition: all 0.2s ease;
+      box-shadow: 0 6px 20px rgba(0, 0, 0, 0.35);
     }
     .mobbin-google-btn:hover {
-      background: #f1f5f9;
+      background: #f8fafc;
       transform: translateY(-1px);
-      box-shadow: 0 10px 24px rgba(0, 0, 0, 0.35);
+      box-shadow: 0 10px 28px rgba(255, 183, 3, 0.35);
     }
     .mobbin-secondary-btn {
       width: 100%;
-      padding: 10px 14px;
-      border-radius: 10px;
-      border: 1px solid rgba(148, 163, 184, 0.28);
-      background: rgba(30, 41, 59, 0.7);
-      color: #e2e8f0;
-      font-size: 0.82rem;
-      font-weight: 600;
-      cursor: pointer;
-      transition: all 0.15s ease;
+      padding: 11px 16px;
+      border-radius: 12px;
+      border: 1px solid rgba(255, 183, 3, 0.3) !important;
+      background: rgba(255, 255, 255, 0.06) !important;
+      color: #f1f5f9 !important;
+      font-size: 0.86rem !important;
+      font-weight: 600 !important;
+      cursor: pointer !important;
+      transition: all 0.2s ease !important;
+      display: flex;
+      align-items: center;
+      justify-content: center;
     }
     .mobbin-secondary-btn:hover {
-      background: rgba(51, 65, 85, 0.9);
-      border-color: rgba(148, 163, 184, 0.5);
+      background: rgba(255, 183, 3, 0.15) !important;
+      border-color: #ffb703 !important;
+      transform: translateY(-1px) !important;
     }
     .mobbin-pending-card {
-      background: rgba(30, 41, 59, 0.75);
-      border: 1px solid rgba(245, 158, 11, 0.38);
-      border-radius: 14px;
-      padding: 16px;
+      background: rgba(18, 26, 52, 0.75);
+      border: 1px solid rgba(255, 183, 3, 0.35);
+      border-radius: 16px;
+      padding: 14px 16px;
       display: flex;
       flex-direction: column;
       gap: 10px;
+      box-shadow: 0 8px 24px rgba(0, 0, 0, 0.35);
     }
     /* Nâng cấp Bảng Quản lý & Duyệt Tài Khoản */
     .sw-admin-stats-grid {
@@ -294,46 +312,46 @@ if (cfg.apiKey) {
   gate.id = "fbAuthGate";
   gate.innerHTML = `
     <div class="mobbin-auth-shell">
-      <!-- Cột trái: Brand & Tính năng vận hành -->
+            <!-- Cột trái: Brand & Tính năng vận hành -->
       <div class="mobbin-auth-showcase">
         <div>
           <div class="mobbin-brand-pill">
             <span>☀️</span> SUN WORLD BA NA HILLS • ĐƯỜNG LÊN TIÊN CẢNH
           </div>
-          <h1 style="font-size:1.62rem;font-weight:800;line-height:1.28;margin:18px 0 10px;color:#fff;">
+          <h1 style="font-size:1.45rem;font-weight:800;line-height:1.25;margin:16px 0 8px;color:#fff;">
             Hệ Thống Quản Trị & Nhập Liệu Vận Hành Trò Chơi
           </h1>
-          <p style="font-size:0.84rem;color:rgba(255,255,255,0.82);line-height:1.55;margin:0;">
-            Nền tảng đồng bộ số liệu ca trực, công suất phục vụ và nhật ký vận hành thời gian thực theo tiêu chuẩn Sun World.
+          <p style="font-size:0.82rem;color:rgba(255,255,255,0.8);line-height:1.5;margin:0;">
+            Nền tảng đồng bộ số liệu ca trực, công suất phục vụ và nhật ký vận hành thời gian thực trên đỉnh Núi Chúa 1.487m.
           </p>
 
           <div class="mobbin-feature-list">
             <div class="mobbin-feature-item">
               <div class="mobbin-feature-icon">🔐</div>
               <div>
-                <div style="font-size:0.82rem;font-weight:700;color:#fff;">Định Danh Google Chính Thức</div>
-                <div style="font-size:0.74rem;color:rgba(255,255,255,0.75);line-height:1.4;">Tự động ghi nhận tên nhân viên vận hành theo tài khoản Google đã đăng nhập.</div>
+                <div style="font-size:0.82rem;font-weight:700;color:#fff;">Định Danh Google Workspace</div>
+                <div style="font-size:0.73rem;color:rgba(255,255,255,0.72);line-height:1.4;">Tự động khóa tên nhân viên theo tài khoản Google đã đăng nhập.</div>
               </div>
             </div>
             <div class="mobbin-feature-item">
               <div class="mobbin-feature-icon">🎯</div>
               <div>
-                <div style="font-size:0.82rem;font-weight:700;color:#fff;">Giao Diện Chuyên Biệt Theo Trò Chơi</div>
-                <div style="font-size:0.74rem;color:rgba(255,255,255,0.75);line-height:1.4;">Tài khoản được duyệt truy cập trực tiếp vào Thông tin chung & Nhập liệu của trò chơi phụ trách.</div>
+                <div style="font-size:0.82rem;font-weight:700;color:#fff;">Khóa Trò Chơi Được Giao</div>
+                <div style="font-size:0.73rem;color:rgba(255,255,255,0.72);line-height:1.4;">Chỉ truy cập đúng trò chơi được duyệt tại Thông tin chung & Nhập liệu.</div>
               </div>
             </div>
             <div class="mobbin-feature-item">
               <div class="mobbin-feature-icon">🛡️</div>
               <div>
-                <div style="font-size:0.82rem;font-weight:700;color:#fff;">Bảo Toàn Lịch Sử Ca Trực</div>
-                <div style="font-size:0.74rem;color:rgba(255,255,255,0.75);line-height:1.4;">Lịch sử lượt chơi và thông tin dừng được bảo vệ chống xóa, đồng bộ an toàn lên Cloud.</div>
+                <div style="font-size:0.82rem;font-weight:700;color:#fff;">Bảo Mật Lịch Sử Tuyệt Đối</div>
+                <div style="font-size:0.73rem;color:rgba(255,255,255,0.72);line-height:1.4;">Nhân viên chỉ có quyền xem lịch sử, không có quyền xóa dữ liệu ca trực.</div>
               </div>
             </div>
           </div>
         </div>
 
-        <div style="display:flex;justify-content:space-between;align-items:center;font-size:0.73rem;color:rgba(255,255,255,0.7);border-top:1px solid rgba(255,255,255,0.14);padding-top:14px;">
-          <span>🔒 Bảo mật bởi Google Cloud Firestore</span>
+        <div style="display:flex;justify-content:space-between;align-items:center;font-size:0.72rem;color:rgba(255,255,255,0.65);border-top:1px solid rgba(255,255,255,0.12);padding-top:12px;">
+          <span>🔒 Google Cloud Firestore</span>
           <span>v2.5 Enterprise</span>
         </div>
       </div>

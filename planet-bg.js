@@ -41,14 +41,14 @@ export function initPlanetBackground(canvasId = 'planetCanvas') {
     bgColor: '#040a1e',
     flameColor: '#fb8500',
     flameColor2: '#ffd27a',
-    flameAmt: 0.14,
+    flameAmt: 0.16,
     atmoColor: '#ffd87a',
     atmoCount: 280,
-    atmoSize: 20,
+    atmoSize: 22,
     atmoSpeed: 0.8,
     starColor: '#fff4cc',
-    starCount: 1200,
-    starSize: 1.6,
+    starCount: 1400,
+    starSize: 1.8,
     starFlicker: 1,
     markerColor: '#ffd27a',
     markerCount: 60,
@@ -93,7 +93,7 @@ export function initPlanetBackground(canvasId = 'planetCanvas') {
   try {
     renderer = new THREE.WebGL1Renderer({ canvas, antialias: true, alpha: true });
   } catch (e) {
-    console.warn('WebGL initialization failed, falling back to static gradient:', e);
+    console.warn('WebGL init error:', e);
     return;
   }
 
@@ -106,18 +106,14 @@ export function initPlanetBackground(canvasId = 'planetCanvas') {
 
   const camera = new THREE.PerspectiveCamera(40, window.innerWidth / window.innerHeight, 0.1, 200);
   camera.position.set(0, 0, 8);
-  camera.layers.enable(LAYERS.TORUS_SCENE);
-  camera.layers.enable(LAYERS.BLOOM_SCENE);
-  camera.layers.enable(LAYERS.ENTIRE_SCENE);
+  camera.layers.enableAll();
   scene.add(camera);
 
   const ambientLight = new THREE.AmbientLight(0xffffff, 1.8);
-  ambientLight.layers.set(LAYERS.ENTIRE_SCENE);
   scene.add(ambientLight);
 
   const dirLight = new THREE.DirectionalLight(0xffffff, 0.8);
   dirLight.position.set(0, 10, 2);
-  dirLight.layers.set(LAYERS.ENTIRE_SCENE);
   scene.add(dirLight);
 
   // Composers
@@ -191,7 +187,7 @@ export function initPlanetBackground(canvasId = 'planetCanvas') {
   cloudGroup.visible = false;
   worldGroup.add(cloudGroup);
 
-  // Halo Glow
+  // Atmosphere Halo Glow
   const haloMat = new THREE.ShaderMaterial({
     transparent: true,
     side: THREE.DoubleSide,
@@ -245,8 +241,8 @@ export function initPlanetBackground(canvasId = 'planetCanvas') {
       attribute float size; attribute float seed; uniform float uTime; uniform vec2 uRes;
       varying float vA;
       vec3 warp(vec3 p, float t){ float c=0.9,a=1.9,b=0.02,s=0.05; p*=2.;
-        p.x+=c*sin(s*t+a*p.y)+t*b; p.y+=c*cos(s*t+a*p.x); p.y+=c*sin(s*t+a*p.z)+t*b;
-        p.z+=c*cos(s*t+a*p.y); p.z+=c*sin(s*t+a*p.x)+t*b; p.x+=c*cos(s*t+a*p.z);
+        p.x+=c*sin(s*t+a*p.y)+t*b; p.y+=c*sin(s*t+a*p.x); p.y+=c*sin(s*t+a*p.z)+t*b;
+        p.z+=c*cos(s*t+a*p.y); p.z+=c*sin(s*t+a*p.x); p.x+=c*cos(s*t+a*p.z);
         return cos(p+vec3(1,2,4)); }
       void main(){
         vec3 v = position*4.0 + warp(position, uTime)*1.2;
@@ -324,8 +320,8 @@ export function initPlanetBackground(canvasId = 'planetCanvas') {
   scene.add(starPoints);
 
   // Position globe aesthetically behind the app screens
-  worldGroup.position.set(0, 0.2, 0);
-  worldGroup.scale.setScalar(1.05);
+  worldGroup.position.set(0, 0.25, 0);
+  worldGroup.scale.setScalar(1.1);
 
   let planetTime = 0, cloudTime = 0, starTime = 0, markerTime = 0, spinPhase = 0;
 
@@ -606,13 +602,10 @@ export function initPlanetBackground(canvasId = 'planetCanvas') {
       }
     });
 
-    camera.layers.set(LAYERS.TORUS_SCENE);
+    // Render multi-pass composer with full scene layers enabled
+    camera.layers.enableAll();
     torusComposer.render();
-
-    camera.layers.set(LAYERS.BLOOM_SCENE);
     bloomComposer.render();
-
-    camera.layers.set(LAYERS.ENTIRE_SCENE);
     finalComposer.render();
   }
   requestAnimationFrame(animate);
