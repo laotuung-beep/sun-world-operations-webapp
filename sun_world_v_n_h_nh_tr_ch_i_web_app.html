@@ -3184,6 +3184,52 @@
       background: #334155 !important;
     }
 
+    /* Tối ưu Chế độ Ban Đêm (Dark Mode) cho Khối Ghi Nhận Dừng Máy */
+    body[data-theme="dark"] .downtime-reason-btn {
+      background: #1e293b !important;
+      border-color: #334155 !important;
+      color: #f1f5f9 !important;
+    }
+    body[data-theme="dark"] .downtime-reason-btn div {
+      background: #0f172a !important;
+      color: #cbd5e1 !important;
+    }
+    body[data-theme="dark"] .downtime-reason-btn span:nth-of-type(1) {
+      color: #f8fafc !important;
+    }
+    body[data-theme="dark"] .downtime-reason-btn span:nth-of-type(2) {
+      color: #94a3b8 !important;
+    }
+    body[data-theme="dark"] .downtime-reason-btn.active {
+      background: #C0262D !important;
+      border-color: #C0262D !important;
+      color: #ffffff !important;
+      box-shadow: 0 0 12px rgba(192, 38, 45, 0.45) !important;
+    }
+    body[data-theme="dark"] .downtime-reason-btn.active div {
+      background: rgba(255, 255, 255, 0.2) !important;
+      color: #ffffff !important;
+    }
+    body[data-theme="dark"] .downtime-reason-btn.active span:nth-of-type(1) {
+      color: #ffffff !important;
+    }
+    body[data-theme="dark"] .downtime-reason-btn.active span:nth-of-type(2) {
+      color: rgba(255, 255, 255, 0.8) !important;
+    }
+    body[data-theme="dark"] #downtimeActiveForm {
+      background: #181f2f !important;
+      border-color: #334155 !important;
+    }
+    body[data-theme="dark"] #downtimeActiveForm input[type="time"],
+    body[data-theme="dark"] #downtimeActiveForm input[type="text"] {
+      background: #0f172a !important;
+      border-color: #334155 !important;
+      color: #f8fafc !important;
+    }
+    body[data-theme="dark"] #downtimeActiveForm label {
+      color: #cbd5e1 !important;
+    }
+
     /* BADGE TRẠNG THÁI CA TRỰC ĐỘC LẬP - ĐỘ TƯƠNG PHẢN CAO, KHÔNG BỊ TRONG SUỐT */
     .ops-status-badge {
       display: inline-flex !important;
@@ -3632,85 +3678,149 @@
         </div>
       </section>
 
-      <!-- KHỐI 3: TRẠNG THÁI DỪNG / TẠM NGƯNG MÁY (Toggle Chips) -->
+      <!-- KHỐI 3: GHI NHẬN DỪNG MÁY / SỰ CỐ TẠM NGƯNG -->
       <section class="bg-white rounded-2xl border border-slate-200/90 shadow-sm p-4 sm:p-5">
         <div class="flex items-center justify-between mb-3.5">
           <div class="flex items-center gap-2 text-slate-800 font-extrabold text-sm sm:text-base">
-            <i data-lucide="alert-triangle" class="w-4 h-4 text-amber-500"></i>
-            <span>TRẠNG THÁI DỪNG / TẠM NGƯNG MÁY</span>
+            <i data-lucide="alert-octagon" class="w-4 h-4 text-slate-600"></i>
+            <span>GHI NHẬN DỪNG MÁY / TẠM NGƯNG</span>
           </div>
-          <span class="text-[11px] font-medium text-slate-500">Chạm để đổi</span>
+          <span class="text-[11px] text-slate-500 font-semibold bg-slate-100 px-2.5 py-0.5 rounded-full border border-slate-200">
+            Ghi nhận sự cố
+          </span>
         </div>
 
-        <!-- 4 Nút thẻ to bản chọn nhanh lý do dừng -->
-        <div class="grid grid-cols-2 sm:grid-cols-4 gap-2.5">
-          <button type="button" id="chipDtNormal" onclick="selectDowntimeChip('Bình thường')" class="downtime-status-chip active cursor-pointer p-3 rounded-xl border-2 transition-all flex flex-col items-center justify-center gap-1 text-center bg-emerald-50 border-emerald-500 text-emerald-800 shadow-sm">
-            <span class="text-lg">🟢</span>
-            <span class="text-xs font-black">Bình thường</span>
-            <span class="text-[10px] text-emerald-600 font-semibold">Máy chạy tốt</span>
+        <!-- 5 Nút chọn sự cố tối giản, trung tính: Lỗi kỹ thuật, Mất điện, Mưa, Sương mù, Lỗi khác -->
+        <div class="grid grid-cols-2 sm:grid-cols-5 gap-2.5" id="downtimeReasonsGrid">
+          <!-- 1. Lỗi kỹ thuật -->
+          <button type="button" id="btnReasonTech" onclick="selectDowntimeReason('Lỗi kỹ thuật')"
+            class="downtime-reason-btn cursor-pointer p-3 rounded-xl border border-slate-200/90 bg-white hover:bg-slate-50 hover:border-slate-300 transition-all flex flex-col items-center justify-center gap-1.5 text-center shadow-2xs">
+            <div class="w-8 h-8 rounded-lg bg-slate-100 flex items-center justify-center text-slate-700">
+              <i data-lucide="wrench" class="w-4 h-4"></i>
+            </div>
+            <span class="text-xs font-bold text-slate-800">Lỗi kỹ thuật</span>
+            <span class="text-[10px] text-slate-400 font-medium">Bảo trì máy</span>
           </button>
 
-          <button type="button" id="chipDtTech" onclick="selectDowntimeChip('Bảo trì kỹ thuật')" class="downtime-status-chip cursor-pointer p-3 rounded-xl border-2 transition-all flex flex-col items-center justify-center gap-1 text-center bg-slate-50 border-slate-200 hover:border-red-300 text-slate-700">
-            <span class="text-lg">🔴</span>
-            <span class="text-xs font-bold">Bảo trì kỹ thuật</span>
-            <span class="text-[10px] text-slate-400 font-semibold">Kiểm tra máy</span>
+          <!-- 2. Mất điện -->
+          <button type="button" id="btnReasonPower" onclick="selectDowntimeReason('Mất điện')"
+            class="downtime-reason-btn cursor-pointer p-3 rounded-xl border border-slate-200/90 bg-white hover:bg-slate-50 hover:border-slate-300 transition-all flex flex-col items-center justify-center gap-1.5 text-center shadow-2xs">
+            <div class="w-8 h-8 rounded-lg bg-slate-100 flex items-center justify-center text-slate-700">
+              <i data-lucide="zap-off" class="w-4 h-4"></i>
+            </div>
+            <span class="text-xs font-bold text-slate-800">Mất điện</span>
+            <span class="text-[10px] text-slate-400 font-medium">Mất nguồn</span>
           </button>
 
-          <button type="button" id="chipDtWeather" onclick="selectDowntimeChip('Thời tiết mưa / Sương mù')" class="downtime-status-chip cursor-pointer p-3 rounded-xl border-2 transition-all flex flex-col items-center justify-center gap-1 text-center bg-slate-50 border-slate-200 hover:border-amber-300 text-slate-700">
-            <span class="text-lg">🟡</span>
-            <span class="text-xs font-bold">Thời tiết xấu</span>
-            <span class="text-[10px] text-slate-400 font-semibold">Mưa / Sương mù</span>
+          <!-- 3. Mưa -->
+          <button type="button" id="btnReasonRain" onclick="selectDowntimeReason('Mưa')"
+            class="downtime-reason-btn cursor-pointer p-3 rounded-xl border border-slate-200/90 bg-white hover:bg-slate-50 hover:border-slate-300 transition-all flex flex-col items-center justify-center gap-1.5 text-center shadow-2xs">
+            <div class="w-8 h-8 rounded-lg bg-slate-100 flex items-center justify-center text-slate-700">
+              <i data-lucide="cloud-rain" class="w-4 h-4"></i>
+            </div>
+            <span class="text-xs font-bold text-slate-800">Mưa</span>
+            <span class="text-[10px] text-slate-400 font-medium">Ướt đường ray</span>
           </button>
 
-          <button type="button" id="chipDtPower" onclick="selectDowntimeChip('Cúp điện')" class="downtime-status-chip cursor-pointer p-3 rounded-xl border-2 transition-all flex flex-col items-center justify-center gap-1 text-center bg-slate-50 border-slate-200 hover:border-slate-400 text-slate-700">
-            <span class="text-lg">⚪</span>
-            <span class="text-xs font-bold">Cúp điện</span>
-            <span class="text-[10px] text-slate-400 font-semibold">Mất nguồn</span>
+          <!-- 4. Sương mù -->
+          <button type="button" id="btnReasonFog" onclick="selectDowntimeReason('Sương mù')"
+            class="downtime-reason-btn cursor-pointer p-3 rounded-xl border border-slate-200/90 bg-white hover:bg-slate-50 hover:border-slate-300 transition-all flex flex-col items-center justify-center gap-1.5 text-center shadow-2xs">
+            <div class="w-8 h-8 rounded-lg bg-slate-100 flex items-center justify-center text-slate-700">
+              <i data-lucide="cloud" class="w-4 h-4"></i>
+            </div>
+            <span class="text-xs font-bold text-slate-800">Sương mù</span>
+            <span class="text-[10px] text-slate-400 font-medium">Khuất tầm nhìn</span>
+          </button>
+
+          <!-- 5. Lỗi khác: Nhập tay -->
+          <button type="button" id="btnReasonOther" onclick="selectDowntimeReason('Lỗi khác')"
+            class="col-span-2 sm:col-span-1 downtime-reason-btn cursor-pointer p-3 rounded-xl border border-slate-200/90 bg-white hover:bg-slate-50 hover:border-slate-300 transition-all flex flex-col items-center justify-center gap-1.5 text-center shadow-2xs">
+            <div class="w-8 h-8 rounded-lg bg-slate-100 flex items-center justify-center text-slate-700">
+              <i data-lucide="edit-3" class="w-4 h-4"></i>
+            </div>
+            <span class="text-xs font-bold text-slate-800">Lỗi khác</span>
+            <span class="text-[10px] text-slate-400 font-medium">Nhập tay</span>
           </button>
         </div>
 
-        <!-- Khung nhập ghi chú & khoảng thời gian dừng tự động bung ra khi chọn khác "Bình thường" -->
-        <div id="downtimeActiveForm" class="hidden mt-4 p-4 rounded-xl border-2 border-red-200 bg-red-50/40 transition-all">
-          <div class="flex items-center justify-between pb-3 mb-3 border-b border-red-100">
+        <!-- Khung nhập ghi nhận thời gian dừng (Thiết kế lại chuẩn Wabi-sabi/Neutral Slate) -->
+        <div id="downtimeActiveForm" class="hidden mt-3.5 p-3.5 sm:p-4 rounded-xl border border-slate-200/90 bg-slate-50/70 space-y-3 transition-all">
+          <div class="flex items-center justify-between pb-2.5 border-b border-slate-200/80">
             <div class="flex items-center gap-2">
-              <span class="w-2.5 h-2.5 rounded-full bg-red-500 animate-ping"></span>
-              <span id="downtimeActiveFormTitle" class="text-xs sm:text-sm font-extrabold text-red-800">
-                GHI NHẬN KHOẢNG THỜI GIAN DỪNG: BẢO TRÌ KỸ THUẬT
+              <span class="w-2 h-2 rounded-full bg-slate-800 animate-pulse"></span>
+              <span class="text-xs sm:text-sm font-bold text-slate-800">
+                Ghi nhận dừng máy: <span id="downtimeActiveReasonBadge" class="font-extrabold text-[#C0262D]">Lỗi kỹ thuật</span>
               </span>
             </div>
-            <button type="button" onclick="selectDowntimeChip('Bình thường')" class="text-xs text-slate-400 hover:text-slate-600 font-bold">Hủy bỏ ✕</button>
+            <button type="button" onclick="cancelDowntimeEntry()" class="cursor-pointer text-xs font-semibold text-slate-400 hover:text-slate-700 px-2 py-1 rounded-md hover:bg-slate-200/60 transition-colors">
+              Hủy bỏ ✕
+            </button>
           </div>
 
-          <div class="grid grid-cols-1 sm:grid-cols-2 gap-3 mb-3">
+          <!-- Ô nhập tay khi chọn Lỗi khác -->
+          <div id="quickDtCustomReasonWrap" class="hidden space-y-1">
+            <label class="text-[11px] font-bold text-slate-600 uppercase tracking-wide">Tên lỗi / Lý do cụ thể <span class="text-[#C0262D]">*</span></label>
+            <input type="text" id="quickDtCustomReason" placeholder="Ví dụ: Chờ cứu hộ, Khách sự cố, Kiểm tra cảm biến..."
+              class="w-full h-11 px-3.5 bg-white border border-slate-300 rounded-xl text-xs sm:text-sm font-semibold text-slate-800 outline-none focus:ring-2 focus:ring-[#C0262D]/20 focus:border-[#C0262D] transition-all" />
+          </div>
+
+          <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
             <!-- Giờ bắt đầu dừng -->
-            <div class="flex flex-col gap-1">
+            <div class="space-y-1.5">
               <div class="flex items-center justify-between">
-                <label class="text-xs font-bold text-slate-700">Bắt đầu dừng từ</label>
-                <button type="button" onclick="setQuickDowntimeTime('start', 'now')" class="text-[11px] font-bold text-red-600 hover:underline">Giờ hiện tại</button>
+                <label class="text-xs font-bold text-slate-700 flex items-center gap-1">
+                  Bắt đầu dừng từ
+                </label>
+                <button type="button" onclick="setQuickDowntimeTime('start', 'now')" class="cursor-pointer inline-flex items-center gap-1 text-[11px] font-bold text-slate-700 bg-white hover:bg-slate-100 border border-slate-200 px-2 py-0.5 rounded-lg transition-all active:scale-95 shadow-2xs">
+                  <i data-lucide="zap" class="w-3 h-3 text-slate-600"></i>
+                  Giờ hiện tại
+                </button>
               </div>
-              <input type="time" id="quickDtStartTime" class="h-11 px-3 bg-white border border-red-200 rounded-xl text-base font-bold text-red-700 outline-none focus:ring-2 focus:ring-red-400" />
+              <input type="time" id="quickDtStartTime" onchange="updateQuickDtDurationCalc()" class="w-full h-11 px-3 bg-white border border-slate-300 rounded-xl text-base font-bold text-slate-800 outline-none focus:ring-2 focus:ring-[#C0262D]/20 focus:border-[#C0262D] transition-all" />
             </div>
 
             <!-- Giờ kết thúc dừng -->
-            <div class="flex flex-col gap-1">
+            <div class="space-y-1.5">
               <div class="flex items-center justify-between">
-                <label class="text-xs font-bold text-slate-700">Dự kiến kết thúc lúc</label>
-                <div class="flex gap-1">
-                  <button type="button" onclick="addQuickDtMinutes(15)" class="text-[10px] font-bold bg-white border border-red-200 px-1.5 py-0.5 rounded text-red-700">+15p</button>
-                  <button type="button" onclick="addQuickDtMinutes(30)" class="text-[10px] font-bold bg-white border border-red-200 px-1.5 py-0.5 rounded text-red-700">+30p</button>
-                  <button type="button" onclick="addQuickDtMinutes(60)" class="text-[10px] font-bold bg-white border border-red-200 px-1.5 py-0.5 rounded text-red-700">+60p</button>
+                <label class="text-xs font-bold text-slate-700 flex items-center gap-1">
+                  Dự kiến kết thúc lúc
+                </label>
+                <div class="flex items-center gap-1">
+                  <button type="button" onclick="addQuickDtMinutes(15)" class="cursor-pointer text-[11px] font-bold bg-white border border-slate-200 px-1.5 py-0.5 rounded-md text-slate-700 hover:bg-slate-100 transition-all active:scale-95 shadow-2xs">+15p</button>
+                  <button type="button" onclick="addQuickDtMinutes(30)" class="cursor-pointer text-[11px] font-bold bg-white border border-slate-200 px-1.5 py-0.5 rounded-md text-slate-700 hover:bg-slate-100 transition-all active:scale-95 shadow-2xs">+30p</button>
+                  <button type="button" onclick="addQuickDtMinutes(60)" class="cursor-pointer text-[11px] font-bold bg-white border border-slate-200 px-1.5 py-0.5 rounded-md text-slate-700 hover:bg-slate-100 transition-all active:scale-95 shadow-2xs">+60p</button>
+                  <button type="button" onclick="setQuickDowntimeTime('end', 'now')" title="Giờ hiện tại" class="cursor-pointer text-[11px] font-bold bg-white border border-slate-200 px-1.5 py-0.5 rounded-md text-slate-700 hover:bg-slate-100 transition-all active:scale-95 shadow-2xs">Hiện tại</button>
                 </div>
               </div>
-              <input type="time" id="quickDtEndTime" class="h-11 px-3 bg-white border border-red-200 rounded-xl text-base font-bold text-red-700 outline-none focus:ring-2 focus:ring-red-400" />
+              <input type="time" id="quickDtEndTime" onchange="updateQuickDtDurationCalc()" class="w-full h-11 px-3 bg-white border border-slate-300 rounded-xl text-base font-bold text-slate-800 outline-none focus:ring-2 focus:ring-[#C0262D]/20 focus:border-[#C0262D] transition-all" />
             </div>
           </div>
 
-          <!-- Ghi chú nhanh và nút lưu đợt dừng -->
-          <div class="flex flex-col sm:flex-row gap-2.5">
-            <input type="text" id="quickDtNote" placeholder="Ghi chú nguyên nhân chi tiết sự cố (tùy chọn)..." class="flex-1 h-11 px-3.5 bg-white border border-red-200 rounded-xl text-xs sm:text-sm text-slate-800 outline-none focus:ring-2 focus:ring-red-400" />
-            <button type="button" onclick="saveQuickDowntimeRecord()" class="cursor-pointer h-11 px-5 rounded-xl bg-[#C0262D] hover:bg-[#a51e24] text-white font-extrabold text-xs sm:text-sm transition-all active:scale-95 flex items-center justify-center gap-1.5 shrink-0 shadow-md">
+          <!-- Tự động tính thời lượng dừng -->
+          <div class="flex items-center justify-between px-3.5 py-2.5 bg-white rounded-xl border border-slate-200/90 text-xs text-slate-600 shadow-2xs">
+            <span class="flex items-center gap-1.5 font-bold text-slate-700">
+              <i data-lucide="timer" class="w-3.5 h-3.5 text-slate-500"></i>
+              Thời lượng dừng tính toán:
+            </span>
+            <span id="quickDtDurationPreview" class="font-black text-slate-900 bg-slate-100 px-2.5 py-1 rounded-md text-xs border border-slate-200">
+              30 phút
+            </span>
+          </div>
+
+          <!-- Ghi chú nguyên nhân chi tiết sự cố -->
+          <div class="space-y-1">
+            <input type="text" id="quickDtNote" placeholder="Ghi chú chi tiết nguyên nhân, giải pháp (tùy chọn)..."
+              class="w-full h-11 px-3.5 bg-white border border-slate-300 rounded-xl text-xs sm:text-sm text-slate-800 outline-none focus:ring-2 focus:ring-[#C0262D]/20 focus:border-[#C0262D] transition-all" />
+          </div>
+
+          <!-- Nút hành động -->
+          <div class="flex items-center gap-2 pt-1">
+            <button type="button" onclick="cancelDowntimeEntry()" class="cursor-pointer h-11 px-4 rounded-xl border border-slate-200 bg-white hover:bg-slate-100 text-slate-700 font-bold text-xs transition-all active:scale-95 shadow-2xs">
+              Hủy
+            </button>
+            <button type="button" onclick="saveQuickDowntimeRecord()" class="cursor-pointer flex-1 h-11 px-5 rounded-xl bg-[#C0262D] hover:bg-[#a51e24] text-white font-extrabold text-xs sm:text-sm transition-all active:scale-95 flex items-center justify-center gap-2 shadow-sm">
               <i data-lucide="save" class="w-4 h-4"></i>
-              <span>LƯU ĐỢT DỪNG</span>
+              <span>LƯU ĐỢT DỪNG NÀY</span>
             </button>
           </div>
         </div>
@@ -6165,50 +6275,155 @@ function doGet(e) {
       }
     }
 
+    let currentDowntimeReason = null;
     let currentDowntimeChipStatus = "Bình thường";
-    function selectDowntimeChip(statusName) {
-      currentDowntimeChipStatus = statusName;
-      const chips = [
-        { id: "chipDtNormal", name: "Bình thường", activeClass: "bg-emerald-50 border-emerald-500 text-emerald-800 shadow-sm" },
-        { id: "chipDtTech", name: "Bảo trì kỹ thuật", activeClass: "bg-red-50 border-red-500 text-red-800 shadow-sm" },
-        { id: "chipDtWeather", name: "Thời tiết mưa / Sương mù", activeClass: "bg-amber-50 border-amber-500 text-amber-800 shadow-sm" },
-        { id: "chipDtPower", name: "Cúp điện", activeClass: "bg-slate-200 border-slate-600 text-slate-800 shadow-sm" }
-      ];
-      chips.forEach(c => {
-        const el = document.getElementById(c.id);
-        if (!el) return;
-        const isActive = c.name === statusName;
-        el.classList.toggle("active", isActive);
+    let selectedDowntimeReasonValue = "Bảo trì";
+
+    const DOWNTIME_REASON_MAP = [
+      { id: "btnReasonTech", reason: "Lỗi kỹ thuật" },
+      { id: "btnReasonPower", reason: "Mất điện" },
+      { id: "btnReasonRain", reason: "Mưa" },
+      { id: "btnReasonFog", reason: "Sương mù" },
+      { id: "btnReasonOther", reason: "Lỗi khác" }
+    ];
+
+    function selectDowntimeReason(reasonName) {
+      currentDowntimeReason = reasonName;
+      currentDowntimeChipStatus = reasonName;
+      selectedDowntimeReasonValue = reasonName;
+
+      DOWNTIME_REASON_MAP.forEach(item => {
+        const btn = document.getElementById(item.id);
+        if (!btn) return;
+        const isActive = item.reason === reasonName;
         if (isActive) {
-          el.className = `downtime-status-chip active cursor-pointer p-3 rounded-xl border-2 transition-all flex flex-col items-center justify-center gap-1 text-center ${c.activeClass}`;
+          btn.className = "downtime-reason-btn cursor-pointer p-3 rounded-xl border-2 border-slate-900 bg-slate-900 text-white transition-all flex flex-col items-center justify-center gap-1.5 text-center shadow-md";
+          const iconBox = btn.querySelector("div");
+          if (iconBox) iconBox.className = "w-8 h-8 rounded-lg bg-white/20 flex items-center justify-center text-white transition-colors";
+          const t1 = btn.querySelector("span:nth-of-type(1)");
+          if (t1) t1.className = "text-xs font-bold text-white";
+          const t2 = btn.querySelector("span:nth-of-type(2)");
+          if (t2) t2.className = "text-[10px] text-slate-300 font-medium";
         } else {
-          el.className = "downtime-status-chip cursor-pointer p-3 rounded-xl border-2 transition-all flex flex-col items-center justify-center gap-1 text-center bg-slate-50 border-slate-200 hover:border-slate-300 text-slate-700";
+          btn.className = "downtime-reason-btn cursor-pointer p-3 rounded-xl border border-slate-200/90 bg-white hover:bg-slate-50 hover:border-slate-300 transition-all flex flex-col items-center justify-center gap-1.5 text-center shadow-2xs";
+          const iconBox = btn.querySelector("div");
+          if (iconBox) iconBox.className = "w-8 h-8 rounded-lg bg-slate-100 flex items-center justify-center text-slate-700 transition-colors";
+          const t1 = btn.querySelector("span:nth-of-type(1)");
+          if (t1) t1.className = "text-xs font-bold text-slate-800";
+          const t2 = btn.querySelector("span:nth-of-type(2)");
+          if (t2) t2.className = "text-[10px] text-slate-400 font-medium";
         }
       });
 
       const form = document.getElementById("downtimeActiveForm");
-      const title = document.getElementById("downtimeActiveFormTitle");
-      if (statusName === "Bình thường") {
-        if (form) form.classList.add("hidden");
+      const badge = document.getElementById("downtimeActiveReasonBadge");
+      const customWrap = document.getElementById("quickDtCustomReasonWrap");
+      const customInput = document.getElementById("quickDtCustomReason");
+
+      if (form) form.classList.remove("hidden");
+      if (badge) badge.textContent = reasonName;
+
+      if (reasonName === "Lỗi khác") {
+        if (customWrap) customWrap.classList.remove("hidden");
+        if (customInput) customInput.focus();
       } else {
-        if (form) form.classList.remove("hidden");
-        if (title) title.textContent = `GHI NHẬN KHOẢNG THỜI GIAN DỪNG: ${statusName.toUpperCase()}`;
-        const startInput = document.getElementById("quickDtStartTime");
-        const endInput = document.getElementById("quickDtEndTime");
-        if (startInput && !startInput.value) startInput.value = formatNowHHMM();
-        if (endInput && !endInput.value) {
-          const now = new Date();
-          now.setMinutes(now.getMinutes() + 30);
-          const hh = String(now.getHours()).padStart(2, "0");
-          const mm = String(now.getMinutes()).padStart(2, "0");
-          endInput.value = `${hh}:${mm}`;
-        }
+        if (customWrap) customWrap.classList.add("hidden");
+      }
+
+      // Tự động điền giờ bắt đầu và kết thúc mặc định nếu chưa có
+      const startInput = document.getElementById("quickDtStartTime");
+      const endInput = document.getElementById("quickDtEndTime");
+      if (startInput && !startInput.value) startInput.value = formatNowHHMM();
+      if (endInput && !endInput.value) {
+        const base = (startInput && startInput.value) ? startInput.value : formatNowHHMM();
+        const [h, m] = base.split(":").map(Number);
+        const d = new Date();
+        d.setHours(h);
+        d.setMinutes(m + 30);
+        endInput.value = `${String(d.getHours()).padStart(2, "0")}:${String(d.getMinutes()).padStart(2, "0")}`;
+      }
+
+      updateQuickDtDurationCalc();
+      if (window.lucide) lucide.createIcons();
+    }
+
+    function cancelDowntimeEntry() {
+      currentDowntimeReason = null;
+      currentDowntimeChipStatus = "Bình thường";
+
+      DOWNTIME_REASON_MAP.forEach(item => {
+        const btn = document.getElementById(item.id);
+        if (!btn) return;
+        btn.className = "downtime-reason-btn cursor-pointer p-3 rounded-xl border border-slate-200/90 bg-white hover:bg-slate-50 hover:border-slate-300 transition-all flex flex-col items-center justify-center gap-1.5 text-center shadow-2xs";
+        const iconBox = btn.querySelector("div");
+        if (iconBox) iconBox.className = "w-8 h-8 rounded-lg bg-slate-100 flex items-center justify-center text-slate-700 transition-colors";
+        const t1 = btn.querySelector("span:nth-of-type(1)");
+        if (t1) t1.className = "text-xs font-bold text-slate-800";
+        const t2 = btn.querySelector("span:nth-of-type(2)");
+        if (t2) t2.className = "text-[10px] text-slate-400 font-medium";
+      });
+
+      const form = document.getElementById("downtimeActiveForm");
+      if (form) form.classList.add("hidden");
+      const customWrap = document.getElementById("quickDtCustomReasonWrap");
+      if (customWrap) customWrap.classList.add("hidden");
+      const customInput = document.getElementById("quickDtCustomReason");
+      if (customInput) customInput.value = "";
+      const noteInput = document.getElementById("quickDtNote");
+      if (noteInput) noteInput.value = "";
+      if (window.lucide) lucide.createIcons();
+    }
+
+    // Hàm tương thích ngược với code cũ gọi selectDowntimeChip
+    function selectDowntimeChip(statusName) {
+      if (!statusName || statusName === "Bình thường") {
+        cancelDowntimeEntry();
+      } else if (statusName === "Bảo trì kỹ thuật" || statusName === "Bảo trì") {
+        selectDowntimeReason("Lỗi kỹ thuật");
+      } else if (statusName === "Cúp điện") {
+        selectDowntimeReason("Mất điện");
+      } else if (statusName.includes("mưa") || statusName.includes("Mưa")) {
+        selectDowntimeReason("Mưa");
+      } else if (statusName.includes("sương") || statusName.includes("Sương")) {
+        selectDowntimeReason("Sương mù");
+      } else {
+        selectDowntimeReason(statusName);
+      }
+    }
+
+    function updateQuickDtDurationCalc() {
+      const startInput = document.getElementById("quickDtStartTime");
+      const endInput = document.getElementById("quickDtEndTime");
+      const preview = document.getElementById("quickDtDurationPreview");
+      if (!preview) return;
+
+      const start = startInput ? startInput.value : "";
+      const end = endInput ? endInput.value : "";
+      if (!start || !end) {
+        preview.textContent = "-- phút";
+        return;
+      }
+
+      const [sh, sm] = start.split(":").map(Number);
+      const [eh, em] = end.split(":").map(Number);
+      let diff = (eh * 60 + em) - (sh * 60 + sm);
+      if (diff < 0) diff += 24 * 60;
+
+      if (diff < 60) {
+        preview.textContent = `${diff} phút`;
+      } else {
+        const h = Math.floor(diff / 60);
+        const m = diff % 60;
+        preview.textContent = m === 0 ? `${h} giờ` : `${h} giờ ${m} phút`;
       }
     }
 
     function setQuickDowntimeTime(type, mode) {
       const input = document.getElementById(type === "start" ? "quickDtStartTime" : "quickDtEndTime");
-      if (input && mode === "now") input.value = formatNowHHMM();
+      if (input && mode === "now") {
+        input.value = formatNowHHMM();
+        updateQuickDtDurationCalc();
+      }
     }
 
     function addQuickDtMinutes(mins) {
@@ -6221,17 +6436,36 @@ function doGet(e) {
       d.setMinutes(m + mins);
       const hh = String(d.getHours()).padStart(2, "0");
       const mm = String(d.getMinutes()).padStart(2, "0");
-      if (endInput) endInput.value = `${hh}:${mm}`;
+      if (endInput) {
+        endInput.value = `${hh}:${mm}`;
+        updateQuickDtDurationCalc();
+      }
     }
 
     function saveQuickDowntimeRecord() {
+      if (!currentDowntimeReason) {
+        showAppToast("⚠️ Vui lòng chọn một loại sự cố dừng máy!");
+        return;
+      }
+
+      let finalReason = currentDowntimeReason;
+      if (currentDowntimeReason === "Lỗi khác") {
+        const customInput = document.getElementById("quickDtCustomReason");
+        const customVal = customInput ? customInput.value.trim() : "";
+        if (!customVal) {
+          showAppToast("⚠️ Vui lòng nhập tên lỗi / lý do cụ thể!");
+          if (customInput) customInput.focus();
+          return;
+        }
+        finalReason = customVal;
+      }
+
       const startInput = document.getElementById("quickDtStartTime");
       const endInput = document.getElementById("quickDtEndTime");
       const noteInput = document.getElementById("quickDtNote");
       const start = startInput ? startInput.value : "";
       const end = endInput ? endInput.value : "";
       const note = noteInput ? noteInput.value.trim() : "";
-      const reason = currentDowntimeChipStatus !== "Bình thường" ? currentDowntimeChipStatus : "Bảo trì kỹ thuật";
 
       if (!start || !end) {
         showAppToast("⚠️ Vui lòng nhập đủ giờ bắt đầu và kết thúc dừng!");
@@ -6247,21 +6481,21 @@ function doGet(e) {
       if (!Array.isArray(rec.downtimes)) rec.downtimes = [];
       rec.downtimes.push({
         id: "dt_" + Date.now(),
-        reason,
+        reason: finalReason,
         start,
         end,
         durationMin: diff,
-        note: note || reason
+        note: note || finalReason
       });
 
       saveToLocalStorage();
       renderAll();
-      showAppToast(`✓ Đã ghi nhận đợt dừng ${reason} (${diff} phút)!`);
+      showAppToast(`✓ Đã ghi nhận đợt dừng: ${finalReason} (${diff} phút)!`);
 
       if (startInput) startInput.value = "";
       if (endInput) endInput.value = "";
       if (noteInput) noteInput.value = "";
-      selectDowntimeChip("Bình thường");
+      cancelDowntimeEntry();
       if (window.SWFirebase && window.SWFirebase.queueSync) window.SWFirebase.queueSync();
     }
 
@@ -6449,9 +6683,7 @@ function doGet(e) {
       }
     }
 
-    let selectedDowntimeReasonValue = "Bảo trì";
-
-    function selectDowntimeReason(reason) {
+    function selectLegacyDowntimeReason(reason) {
       selectedDowntimeReasonValue = reason;
       const buttons = document.querySelectorAll("#downtimeReasonButtons .reason-btn");
       buttons.forEach(btn => {
@@ -6518,7 +6750,7 @@ function doGet(e) {
         return;
       }
       const rec = getCurrentRecord();
-      rec.downtimes = rec.downtimes.filter(d => d.id !== id);
+      rec.downtimes = rec.downtimes.filter(d => String(d.id) !== String(id));
       saveToLocalStorage();
       renderAll();
     }
@@ -7051,6 +7283,7 @@ function doGet(e) {
       const labelEl = document.getElementById("btnToggleDowntimeHistoryLabel");
       const caretEl = document.getElementById("btnToggleDowntimeHistoryCaret");
       if (wrap) {
+        wrap.classList.toggle("hidden", !isDowntimeHistoryExpanded);
         wrap.style.display = isDowntimeHistoryExpanded ? "block" : "none";
       }
       if (labelEl) {
@@ -7114,7 +7347,7 @@ function doGet(e) {
             <td>${d.end}</td>
             <td class="text-right" style="font-weight:700; color:var(--danger);">${d.durationMin} phút</td>
             <td>${d.note || ""}</td>
-            ${canDelete ? `<td class="text-center"><button class="del-btn" onclick="deleteDowntime(${d.id})" title="Xóa bản ghi">✕</button></td>` : ""}
+            ${canDelete ? `<td class="text-center"><button class="del-btn" onclick="deleteDowntime('${d.id}')" title="Xóa bản ghi">✕</button></td>` : ""}
           </tr>
         `).join("");
       }
