@@ -2673,34 +2673,84 @@
     body[data-device="phone"] .header-top {
       flex-wrap: wrap;
       padding: 8px 12px;
-      gap: 8px;
+      gap: 6px;
     }
 
     body[data-device="phone"] .header-left-nav {
-      width: 100%;
-      justify-content: space-between;
+      width: auto;
+      justify-content: flex-start;
       gap: 8px;
     }
 
+    /* Đẩy thanh chọn mục (Thông tin chung / Nhập liệu / Dashboard / Dữ liệu) xuống dưới cùng màn hình điện thoại */
     body[data-device="phone"] .header-nav-tabs {
-      height: 38px;
-      gap: 10px;
+      position: fixed !important;
+      bottom: 0 !important;
+      left: 0 !important;
+      right: 0 !important;
+      width: 100% !important;
+      height: 54px !important;
+      background: var(--surface, #FFFFFF) !important;
+      border-top: 1.5px solid var(--border, #E2E8F0) !important;
+      box-shadow: 0 -4px 16px rgba(15, 23, 42, 0.1) !important;
+      z-index: 950 !important;
+      display: flex !important;
+      align-items: stretch !important;
+      justify-content: space-around !important;
+      gap: 0 !important;
+      padding: 0 4px !important;
+      margin: 0 !important;
+      overflow: hidden !important;
+    }
+
+    body[data-theme="dark"][data-device="phone"] .header-nav-tabs {
+      background: #151F32 !important;
+      border-top: 1.5px solid #2A3852 !important;
+      box-shadow: 0 -4px 18px rgba(0, 0, 0, 0.45) !important;
     }
 
     body[data-device="phone"] .header-nav-link {
-      height: 38px;
-      font-size: 0.76rem;
+      flex: 1 1 0 !important;
+      height: 54px !important;
+      font-size: 0.78rem !important;
+      font-weight: 600 !important;
+      justify-content: center !important;
+      text-align: center !important;
+      padding: 0 4px !important;
+    }
+
+    body[data-device="phone"] .header-nav-link.active {
+      color: #C0262D !important;
+      font-weight: 800 !important;
+      background: rgba(192, 38, 45, 0.06) !important;
+    }
+
+    body[data-theme="dark"][data-device="phone"] .header-nav-link.active {
+      color: #FFC928 !important;
+      background: rgba(255, 201, 40, 0.1) !important;
+    }
+
+    body[data-device="phone"] .header-nav-link.active::after {
+      top: 0 !important;
+      bottom: auto !important;
+      height: 3px !important;
+      background: #C0262D !important;
+      border-radius: 0 0 2px 2px !important;
+    }
+
+    body[data-theme="dark"][data-device="phone"] .header-nav-link.active::after {
+      background: #FFC928 !important;
     }
 
     body[data-device="phone"] .header-center-pills {
-      flex: 1 1 auto;
-      justify-content: flex-start;
+      flex: 1 1 100%;
+      justify-content: center;
     }
 
     body[data-device="phone"] .workspace {
       max-width: 100%;
       margin: 0;
-      padding: 12px 10px 36px 10px;
+      padding: 12px 10px 74px 10px !important;
     }
 
     body[data-device="phone"] .grid-3,
@@ -2784,23 +2834,47 @@
 
     @media (max-width: 680px) {
       .header-left-nav {
-        width: 100%;
-        justify-content: space-between;
-        flex-wrap: wrap;
+        width: auto;
+        justify-content: flex-start;
         gap: 6px;
       }
       .header-nav-tabs {
-        width: 100%;
-        overflow-x: auto;
-        justify-content: flex-start;
-        padding-bottom: 2px;
+        position: fixed !important;
+        bottom: 0 !important;
+        left: 0 !important;
+        right: 0 !important;
+        width: 100% !important;
+        height: 54px !important;
+        background: var(--surface, #FFFFFF) !important;
+        border-top: 1.5px solid var(--border, #E2E8F0) !important;
+        box-shadow: 0 -4px 16px rgba(15, 23, 42, 0.1) !important;
+        z-index: 950 !important;
+        display: flex !important;
+        align-items: stretch !important;
+        justify-content: space-around !important;
+        gap: 0 !important;
+        padding: 0 4px !important;
+        margin: 0 !important;
+        overflow: hidden !important;
+      }
+      .header-nav-link {
+        flex: 1 1 0 !important;
+        height: 54px !important;
+        font-size: 0.78rem !important;
+        font-weight: 600 !important;
+        justify-content: center !important;
+        text-align: center !important;
+        padding: 0 4px !important;
+      }
+      .workspace {
+        padding-bottom: 74px !important;
       }
       .header-right-tools {
         margin-left: auto;
         gap: 6px;
       }
       #headerAdminBadgeText {
-        max-width: 135px;
+        max-width: 125px;
         overflow: hidden;
         text-overflow: ellipsis;
         white-space: nowrap;
