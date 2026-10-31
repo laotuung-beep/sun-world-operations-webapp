@@ -11,7 +11,17 @@
   <meta name="apple-mobile-web-app-title" content="Sun World Ops" />
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@500;600;700;800;900&display=swap" rel="stylesheet">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&family=Montserrat:wght@500;600;700;800;900&display=swap" rel="stylesheet">
+  <script type="importmap">
+  {
+    "imports": {
+      "three": "https://unpkg.com/three@0.143.0/build/three.module.js",
+      "three/examples/jsm/": "https://unpkg.com/three@0.143.0/examples/jsm/"
+    }
+  }
+  </script>
   <style>
     :root {
       /* Bộ 5 màu chuẩn theo bảng màu đề xuất */
@@ -2758,9 +2768,339 @@
       padding: 13px 12px;
     }
 
+  
+    /* ========================================================================= */
+    /* SUN WORLD CELESTIAL GLASSMORPHISM & GOLD THEME (PHONG CÁCH MẪU MỚI)       */
+    /* ========================================================================= */
+    :root {
+      --bg: #04060f;
+      --bg-2: #070d1e;
+      --ink: #f3f6ff;
+      --muted: #9aa6c4;
+      --muted-2: #6b7796;
+      --line: rgba(255, 183, 3, 0.18);
+      --line-strong: rgba(255, 183, 3, 0.35);
+      --accent: #ffb703;
+      --accent-2: #fb8500;
+      --accent-ink: #1c0e00;
+      --gold-glow: rgba(255, 183, 3, 0.55);
+      --glass: rgba(12, 18, 38, 0.68);
+      --glass-2: rgba(18, 26, 52, 0.78);
+      --radius: 18px;
+      --radius-lg: 24px;
+      --shadow: 0 24px 60px -15px rgba(0, 0, 0, 0.85);
+      --font: 'Inter', 'Montserrat', -apple-system, BlinkMacSystemFont, sans-serif;
+    }
+
+    body {
+      background: radial-gradient(125% 62% at 50% -10%, rgba(4, 6, 15, 0.88) 0%, rgba(4, 6, 15, 0.72) 44%, #04060f 100%), #04060f !important;
+      color: var(--ink) !important;
+      font-family: var(--font) !important;
+      min-height: 100vh;
+      position: relative;
+    }
+
+    /* Fixed WebGL Planet canvas behind everything */
+    .planet-canvas {
+      position: fixed;
+      inset: 0;
+      width: 100vw;
+      height: 100vh;
+      display: block;
+      z-index: 0;
+      pointer-events: none;
+    }
+
+    /* App Header in Glassmorphism */
+    .app-header {
+      position: sticky;
+      top: 0;
+      z-index: 100;
+      background: rgba(12, 18, 38, 0.86) !important;
+      backdrop-filter: blur(20px) !important;
+      -webkit-backdrop-filter: blur(20px) !important;
+      border-bottom: 1px solid rgba(255, 183, 3, 0.22) !important;
+      box-shadow: 0 10px 30px rgba(0, 0, 0, 0.6) !important;
+    }
+
+    /* Header Nav Buttons */
+    .nav-btn {
+      color: #94a3b8 !important;
+      font-weight: 600 !important;
+      transition: all 0.2s ease !important;
+      padding: 8px 14px !important;
+      border-radius: 8px !important;
+    }
+    .nav-btn:hover {
+      color: #fff !important;
+      background: rgba(255, 255, 255, 0.06) !important;
+    }
+    .nav-btn.active {
+      color: var(--accent) !important;
+      border-bottom: 2px solid var(--accent) !important;
+      background: rgba(255, 183, 3, 0.08) !important;
+    }
+
+    /* Screen Frames */
+    .screen-frame {
+      position: relative;
+      z-index: 1;
+    }
+
+    /* Glass Cards & Containers */
+    .card,
+    .frame-banner,
+    .shift-picker-card,
+    .stopwatch-panel,
+    .pax-counter-box,
+    .subarea-selector-box,
+    .dash-kpi-card,
+    .downtime-history-container {
+      background: var(--glass) !important;
+      backdrop-filter: blur(18px) !important;
+      -webkit-backdrop-filter: blur(18px) !important;
+      border: 1px solid rgba(255, 183, 3, 0.22) !important;
+      border-radius: var(--radius) !important;
+      box-shadow: var(--shadow) !important;
+      color: var(--ink) !important;
+      transition: border-color 0.25s ease, box-shadow 0.25s ease !important;
+    }
+
+    .card:hover,
+    .shift-picker-card:hover {
+      border-color: rgba(255, 183, 3, 0.38) !important;
+    }
+
+    /* Titles & Banners */
+    .card-title,
+    .frame-banner div,
+    .shift-picker-title,
+    .subarea-label {
+      color: #fff !important;
+      font-weight: 800 !important;
+      letter-spacing: 0.04em !important;
+    }
+    .frame-banner {
+      border-left: 4px solid var(--accent) !important;
+      background: linear-gradient(90deg, rgba(255, 183, 3, 0.12) 0%, rgba(12, 18, 38, 0.6) 100%) !important;
+    }
+
+    /* Form Fields & Selects */
+    select,
+    input[type="text"],
+    input[type="date"],
+    input[type="number"],
+    input[type="password"],
+    .hm-select {
+      background: rgba(15, 23, 42, 0.75) !important;
+      color: #f8fafc !important;
+      border: 1px solid rgba(255, 183, 3, 0.28) !important;
+      border-radius: 12px !important;
+      padding: 10px 14px !important;
+      transition: all 0.2s ease !important;
+      font-family: var(--font) !important;
+    }
+
+    select:focus,
+    input:focus,
+    .hm-select:focus {
+      border-color: var(--accent) !important;
+      box-shadow: 0 0 14px rgba(255, 183, 3, 0.45) !important;
+      outline: none !important;
+    }
+
+    /* Highlighted Game Selector */
+    #gameSelect {
+      font-size: 1.05rem !important;
+      font-weight: 800 !important;
+      color: #fef08a !important;
+      border: 1.8px solid rgba(255, 183, 3, 0.45) !important;
+      background: rgba(18, 26, 52, 0.9) !important;
+      box-shadow: 0 4px 16px rgba(0, 0, 0, 0.4) !important;
+      cursor: pointer !important;
+    }
+    #gameSelect option {
+      background: #0f172a !important;
+      color: #f8fafc !important;
+      font-size: 0.95rem !important;
+    }
+
+    /* Coaster Mode Dispatch Buttons (Xuất xe đơn / Xuất xe đôi) */
+    .coaster-dispatch-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 16px;
+      margin-bottom: 16px;
+    }
+    @media (max-width: 600px) {
+      .coaster-dispatch-grid { grid-template-columns: 1fr; }
+    }
+    .btn-dispatch {
+      border-radius: 18px !important;
+      padding: 20px 24px !important;
+      cursor: pointer !important;
+      transition: transform 0.18s ease, box-shadow 0.25s ease !important;
+    }
+    .btn-dispatch:hover {
+      transform: translateY(-2px) !important;
+    }
+    .btn-dispatch-single {
+      background: linear-gradient(180deg, #ffb703 0%, #fb8500 100%) !important;
+      color: #1c0e00 !important;
+      box-shadow: 0 10px 30px -6px rgba(255, 183, 3, 0.65), inset 0 1px 0 rgba(255, 255, 255, 0.4) !important;
+      border: none !important;
+    }
+    .btn-dispatch-single:hover {
+      box-shadow: 0 16px 38px -4px rgba(255, 183, 3, 0.8) !important;
+    }
+    .btn-dispatch-double {
+      background: linear-gradient(180deg, #fb8500 0%, #d97706 100%) !important;
+      color: #1c0e00 !important;
+      box-shadow: 0 10px 30px -6px rgba(251, 133, 0, 0.65), inset 0 1px 0 rgba(255, 255, 255, 0.4) !important;
+      border: none !important;
+    }
+    .btn-dispatch-double:hover {
+      box-shadow: 0 16px 38px -4px rgba(251, 133, 0, 0.8) !important;
+    }
+    .dispatch-title {
+      font-size: 1.25rem !important;
+      font-weight: 900 !important;
+      letter-spacing: 0.04em !important;
+    }
+    .dispatch-sub {
+      font-size: 0.82rem !important;
+      font-weight: 700 !important;
+      opacity: 0.88 !important;
+    }
+
+    /* Stopwatch & KPI Displays */
+    .stopwatch-time {
+      color: var(--accent) !important;
+      text-shadow: 0 0 28px rgba(255, 183, 3, 0.55) !important;
+      font-weight: 900 !important;
+      letter-spacing: 0.05em !important;
+    }
+
+    /* Primary and Utility Buttons */
+    .btn-primary,
+    button.btn-primary,
+    .save-btn,
+    .submit-btn {
+      background: linear-gradient(180deg, var(--accent), var(--accent-2)) !important;
+      color: var(--accent-ink) !important;
+      font-weight: 800 !important;
+      border-radius: 999px !important;
+      box-shadow: 0 10px 26px -8px var(--gold-glow), inset 0 1px 0 rgba(255, 255, 255, 0.4) !important;
+      border: none !important;
+      cursor: pointer !important;
+      transition: all 0.2s ease !important;
+    }
+    .btn-primary:hover,
+    button.btn-primary:hover,
+    .save-btn:hover {
+      transform: translateY(-2px) !important;
+      box-shadow: 0 16px 36px -8px rgba(255, 183, 3, 0.75) !important;
+    }
+
+    .btn-outline {
+      background: rgba(255, 255, 255, 0.05) !important;
+      border: 1px solid rgba(255, 183, 3, 0.3) !important;
+      color: #f3f6ff !important;
+      backdrop-filter: blur(8px) !important;
+      border-radius: 999px !important;
+      transition: all 0.2s ease !important;
+    }
+    .btn-outline:hover {
+      background: rgba(255, 183, 3, 0.14) !important;
+      border-color: var(--accent) !important;
+      transform: translateY(-1px) !important;
+    }
+
+    /* Shift Pickers & Hours */
+    .shift-badge-time {
+      background: rgba(255, 183, 3, 0.15) !important;
+      color: #fef08a !important;
+      border: 1px solid rgba(255, 183, 3, 0.3) !important;
+      font-weight: 800 !important;
+      border-radius: 8px !important;
+      padding: 4px 10px !important;
+    }
+
+    /* Shift Status Buttons */
+    .shift-status-btn {
+      background: rgba(15, 23, 42, 0.7) !important;
+      border: 1px solid rgba(255, 255, 255, 0.12) !important;
+      color: #cbd5e1 !important;
+      border-radius: 12px !important;
+      transition: all 0.2s ease !important;
+    }
+    .shift-status-btn:hover {
+      background: rgba(255, 183, 3, 0.1) !important;
+      border-color: var(--accent) !important;
+      color: #fff !important;
+    }
+    .shift-status-btn.active {
+      background: linear-gradient(180deg, rgba(255, 183, 3, 0.25), rgba(251, 133, 0, 0.15)) !important;
+      border-color: var(--accent) !important;
+      color: #fef08a !important;
+      box-shadow: 0 0 16px rgba(255, 183, 3, 0.35) !important;
+    }
+
+    /* Tables (Lịch sử Thông tin dừng & Nhập liệu lượt chạy) */
+    table {
+      background: transparent !important;
+      border-collapse: separate !important;
+      border-spacing: 0 !important;
+      width: 100% !important;
+    }
+    th {
+      background: rgba(255, 183, 3, 0.12) !important;
+      color: var(--accent) !important;
+      font-weight: 700 !important;
+      border-bottom: 1.5px solid rgba(255, 183, 3, 0.28) !important;
+      padding: 12px 14px !important;
+    }
+    td {
+      border-bottom: 1px solid rgba(255, 255, 255, 0.08) !important;
+      padding: 11px 14px !important;
+      color: #e2e8f0 !important;
+    }
+    tr:hover td {
+      background: rgba(255, 183, 3, 0.07) !important;
+    }
+
+    /* Collapsible History Toggle Bar */
+    #btnToggleDowntimeHistory {
+      background: rgba(255, 183, 3, 0.12) !important;
+      border: 1px solid rgba(255, 183, 3, 0.35) !important;
+      color: #fef08a !important;
+      font-weight: 700 !important;
+      padding: 10px 18px !important;
+      border-radius: 12px !important;
+      cursor: pointer !important;
+      transition: all 0.2s ease !important;
+    }
+    #btnToggleDowntimeHistory:hover {
+      background: rgba(255, 183, 3, 0.22) !important;
+      border-color: var(--accent) !important;
+      transform: translateY(-1px) !important;
+    }
+
+    /* Status Pills */
+    .status-pill.status-running {
+      background: rgba(255, 183, 3, 0.16) !important;
+      border: 1px solid rgba(255, 183, 3, 0.38) !important;
+      color: #fef08a !important;
+    }
+    .status-pill.status-running .status-dot {
+      background: var(--accent) !important;
+      box-shadow: 0 0 10px var(--accent) !important;
+    }
   </style>
 </head>
 <body data-device="computer">
+  <!-- FIXED FULL-VIEWPORT 3D WEBGL PLANET BACKGROUND -->
+  <canvas class="planet-canvas" id="planetCanvas"></canvas>
 
   <!-- HEADER 1 HÀNG: LOGO SUN WORLD + MENU NGANG + THỜI GIAN GIỮA KHUNG (GIỜ TRƯỚC THỨ/NGÀY/THÁNG/NĂM) + ICON & AVATAR TRÒN -->
   <div id="appToastContainer" class="app-toast-container"></div>
@@ -6806,5 +7146,14 @@ function doGet(e) {
     });
   </script>
   <script type="module" src="firebase-auth.js"></script>
+  <!-- 3D WEBGL PLANET BACKGROUND SCRIPT -->
+  <script type="module">
+    import { initPlanetBackground } from './planet-bg.js';
+    if (document.readyState === 'loading') {
+      document.addEventListener('DOMContentLoaded', () => initPlanetBackground('planetCanvas'));
+    } else {
+      initPlanetBackground('planetCanvas');
+    }
+  </script>
 </body>
 </html>

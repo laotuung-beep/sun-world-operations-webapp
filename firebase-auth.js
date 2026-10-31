@@ -68,25 +68,25 @@ if (cfg.apiKey) {
       position: fixed;
       inset: 0;
       z-index: 2500;
-      background: radial-gradient(circle at 15% 20%, rgba(192, 38, 45, 0.22), transparent 45%),
-                  radial-gradient(circle at 85% 80%, rgba(234, 179, 8, 0.14), transparent 45%),
-                  #0b1120;
+      background: radial-gradient(125% 62% at 50% -10%, rgba(4, 6, 15, 0.72) 0%, rgba(4, 6, 15, 0.88) 100%);
+      backdrop-filter: blur(10px);
+      -webkit-backdrop-filter: blur(10px);
       display: flex;
       align-items: center;
       justify-content: center;
       padding: 20px;
-      font-family: 'Inter', system-ui, -apple-system, sans-serif;
+      font-family: 'Inter', 'Montserrat', system-ui, -apple-system, sans-serif;
     }
     .mobbin-auth-shell {
       width: 100%;
-      max-width: 920px;
-      min-height: 510px;
-      background: rgba(15, 23, 42, 0.88);
-      backdrop-filter: blur(20px);
-      -webkit-backdrop-filter: blur(20px);
-      border: 1px solid rgba(255, 255, 255, 0.11);
-      border-radius: 22px;
-      box-shadow: 0 28px 70px rgba(0, 0, 0, 0.65);
+      max-width: 940px;
+      min-height: 520px;
+      background: rgba(12, 18, 38, 0.76);
+      backdrop-filter: blur(24px);
+      -webkit-backdrop-filter: blur(24px);
+      border: 1px solid rgba(255, 183, 3, 0.28);
+      border-radius: 24px;
+      box-shadow: 0 30px 80px -20px rgba(0, 0, 0, 0.85), 0 0 45px rgba(255, 183, 3, 0.15);
       display: grid;
       grid-template-columns: 1.08fr 1fr;
       overflow: hidden;
@@ -99,11 +99,7 @@ if (cfg.apiKey) {
         min-height: auto;
       }
       .mobbin-auth-showcase {
-        display: none !important;
-      }
-    }
-    .mobbin-auth-showcase {
-      background: linear-gradient(155deg, #991b1b 0%, #7f1d1d 48%, #1e1b4b 100%);
+      background: linear-gradient(160deg, rgba(192, 38, 45, 0.94) 0%, rgba(120, 20, 30, 0.92) 50%, rgba(12, 18, 38, 0.96) 100%);
       padding: 38px 34px;
       display: flex;
       flex-direction: column;
@@ -302,7 +298,7 @@ if (cfg.apiKey) {
       <div class="mobbin-auth-showcase">
         <div>
           <div class="mobbin-brand-pill">
-            <span>●</span> SUN WORLD BA NA HILLS • OPS PORTAL
+            <span>☀️</span> SUN WORLD BA NA HILLS • ĐƯỜNG LÊN TIÊN CẢNH
           </div>
           <h1 style="font-size:1.62rem;font-weight:800;line-height:1.28;margin:18px 0 10px;color:#fff;">
             Hệ Thống Quản Trị & Nhập Liệu Vận Hành Trò Chơi
