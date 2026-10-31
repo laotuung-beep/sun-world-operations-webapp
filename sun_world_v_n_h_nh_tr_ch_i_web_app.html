@@ -3065,12 +3065,8 @@
         </div>
       </div>
 
-      <!-- 3. Cụm bên phải: Nút Làm mới + Đổi Ngày/Đêm + Chuông Thông báo có badge + Avatar tròn -->
+      <!-- 3. Cụm bên phải: Đổi Ngày/Đêm + Chuông Thông báo có badge + Avatar tròn -->
       <div class="header-right-tools">
-        <!-- Nút Làm mới nhanh -->
-        <button type="button" class="header-minimal-icon-btn" id="headerResetRideBtn" onclick="resetCurrentRideData()" title="Làm mới dữ liệu ca hiện tại">
-          <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="23 4 23 10 17 10"></polyline><path d="M20.49 15a9 9 0 1 1-2.12-9.36L23 10"></path></svg>
-        </button>
 
         <!-- Nút Chuyển đổi Ngày / Đêm -->
         <button type="button" class="header-minimal-icon-btn" id="themeToggleBtn" onclick="toggleTheme()" title="Chuyển đổi giao diện Ban ngày / Ban đêm" aria-label="Đổi chế độ Ngày Đêm">
@@ -4675,7 +4671,7 @@ function doGet(e) {
       const isAdmin = Boolean(currentUserAccount.isAdmin);
       if (navDash) navDash.style.display = isAdmin ? "" : "none";
       if (navSto) navSto.style.display = isAdmin ? "" : "none";
-      if (resetBtn) resetBtn.style.display = isAdmin ? "" : "none";
+      if (resetBtn) resetBtn.style.display = "none";
       if (modalTitle) {
         modalTitle.textContent = isAdmin
           ? "Trung Tâm Quản Trị & Phê Duyệt Tài Khoản (Admin)"
@@ -4776,13 +4772,15 @@ function doGet(e) {
 
     function createEmptyGameRecord(gameId, gameName, mode) {
       const assignedUser = getAssignedUserForGame(gameId);
+      const fixedStaff = window.loggedInGoogleName || (currentUserAccount && currentUserAccount.name) || assignedUser.name;
+      const todayDate = (document.getElementById("opDate") && document.getElementById("opDate").value) || new Date().toISOString().slice(0, 10);
       return {
         gameId,
         gameName,
         mode,
-        date: new Date().toISOString().slice(0, 10),
+        date: todayDate,
         staffCode: assignedUser.code,
-        staff: assignedUser.name,
+        staff: fixedStaff,
         staffRole: assignedUser.role,
         openTime: "08:00",
         closeTime: null,
@@ -6260,20 +6258,28 @@ function doGet(e) {
     }
 
     function updateDowntimePreview() {
-      const sh = document.getElementById("manDtStartH").value || "10";
-      const sm = document.getElementById("manDtStartM").value || "15";
-      const eh = document.getElementById("manDtEndH").value || "10";
-      const em = document.getElementById("manDtEndM").value || "45";
+      const shEl = document.getElementById("manDtStartH");
+      const smEl = document.getElementById("manDtStartM");
+      const ehEl = document.getElementById("manDtEndH");
+      const emEl = document.getElementById("manDtEndM");
+      const startBadge = document.getElementById("dtStartPreviewBadge");
+      const endBadge = document.getElementById("dtEndPreviewBadge");
+      const calcDurationEl = document.getElementById("dtCalculatedDurationText");
+
+      const sh = (shEl && shEl.value) || "10";
+      const sm = (smEl && smEl.value) || "15";
+      const eh = (ehEl && ehEl.value) || "10";
+      const em = (emEl && emEl.value) || "45";
 
       const startStr = `${sh}:${sm}`;
       const endStr = `${eh}:${em}`;
-      document.getElementById("dtStartPreviewBadge").textContent = startStr;
-      document.getElementById("dtEndPreviewBadge").textContent = endStr;
+      if (startBadge) startBadge.textContent = startStr;
+      if (endBadge) endBadge.textContent = endStr;
 
       const sMin = timeStrToMinutes(startStr);
       const eMin = timeStrToMinutes(endStr);
       const diff = (sMin !== null && eMin !== null && eMin > sMin) ? (eMin - sMin) : 0;
-      document.getElementById("dtCalculatedDurationText").textContent = `${diff} phút`;
+      if (calcDurationEl) calcDurationEl.textContent = `${diff} phút`;
     }
 
     function addManualDowntime() {
@@ -6993,16 +6999,34 @@ function doGet(e) {
         showAppToast("⚠️ Chỉ Admin mới có quyền làm mới / xóa dữ liệu ca!");
         return;
       }
-      showAppToast("Đã làm mới dữ liệu ca hiện tại của trò chơi!");
       const meta = getCurrentGameMeta();
-      appStore.games[meta.id] = createEmptyGameRecord(meta.id, meta.name, meta.mode);
-      activeCoasterCars = [];
-      delete coasterLastDispatchState[meta.id];
-      activeDowntimeState = null;
-      batchCycleState = { running: false, startTimeMs: null, startStr: null };
-      syncShiftDropdownsFromRecord(appStore.games[meta.id]);
-      saveToLocalStorage();
-      renderAll();
+      const gameTitle = (meta && meta.name) ? meta.name : "trò chơi hiện tại";
+      const confirmed = window.confirm(`⚠️ CẢNH BÁO AN TOÀN:\nBạn có chắc chắn muốn làm mới (xóa trắng dữ liệu ca) của ${gameTitle} không?\n\nThao tác này sẽ đặt lại lượt chơi và thời gian dừng của ca trực!`);
+      if (!confirmed) return;
+
+      try {
+        const emptyRec = createEmptyGameRecord(meta.id, meta.name, meta.mode);
+        if (window.loggedInGoogleName) {
+          emptyRec.staff = window.loggedInGoogleName;
+        }
+        appStore.games[meta.id] = emptyRec;
+        activeCoasterCars = [];
+        if (meta.id && typeof coasterLastDispatchState !== "undefined") {
+          delete coasterLastDispatchState[meta.id];
+        }
+        activeDowntimeState = null;
+        batchCycleState = { running: false, startTimeMs: null, startStr: null };
+        syncShiftDropdownsFromRecord(appStore.games[meta.id]);
+        saveToLocalStorage();
+        if (window.SWFirebase && window.SWFirebase.queueSync) {
+          window.SWFirebase.queueSync();
+        }
+        renderAll();
+        showAppToast(`✓ Đã làm mới dữ liệu ca của ${gameTitle}!`);
+      } catch (err) {
+        console.error("resetCurrentRideData error:", err);
+        showAppToast("⚠️ Lỗi khi làm mới: " + err.message);
+      }
     }
 
     function exportCSV() {
