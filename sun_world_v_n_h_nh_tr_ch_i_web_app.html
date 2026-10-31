@@ -3138,30 +3138,50 @@
       color: #E2E8F0 !important;
     }
 
-    body[data-theme="dark"] #screenTimeOps .border-emerald-100 {
-      border-color: rgba(16, 185, 129, 0.3) !important;
-      background: rgba(6, 78, 59, 0.25) !important;
+    /* TỐI ƯU BẢNG MÀU TRUNG TÍNH (SLATE NEUTRAL) CHO CHIP CHỌN NHANH */
+    .time-quick-chip {
+      background: #FFFFFF;
+      color: #334155;
+      border: 1px solid #CBD5E1;
+      cursor: pointer;
+      font-weight: 700;
+      transition: all 0.15s ease;
     }
-    body[data-theme="dark"] #screenTimeOps .border-rose-100 {
-      border-color: rgba(244, 63, 94, 0.3) !important;
-      background: rgba(136, 19, 55, 0.25) !important;
+    .time-quick-chip:hover {
+      background: #F1F5F9;
+      border-color: #94A3B8;
+      color: #0F172A;
     }
-    body[data-theme="dark"] #screenTimeOps .text-emerald-800,
-    body[data-theme="dark"] #screenTimeOps .text-emerald-700 {
-      color: #34D399 !important;
-    }
-    body[data-theme="dark"] #screenTimeOps .text-rose-800,
-    body[data-theme="dark"] #screenTimeOps .text-rose-700 {
-      color: #FB7185 !important;
-    }
-    body[data-theme="dark"] #screenTimeOps .time-quick-chip {
-      background: #1F2937 !important;
-      border-color: #374151 !important;
-      color: #E2E8F0 !important;
-    }
-    body[data-theme="dark"] #screenTimeOps .time-quick-chip:hover {
-      background: #374151 !important;
+    .time-quick-chip.active {
+      background: #2C2623 !important;
+      border-color: #2C2623 !important;
       color: #FFFFFF !important;
+      font-weight: 800 !important;
+      box-shadow: 0 1px 4px rgba(0,0,0,0.15);
+    }
+    body[data-theme="dark"] .time-quick-chip {
+      background: #1E293B !important;
+      color: #CBD5E1 !important;
+      border-color: #475569 !important;
+    }
+    body[data-theme="dark"] .time-quick-chip:hover {
+      background: #334155 !important;
+      color: #F8FAFC !important;
+    }
+    body[data-theme="dark"] .time-quick-chip.active {
+      background: #C0262D !important;
+      border-color: #C0262D !important;
+      color: #FFFFFF !important;
+      box-shadow: 0 0 10px rgba(192, 38, 45, 0.4);
+    }
+
+    body[data-theme="dark"] #screenTimeOps button[onclick*="setShiftTimeNow"] {
+      background: #1E293B !important;
+      color: #E2E8F0 !important;
+      border-color: #475569 !important;
+    }
+    body[data-theme="dark"] #screenTimeOps button[onclick*="setShiftTimeNow"]:hover {
+      background: #334155 !important;
     }
 
     /* BADGE TRẠNG THÁI CA TRỰC ĐỘC LẬP - ĐỘ TƯƠNG PHẢN CAO, KHÔNG BỊ TRONG SUỐT */
@@ -3521,88 +3541,83 @@
         </div>
       </section>
 
-      <!-- KHỐI 2: THỜI GIAN VẬN HÀNH CA (Cơ chế 1 chạm tối ưu) -->
+      <!-- KHỐI 2: THỜI GIAN VẬN HÀNH CA (Tối Giản, 1 Chạm Nhanh) -->
       <section class="bg-white rounded-2xl border border-slate-200/90 shadow-sm p-4 sm:p-5">
         <div class="flex items-center justify-between mb-3.5">
           <div class="flex items-center gap-2 text-slate-800 font-extrabold text-sm sm:text-base">
-            <i data-lucide="timer" class="w-4 h-4 text-emerald-600"></i>
-            <span>THỜI GIAN VẬN HÀNH CA (1 CHẠM TỐI ƯU)</span>
+            <i data-lucide="timer" class="w-4 h-4 text-slate-600"></i>
+            <span>THỜI GIAN VẬN HÀNH CA</span>
           </div>
-          <span class="text-[11px] text-emerald-600 font-bold bg-emerald-50 px-2 py-0.5 rounded-full border border-emerald-100">
-            Cơ chế nhanh
+          <span class="text-[11px] text-slate-500 font-semibold bg-slate-100 px-2.5 py-0.5 rounded-full border border-slate-200">
+            1 Chạm Nhanh
           </span>
         </div>
 
-        <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-3.5">
           <!-- 1. Thời gian mở cửa (Đầu ca) -->
-          <div class="p-3.5 sm:p-4 rounded-xl border border-emerald-100 bg-gradient-to-b from-emerald-50/40 to-white flex flex-col gap-2.5">
+          <div class="p-3.5 sm:p-4 rounded-xl border border-slate-200/80 bg-slate-50/70 flex flex-col gap-2.5">
             <div class="flex items-center justify-between">
-              <span class="text-xs font-bold text-emerald-800 flex items-center gap-1.5">
-                <i data-lucide="sun" class="w-3.5 h-3.5 text-emerald-600"></i>
+              <span class="text-xs font-bold text-slate-700 flex items-center gap-1.5">
+                <i data-lucide="sun" class="w-3.5 h-3.5 text-amber-500"></i>
                 Thời gian mở cửa (Đầu ca)
               </span>
               <!-- Nút lấy giờ hiện tại (Now) 1 chạm -->
-              <button type="button" onclick="setShiftTimeNow('open')" class="cursor-pointer inline-flex items-center gap-1 text-[11px] font-bold text-emerald-700 bg-white hover:bg-emerald-50 border border-emerald-200 px-2.5 py-1 rounded-lg transition-all active:scale-95 shadow-2xs">
-                <i data-lucide="zap" class="w-3 h-3 text-emerald-600"></i>
+              <button type="button" onclick="setShiftTimeNow('open')" class="cursor-pointer inline-flex items-center gap-1 text-[11px] font-bold text-slate-700 bg-white hover:bg-slate-100 border border-slate-200 px-2.5 py-1 rounded-lg transition-all active:scale-95 shadow-2xs">
+                <i data-lucide="zap" class="w-3 h-3 text-amber-500"></i>
                 Lấy giờ hiện tại
               </button>
             </div>
 
             <!-- Input type="time" chữ to đậm -->
             <div class="relative">
-              <input type="time" id="shiftOpenTimeInput" value="08:00" onchange="onShiftTimeInputChange('open', this.value)" class="w-full h-13 px-4 py-2 bg-white border-2 border-emerald-200 rounded-xl text-xl sm:text-2xl font-black text-emerald-700 text-center tracking-wider outline-none focus:ring-2 focus:ring-emerald-400 focus:border-emerald-500 transition-all shadow-inner" />
+              <input type="time" id="shiftOpenTimeInput" value="08:00" onchange="onShiftTimeInputChange('open', this.value)" class="w-full h-12 px-4 py-2 bg-white border border-slate-300 rounded-xl text-xl sm:text-2xl font-black text-slate-800 text-center tracking-wider outline-none focus:ring-2 focus:ring-[#C0262D]/20 focus:border-[#C0262D] transition-all shadow-inner" />
             </div>
 
-            <!-- Quick chips mở ca -->
-            <div class="flex items-center gap-1.5 flex-wrap pt-1">
-              <span class="text-[11px] font-semibold text-slate-400 mr-1">Nhanh:</span>
-              <button type="button" onclick="setShiftTimeChip('open', '07:30')" class="time-quick-chip text-xs font-bold px-2.5 py-1 rounded-lg bg-emerald-50 hover:bg-emerald-100 text-emerald-700 border border-emerald-200/70 transition-all active:scale-95">07:30</button>
-              <button type="button" onclick="setShiftTimeChip('open', '08:00')" class="time-quick-chip text-xs font-bold px-2.5 py-1 rounded-lg bg-emerald-50 hover:bg-emerald-100 text-emerald-700 border border-emerald-200/70 transition-all active:scale-95">08:00</button>
-              <button type="button" onclick="setShiftTimeChip('open', '08:30')" class="time-quick-chip text-xs font-bold px-2.5 py-1 rounded-lg bg-emerald-50 hover:bg-emerald-100 text-emerald-700 border border-emerald-200/70 transition-all active:scale-95">08:30</button>
-              <button type="button" onclick="setShiftTimeChip('open', '09:00')" class="time-quick-chip text-xs font-bold px-2.5 py-1 rounded-lg bg-emerald-50 hover:bg-emerald-100 text-emerald-700 border border-emerald-200/70 transition-all active:scale-95">09:00</button>
+            <!-- Quick chips mở ca: 08:00 - 08:30 - 10:00 (Đúng 3 mốc trên 1 hàng, cân đối hoàn hảo) -->
+            <div class="flex items-center gap-2 pt-0.5">
+              <button type="button" data-time="08:00" onclick="setShiftTimeChip('open', '08:00')" class="time-quick-chip time-chip-open flex-1 py-1.5 px-2 text-xs font-bold rounded-lg border text-center transition-all active:scale-95">08:00</button>
+              <button type="button" data-time="08:30" onclick="setShiftTimeChip('open', '08:30')" class="time-quick-chip time-chip-open flex-1 py-1.5 px-2 text-xs font-bold rounded-lg border text-center transition-all active:scale-95">08:30</button>
+              <button type="button" data-time="10:00" onclick="setShiftTimeChip('open', '10:00')" class="time-quick-chip time-chip-open flex-1 py-1.5 px-2 text-xs font-bold rounded-lg border text-center transition-all active:scale-95">10:00</button>
             </div>
           </div>
 
           <!-- 2. Thời gian đóng cửa (Cuối ca) -->
-          <div class="p-3.5 sm:p-4 rounded-xl border border-rose-100 bg-gradient-to-b from-rose-50/40 to-white flex flex-col gap-2.5">
+          <div class="p-3.5 sm:p-4 rounded-xl border border-slate-200/80 bg-slate-50/70 flex flex-col gap-2.5">
             <div class="flex items-center justify-between">
-              <span class="text-xs font-bold text-rose-800 flex items-center gap-1.5">
-                <i data-lucide="moon" class="w-3.5 h-3.5 text-rose-600"></i>
+              <span class="text-xs font-bold text-slate-700 flex items-center gap-1.5">
+                <i data-lucide="moon" class="w-3.5 h-3.5 text-indigo-400"></i>
                 Thời gian đóng cửa (Cuối ca)
               </span>
               <!-- Nút lấy giờ hiện tại (Now) 1 chạm -->
-              <button type="button" onclick="setShiftTimeNow('close')" class="cursor-pointer inline-flex items-center gap-1 text-[11px] font-bold text-rose-700 bg-white hover:bg-rose-50 border border-rose-200 px-2.5 py-1 rounded-lg transition-all active:scale-95 shadow-2xs">
-                <i data-lucide="zap" class="w-3 h-3 text-rose-600"></i>
+              <button type="button" onclick="setShiftTimeNow('close')" class="cursor-pointer inline-flex items-center gap-1 text-[11px] font-bold text-slate-700 bg-white hover:bg-slate-100 border border-slate-200 px-2.5 py-1 rounded-lg transition-all active:scale-95 shadow-2xs">
+                <i data-lucide="zap" class="w-3 h-3 text-indigo-400"></i>
                 Lấy giờ hiện tại
               </button>
             </div>
 
             <!-- Input type="time" chữ to đậm -->
             <div class="relative">
-              <input type="time" id="shiftCloseTimeInput" value="17:00" onchange="onShiftTimeInputChange('close', this.value)" class="w-full h-13 px-4 py-2 bg-white border-2 border-rose-200 rounded-xl text-xl sm:text-2xl font-black text-rose-700 text-center tracking-wider outline-none focus:ring-2 focus:ring-rose-400 focus:border-rose-500 transition-all shadow-inner" />
+              <input type="time" id="shiftCloseTimeInput" value="17:00" onchange="onShiftTimeInputChange('close', this.value)" class="w-full h-12 px-4 py-2 bg-white border border-slate-300 rounded-xl text-xl sm:text-2xl font-black text-slate-800 text-center tracking-wider outline-none focus:ring-2 focus:ring-[#C0262D]/20 focus:border-[#C0262D] transition-all shadow-inner" />
             </div>
 
-            <!-- Quick chips đóng ca -->
-            <div class="flex items-center gap-1.5 flex-wrap pt-1">
-              <span class="text-[11px] font-semibold text-slate-400 mr-1">Nhanh:</span>
-              <button type="button" onclick="setShiftTimeChip('close', '16:30')" class="time-quick-chip text-xs font-bold px-2.5 py-1 rounded-lg bg-rose-50 hover:bg-rose-100 text-rose-700 border border-rose-200/70 transition-all active:scale-95">16:30</button>
-              <button type="button" onclick="setShiftTimeChip('close', '17:00')" class="time-quick-chip text-xs font-bold px-2.5 py-1 rounded-lg bg-rose-50 hover:bg-rose-100 text-rose-700 border border-rose-200/70 transition-all active:scale-95">17:00</button>
-              <button type="button" onclick="setShiftTimeChip('close', '17:30')" class="time-quick-chip text-xs font-bold px-2.5 py-1 rounded-lg bg-rose-50 hover:bg-rose-100 text-rose-700 border border-rose-200/70 transition-all active:scale-95">17:30</button>
-              <button type="button" onclick="setShiftTimeChip('close', '18:00')" class="time-quick-chip text-xs font-bold px-2.5 py-1 rounded-lg bg-rose-50 hover:bg-rose-100 text-rose-700 border border-rose-200/70 transition-all active:scale-95">18:00</button>
+            <!-- Quick chips đóng ca: 17:00 - 19:00 (Đúng 2 mốc trên 1 hàng, cân đối hoàn hảo) -->
+            <div class="flex items-center gap-2 pt-0.5">
+              <button type="button" data-time="17:00" onclick="setShiftTimeChip('close', '17:00')" class="time-quick-chip time-chip-close flex-1 py-1.5 px-3 text-xs font-bold rounded-lg border text-center transition-all active:scale-95">17:00</button>
+              <button type="button" data-time="19:00" onclick="setShiftTimeChip('close', '19:00')" class="time-quick-chip time-chip-close flex-1 py-1.5 px-3 text-xs font-bold rounded-lg border text-center transition-all active:scale-95">19:00</button>
             </div>
           </div>
         </div>
 
         <!-- Tự động tính toán tổng thời gian vận hành dự kiến -->
-        <div class="mt-3.5 p-3 rounded-xl bg-amber-50/70 border border-amber-200/80 flex items-center justify-between flex-wrap gap-2">
+        <div class="mt-3.5 p-3 rounded-xl bg-slate-50 border border-slate-200/80 flex items-center justify-between flex-wrap gap-2">
           <div class="flex items-center gap-2">
-            <i data-lucide="hourglass" class="w-4 h-4 text-amber-600"></i>
-            <span id="shiftDurationSummaryText" class="text-xs sm:text-sm font-extrabold text-amber-900">
+            <i data-lucide="hourglass" class="w-4 h-4 text-slate-500"></i>
+            <span id="shiftDurationSummaryText" class="text-xs sm:text-sm font-extrabold text-slate-800">
               Tổng thời gian vận hành dự kiến: 9 giờ 0 phút
             </span>
           </div>
-          <span class="text-[11px] font-bold text-amber-700 bg-white border border-amber-200 px-2 py-0.5 rounded-md">
-            Realtime
+          <span class="text-[10px] font-bold text-slate-500 bg-white border border-slate-200 px-2 py-0.5 rounded-md">
+            Tự động tính
           </span>
         </div>
 
@@ -4487,13 +4502,14 @@ function doGet(e) {
     function showAppToast(msg) {
       const container = document.getElementById("appToastContainer");
       if (!container) return;
+      container.innerHTML = "";
       const el = document.createElement("div");
       el.className = "app-toast";
       el.textContent = msg;
       container.appendChild(el);
       setTimeout(() => {
         if (el.parentNode) el.parentNode.removeChild(el);
-      }, 3600);
+      }, 1600);
     }
 
     function safeGetStorage(key) {
@@ -6021,6 +6037,22 @@ function doGet(e) {
         if (closeDisp) closeDisp.textContent = "--:--";
       }
       updateShiftDurationCalc();
+      updateShiftTimeChipsActiveState();
+    }
+
+    function updateShiftTimeChipsActiveState() {
+      const openVal = (document.getElementById("shiftOpenTimeInput") && document.getElementById("shiftOpenTimeInput").value) || "";
+      const closeVal = (document.getElementById("shiftCloseTimeInput") && document.getElementById("shiftCloseTimeInput").value) || "";
+
+      document.querySelectorAll(".time-chip-open").forEach(btn => {
+        const chipTime = btn.getAttribute("data-time");
+        btn.classList.toggle("active", chipTime === openVal);
+      });
+
+      document.querySelectorAll(".time-chip-close").forEach(btn => {
+        const chipTime = btn.getAttribute("data-time");
+        btn.classList.toggle("active", chipTime === closeVal);
+      });
     }
 
     function setShiftTimeNow(type) {
@@ -6054,9 +6086,9 @@ function doGet(e) {
       }
       syncOldDropdownsFromInput();
       updateShiftDurationCalc();
+      updateShiftTimeChipsActiveState();
       saveToLocalStorage();
       if (window.SWFirebase && window.SWFirebase.queueSync) window.SWFirebase.queueSync();
-      showAppToast(`✓ Đã cập nhật ${type === "open" ? "giờ mở ca" : "giờ đóng ca"}: ${val || "--:--"}`);
     }
 
     function syncOldDropdownsFromInput() {
@@ -7162,6 +7194,7 @@ function doGet(e) {
       renderDashboard();
       renderStorageExplorer();
       updateShiftDurationCalc();
+      updateShiftTimeChipsActiveState();
       if (window.lucide && typeof lucide.createIcons === "function") {
         try { lucide.createIcons(); } catch (e) {}
       }
