@@ -4663,7 +4663,6 @@ function doGet(e) {
       const gameSel = document.getElementById("gameSelect");
       const navDash = document.getElementById("navBtnDashboard");
       const navSto = document.getElementById("navBtnStorage");
-      const resetBtn = document.getElementById("headerResetRideBtn");
       const staffInput = document.getElementById("staffName");
       const modalTitle = document.getElementById("loginModalTitleText");
       if (!currentUserAccount) return;
@@ -4671,7 +4670,6 @@ function doGet(e) {
       const isAdmin = Boolean(currentUserAccount.isAdmin);
       if (navDash) navDash.style.display = isAdmin ? "" : "none";
       if (navSto) navSto.style.display = isAdmin ? "" : "none";
-      if (resetBtn) resetBtn.style.display = "none";
       if (modalTitle) {
         modalTitle.textContent = isAdmin
           ? "Trung Tâm Quản Trị & Phê Duyệt Tài Khoản (Admin)"
