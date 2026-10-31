@@ -621,34 +621,111 @@
       font-weight: 600;
     }
 
-    /* Modal Đăng Nhập Tài Khoản */
+    /* Modal Drawer trượt từ cạnh phải: Trung Tâm Quản Trị & Phê Duyệt Tài Khoản */
     .modal-backdrop {
       position: fixed;
       inset: 0;
-      background: rgba(15, 23, 42, 0.65);
-      backdrop-filter: blur(3px);
-      z-index: 500;
-      display: none;
-      align-items: center;
-      justify-content: center;
-      padding: 16px;
+      background: rgba(15, 23, 42, 0.55);
+      backdrop-filter: blur(4px);
+      -webkit-backdrop-filter: blur(4px);
+      z-index: 1200;
+      display: flex;
+      align-items: stretch;
+      justify-content: flex-end;
+      padding: 0;
+      opacity: 0;
+      visibility: hidden;
+      pointer-events: none;
+      transition: opacity 0.28s cubic-bezier(0.22, 1, 0.36, 1), visibility 0.28s ease;
     }
     .modal-backdrop.open {
-      display: flex;
+      opacity: 1;
+      visibility: visible;
+      pointer-events: auto;
     }
 
     .login-modal-card {
-      background: var(--surface);
-      color: var(--text);
-      border: 1px solid var(--border);
-      border-radius: 16px;
+      background: var(--bg, #F8FAFC);
+      color: var(--text, #0F172A);
+      border-left: 1px solid #E2E8F0;
+      border-radius: 16px 0 0 16px;
       width: 100%;
-      max-width: 420px;
-      padding: 20px;
-      box-shadow: 0 16px 40px rgba(0, 0, 0, 0.3);
+      max-width: 540px;
+      height: 100vh;
+      height: 100dvh;
+      padding: 0;
+      box-shadow: -16px 0 48px rgba(15, 23, 42, 0.24);
+      display: flex;
+      flex-direction: column;
+      overflow: hidden;
+      transform: translateX(100%);
+      transition: transform 0.32s cubic-bezier(0.22, 1, 0.36, 1);
+    }
+    .modal-backdrop.open .login-modal-card {
+      transform: translateX(0);
+    }
+
+    .admin-drawer-header {
+      background: var(--surface, #FFFFFF);
+      border-bottom: 1px solid #E2E8F0;
+      padding: 16px 20px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      gap: 12px;
+      flex-shrink: 0;
+    }
+
+    .admin-drawer-body {
+      flex: 1 1 auto;
+      overflow-y: auto;
+      padding: 16px 18px;
       display: flex;
       flex-direction: column;
       gap: 14px;
+    }
+
+    .admin-drawer-footer {
+      background: var(--surface, #FFFFFF);
+      border-top: 1px solid #E2E8F0;
+      padding: 12px 18px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      gap: 10px;
+      flex-shrink: 0;
+      flex-wrap: wrap;
+    }
+
+    .admin-drawer-close-btn {
+      width: 36px;
+      height: 36px;
+      border-radius: 10px;
+      border: 1px solid #E2E8F0;
+      background: var(--surface-alt, #F8FAFC);
+      color: var(--text-muted, #64748B);
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 1rem;
+      font-weight: 700;
+      cursor: pointer;
+      transition: all 0.18s ease;
+      flex-shrink: 0;
+    }
+    .admin-drawer-close-btn:hover {
+      background: #FEE2E2;
+      border-color: #FCA5A5;
+      color: #C0262D;
+    }
+
+    .super-admin-banner-card {
+      background: linear-gradient(135deg, rgba(192, 38, 45, 0.06) 0%, rgba(255, 201, 40, 0.1) 100%), var(--surface, #FFFFFF);
+      border: 1.5px solid #C0262D;
+      border-radius: 14px;
+      padding: 14px 16px;
+      box-shadow: 0 4px 14px rgba(192, 38, 45, 0.08);
+      position: relative;
     }
 
 
@@ -2908,11 +2985,22 @@
         display: inline-block;
       }
       .login-modal-card {
-        width: 96% !important;
-        max-width: 96vw !important;
-        padding: 14px 12px !important;
-        max-height: 90vh !important;
-        overflow-y: auto !important;
+        width: 100% !important;
+        max-width: 100vw !important;
+        height: 100vh !important;
+        height: 100dvh !important;
+        border-radius: 0 !important;
+        padding: 0 !important;
+        max-height: 100dvh !important;
+      }
+      .admin-drawer-header {
+        padding: 14px 16px !important;
+      }
+      .admin-drawer-body {
+        padding: 14px 14px 20px !important;
+      }
+      .admin-drawer-footer {
+        padding: 12px 14px !important;
       }
     }
 
@@ -3001,39 +3089,61 @@
     </div>
   </header>
 
-  <!-- MODAL TÀI KHOẢN & PHÂN QUYỀN GOOGLE (CHỈ GIỮ LẠI ADMIN) -->
+  <!-- MODAL DRAWER TRƯỢT TỪ CẠNH PHẢI: TRUNG TÂM QUẢN TRỊ & PHÊ DUYỆT TÀI KHOẢN -->
   <div id="loginModalBackdrop" class="modal-backdrop" onclick="closeLoginModal(event)">
-    <div class="login-modal-card" onclick="event.stopPropagation()" style="max-width:780px; width:95%;">
-      <div style="display:flex; justify-content:space-between; align-items:center; border-bottom:1px solid var(--border); padding-bottom:10px;">
-        <div style="font-size:0.98rem; font-weight:800; display:flex; align-items:center; gap:8px;">
-          <span id="loginModalTitleText">Quản Lý Tài Khoản & Phân Quyền Hệ Thống</span>
+    <aside class="login-modal-card" onclick="event.stopPropagation()" aria-labelledby="loginModalTitleText">
+      <!-- 1. HEADER: Tiêu đề kèm nút đóng -->
+      <div class="admin-drawer-header">
+        <div style="display:flex; align-items:center; gap:10px; min-width:0;">
+          <div style="width:38px; height:38px; border-radius:10px; background:rgba(192,38,45,0.1); border:1px solid rgba(192,38,45,0.22); color:#C0262D; display:inline-flex; align-items:center; justify-content:center; flex-shrink:0;">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"></path><path d="m9 12 2 2 4-4"></path></svg>
+          </div>
+          <div style="min-width:0;">
+            <div style="font-size:0.96rem; font-weight:800; color:var(--text); line-height:1.25;">
+              <span id="loginModalTitleText">Trung Tâm Quản Trị &amp; Phê Duyệt Tài Khoản</span>
+            </div>
+            <div style="font-size:0.72rem; font-weight:600; color:var(--text-muted); margin-top:2px;">
+              Theme Park Operations Admin • Sun World Ba Na Hills
+            </div>
+          </div>
         </div>
-        <button type="button" class="del-btn" style="font-size:1.1rem;" onclick="closeLoginModal()">✕</button>
+        <button type="button" class="admin-drawer-close-btn" onclick="closeLoginModal()" title="Đóng ngăn quản trị" aria-label="Đóng">✕</button>
       </div>
 
-      <!-- KHỐI TÀI KHOẢN ADMIN GMAIL -->
-      <div style="background:var(--surface-2); border:1.5px solid #C0262D; border-radius:10px; padding:12px 14px;">
-        <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:6px;">
-          <span style="font-size:0.76rem; font-weight:800; color:#C0262D; text-transform:uppercase;">👑 Tài khoản Super Admin Chủ Sở Hữu</span>
-          <span style="font-size:0.68rem; font-weight:700; color:#15803d; background:rgba(22,163,74,0.12); padding:2px 8px; border-radius:999px;">✓ Quyền Toàn Khu</span>
+      <!-- THÂN DRAWER CUỘN DỌC THEO DẠNG CARD PHÂN TẦNG -->
+      <div class="admin-drawer-body" id="adminDrawerScrollBody">
+        <!-- 2. KHỐI BANNER SUPER ADMIN: Điểm nhấn viền nổi bật, huy hiệu quyền hạn cao nhất, thông tin tài khoản đang thao tác và phạm vi quản lý -->
+        <div class="super-admin-banner-card" id="superAdminBannerCard">
+          <div style="display:flex; justify-content:space-between; align-items:center; gap:8px; margin-bottom:8px; flex-wrap:wrap;">
+            <span style="display:inline-flex; align-items:center; gap:5px; font-size:0.72rem; font-weight:800; color:#C0262D; background:rgba(192,38,45,0.1); border:1px solid rgba(192,38,45,0.25); padding:3px 10px; border-radius:999px; text-transform:uppercase; letter-spacing:0.03em;">
+              👑 Super Admin Chủ Sở Hữu
+            </span>
+            <span style="display:inline-flex; align-items:center; gap:4px; font-size:0.68rem; font-weight:700; color:#15803D; background:rgba(22,163,74,0.12); border:1px solid rgba(22,163,74,0.25); padding:3px 9px; border-radius:999px;">
+              ✓ Quyền Hạn Cao Nhất • Toàn Khu
+            </span>
+          </div>
+          <div id="superAdminBannerAccountText" style="font-size:0.88rem; font-weight:800; color:var(--text); margin-bottom:4px;">
+            Tài khoản thao tác: Ứng Lão — laotuung@gmail.com
+          </div>
+          <div style="font-size:0.75rem; color:var(--text-muted); line-height:1.45;">
+            <strong>Phạm vi quản lý:</strong> Toàn quyền điều hành 25 trò chơi, phê duyệt tài khoản nhân viên mới, gán vị trí trò chơi phụ trách và xuất báo cáo vận hành toàn khu.
+          </div>
         </div>
-        <div style="font-size:0.86rem; font-weight:700; color:var(--text); margin-bottom:4px;">
-          Ứng Lão — laotuung@gmail.com
-        </div>
-        <div style="font-size:0.74rem; color:var(--text-muted); line-height:1.4;">
-          Đăng nhập xác thực bảo mật trực tiếp bằng tài khoản Google. Toàn quyền quản trị 25 trò chơi, phân quyền người dùng và xuất báo cáo.
-        </div>
+
+        <!-- VÙNG TIÊM ĐỘNG TỪ FIREBASE-AUTH.JS (Khối tài khoản cá nhân, KPI 2 cột, Tìm kiếm & Tab lọc, Danh sách thẻ tài khoản) -->
+        <div id="fbAccountPanel"></div>
       </div>
 
-      <div style="display:flex; justify-content:space-between; align-items:center; gap:8px; margin-top:6px; flex-wrap:wrap;">
-        <button type="button" class="btn btn-outline" style="font-size:0.74rem; padding:6px 10px;" onclick="exportAllGamesCSV()">
-          Xuất dữ liệu toàn khu (.CSV)
+      <!-- FOOTER DRAWER CỐ ĐỊNH DƯỚI CÙNG -->
+      <div class="admin-drawer-footer">
+        <button type="button" class="btn btn-outline" id="adminExportAllCsvBtn" style="font-size:0.76rem; padding:8px 12px; border-radius:10px;" onclick="exportAllGamesCSV()">
+          📥 Xuất dữ liệu toàn khu (.CSV)
         </button>
-        <button type="button" class="btn btn-primary" onclick="closeLoginModal()">
-          Đóng
+        <button type="button" class="btn btn-primary" style="font-size:0.78rem; padding:8px 18px; border-radius:10px;" onclick="closeLoginModal()">
+          Đóng ngăn
         </button>
       </div>
-    </div>
+    </aside>
   </div>
 
   <main id="mainWorkspace" class="workspace">

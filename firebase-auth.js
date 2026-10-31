@@ -359,91 +359,156 @@ styleEl.textContent = `
     color: #3B5932;
   }
 
-  /* Bảng Quản trị Phê duyệt Tài khoản bên trong Modal */
-  .sw-admin-stats-grid {
-    display: grid;
-    grid-template-columns: repeat(4, 1fr);
-    gap: 8px;
-    margin-bottom: 12px;
-  }
-  .sw-admin-stat-box {
-    background: var(--surface-alt, #F8FAFC);
-    border: 1px solid var(--border, #E2E8F0);
-    border-radius: 10px;
-    padding: 8px 10px;
-    text-align: center;
-  }
-  .sw-admin-stat-num {
-    font-size: 1.15rem;
-    font-weight: 800;
-    line-height: 1.1;
-  }
-  .sw-admin-stat-lbl {
-    font-size: 0.68rem;
-    font-weight: 600;
-    color: var(--text-muted, #64748B);
-    margin-top: 2px;
+  /* Bảng Quản trị Phê duyệt Tài khoản bên trong Modal Drawer (Card-based Design) */
+  #fbAccountPanel {
+    display: flex;
+    flex-direction: column;
+    gap: 14px;
   }
 
-  .sw-admin-toolbar {
+  .sw-personal-account-card {
+    background: var(--surface, #FFFFFF);
+    border: 1px solid #E2E8F0;
+    border-radius: 14px;
+    padding: 14px 16px;
     display: flex;
-    gap: 8px;
-    margin-bottom: 10px;
+    justify-content: space-between;
+    align-items: center;
+    gap: 12px;
     flex-wrap: wrap;
+    box-shadow: 0 2px 8px rgba(15, 23, 42, 0.03);
+  }
+
+  /* Khối thống kê nhanh (KPI Metrics): Grid 2 cột gồm 4 ô đếm số liệu */
+  .sw-admin-stats-grid {
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    gap: 10px;
+  }
+  .sw-admin-stat-box {
+    background: var(--surface, #FFFFFF);
+    border: 1px solid #E2E8F0;
+    border-radius: 12px;
+    padding: 12px 14px;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    gap: 4px;
+    box-shadow: 0 2px 6px rgba(15, 23, 42, 0.025);
+  }
+  .sw-admin-stat-top {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    gap: 6px;
+  }
+  .sw-admin-stat-num {
+    font-size: 1.35rem;
+    font-weight: 800;
+    line-height: 1.1;
+    color: var(--text, #0F172A);
+  }
+  .sw-admin-stat-lbl {
+    font-size: 0.75rem;
+    font-weight: 600;
+    color: var(--text-muted, #64748B);
+  }
+
+  /* Thanh tìm kiếm kính lúp & 3 Tab lọc */
+  .sw-admin-toolbar-card {
+    background: var(--surface, #FFFFFF);
+    border: 1px solid #E2E8F0;
+    border-radius: 14px;
+    padding: 12px 14px;
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+    box-shadow: 0 2px 8px rgba(15, 23, 42, 0.03);
+  }
+  .sw-search-input-wrap {
+    position: relative;
+    width: 100%;
+  }
+  .sw-search-icon-svg {
+    position: absolute;
+    left: 12px;
+    top: 50%;
+    transform: translateY(-50%);
+    color: #64748B;
+    pointer-events: none;
+    display: inline-flex;
     align-items: center;
   }
   .sw-admin-search {
-    flex: 1;
-    min-width: 160px;
-    padding: 7px 11px !important;
-    font-size: 0.78rem !important;
-    border-radius: 8px !important;
-    border: 1px solid var(--border, #CBD5E1) !important;
-    background: var(--surface, #FFFFFF) !important;
+    width: 100% !important;
+    padding: 9px 12px 9px 36px !important;
+    font-size: 0.82rem !important;
+    border-radius: 10px !important;
+    border: 1px solid #E2E8F0 !important;
+    background: var(--surface-alt, #F8FAFC) !important;
     color: var(--text, #1E293B) !important;
-    height: 34px !important;
+    height: 38px !important;
+    transition: border-color 0.18s ease, background 0.18s ease;
+  }
+  .sw-admin-search:focus {
+    border-color: #C0262D !important;
+    background: var(--surface, #FFFFFF) !important;
   }
   .sw-admin-filter-pills {
-    display: flex;
-    gap: 4px;
-    flex-wrap: wrap;
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 6px;
+    background: var(--surface-alt, #F1F5F9);
+    padding: 4px;
+    border-radius: 10px;
+    border: 1px solid #E2E8F0;
   }
   .sw-filter-pill {
-    padding: 5px 10px;
-    border-radius: 999px;
-    font-size: 0.72rem;
+    padding: 7px 10px;
+    border-radius: 8px;
+    font-size: 0.76rem;
     font-weight: 700;
-    border: 1px solid var(--border, #CBD5E1);
-    background: var(--surface, #FFFFFF);
+    border: 1px solid transparent;
+    background: transparent;
     color: var(--text-muted, #64748B);
     cursor: pointer;
+    text-align: center;
+    transition: all 0.16s ease;
+  }
+  .sw-filter-pill:hover {
+    color: var(--text, #0F172A);
   }
   .sw-filter-pill.active {
     background: #C0262D;
     color: #FFFFFF;
     border-color: #C0262D;
+    box-shadow: 0 2px 6px rgba(192, 38, 45, 0.25);
   }
 
+  /* Danh sách thẻ tài khoản người dùng */
   .fb-user-list {
     display: flex;
     flex-direction: column;
-    gap: 8px;
-    max-height: 340px;
-    overflow-y: auto;
-    padding-right: 2px;
+    gap: 10px;
   }
   .fb-user-row {
     display: flex;
     flex-direction: column;
-    gap: 8px;
-    padding: 11px 12px;
-    border-radius: 10px;
+    gap: 10px;
+    padding: 14px;
+    border-radius: 14px;
     background: var(--surface, #FFFFFF);
-    border: 1px solid var(--border, #E2E8F0);
+    border: 1px solid #E2E8F0;
+    box-shadow: 0 2px 8px rgba(15, 23, 42, 0.03);
+    transition: border-color 0.18s ease, box-shadow 0.18s ease;
+  }
+  .fb-user-row:hover {
+    border-color: #CBD5E1;
+    box-shadow: 0 4px 12px rgba(15, 23, 42, 0.06);
   }
   .fb-user-row.is-pending {
     border-left: 4px solid #F59E0B;
-    background: rgba(245, 158, 11, 0.04);
+    background: linear-gradient(90deg, rgba(245, 158, 11, 0.05) 0%, rgba(255, 255, 255, 0) 100%), var(--surface, #FFFFFF);
   }
   .fb-user-row.is-approved {
     border-left: 4px solid #16A34A;
@@ -451,33 +516,39 @@ styleEl.textContent = `
   .fb-user-top {
     display: flex;
     justify-content: space-between;
-    align-items: center;
-    gap: 8px;
+    align-items: flex-start;
+    gap: 10px;
     flex-wrap: wrap;
   }
   .fb-user-controls-grid {
     display: grid;
-    grid-template-columns: 1fr 1.25fr 0.9fr auto;
-    gap: 6px;
+    grid-template-columns: 1fr 1fr;
+    gap: 8px;
     align-items: center;
+    padding-top: 8px;
+    border-top: 1px dashed #E2E8F0;
+  }
+  .fb-user-controls-grid .fb-game-select-full {
+    grid-column: 1 / -1;
   }
   .fb-user-controls-grid select {
-    padding: 6px 8px !important;
-    font-size: 0.76rem !important;
-    border-radius: 8px !important;
-    height: 34px !important;
+    padding: 7px 10px !important;
+    font-size: 0.78rem !important;
+    border-radius: 10px !important;
+    border: 1px solid #E2E8F0 !important;
+    height: 36px !important;
+  }
+  .fb-save-perm-btn {
+    grid-column: 1 / -1;
+    width: 100%;
+    justify-content: center;
+    height: 38px;
+    border-radius: 10px !important;
+    font-size: 0.8rem !important;
+    font-weight: 700 !important;
   }
 
-  @media (max-width: 1080px) {
-    .fb-user-controls-grid {
-      grid-template-columns: 1fr 1fr;
-    }
-  }
-
-  @media (max-width: 680px) {
-    .sw-admin-stats-grid {
-      grid-template-columns: repeat(2, 1fr);
-    }
+  @media (max-width: 520px) {
     .fb-user-controls-grid {
       grid-template-columns: 1fr;
     }
@@ -1183,8 +1254,8 @@ function renderAccountModalControls() {
   if (!container) {
     container = document.createElement("div");
     container.id = "fbAccountPanel";
-    container.style.marginTop = "10px";
-    modalCard.insertBefore(container, modalCard.lastElementChild);
+    const scrollBody = document.getElementById("adminDrawerScrollBody") || modalCard;
+    scrollBody.appendChild(container);
   }
 
   const isAdmin = currentProfile.role === "admin";
@@ -1192,73 +1263,105 @@ function renderAccountModalControls() {
   const gameTitle = getGameTitleById(currentProfile.assignedGame);
   const subTitle = currentProfile.assignedSubArea ? ` • ${currentProfile.assignedSubArea}` : "";
 
+  const superBannerCard = document.getElementById("superAdminBannerCard");
+  const superBannerAcc = document.getElementById("superAdminBannerAccountText");
+  const exportBtn = document.getElementById("adminExportAllCsvBtn");
+  if (superBannerCard) {
+    superBannerCard.style.display = isAdmin ? "" : "none";
+  }
+  if (superBannerAcc && isAdmin) {
+    superBannerAcc.textContent = `Tài khoản đang thao tác: ${gmailName} (${currentAuthUser.email})`;
+  }
+  if (exportBtn) {
+    exportBtn.style.display = isAdmin ? "" : "none";
+  }
+
   container.innerHTML = `
-    <div style="display:flex;justify-content:space-between;align-items:center;gap:10px;padding:12px 14px;border-radius:10px;background:var(--surface-alt);border:1px solid var(--border);margin-bottom:12px;flex-wrap:wrap;">
-      <div style="display:flex;align-items:center;gap:10px;min-width:0;">
+    <!-- 3. KHỐI TÀI KHOẢN CÁ NHÂN: Avatar tròn, thông tin email, nút đăng xuất -->
+    <div class="sw-personal-account-card">
+      <div style="display:flex;align-items:center;gap:12px;min-width:0;">
         ${
           currentAuthUser.photoURL
-            ? `<img src="${currentAuthUser.photoURL}" style="width:38px;height:38px;border-radius:50%;border:2px solid #FFC928;flex-shrink:0;" alt="" />`
-            : `<span style="width:38px;height:38px;border-radius:50%;background:#C0262D;color:#fff;display:inline-flex;align-items:center;justify-content:center;font-weight:800;flex-shrink:0;">${gmailName.slice(0, 2).toUpperCase()}</span>`
+            ? `<img src="${currentAuthUser.photoURL}" style="width:44px;height:44px;border-radius:50%;border:2px solid #FFC928;object-fit:cover;flex-shrink:0;" alt="" />`
+            : `<span style="width:44px;height:44px;border-radius:50%;background:#C0262D;color:#fff;display:inline-flex;align-items:center;justify-content:center;font-size:0.9rem;font-weight:800;flex-shrink:0;border:2px solid #FFC928;">${gmailName.slice(0, 2).toUpperCase()}</span>`
         }
         <div style="min-width:0;">
-          <div style="font-size:0.88rem;font-weight:800;color:var(--text);">${gmailName}</div>
-          <div style="font-size:0.75rem;color:var(--text-muted);">${currentAuthUser.email}</div>
-          <div style="font-size:0.72rem;font-weight:700;color:#C0262D;margin-top:2px;">
-            ${isAdmin ? "👑 Admin Toàn Khu (25 Trò Chơi)" : `🎯 Phụ trách: ${gameTitle}${subTitle}`}
+          <div style="font-size:0.92rem;font-weight:800;color:var(--text);line-height:1.25;">${gmailName}</div>
+          <div style="font-size:0.78rem;color:var(--text-muted);word-break:break-all;margin-top:2px;">${currentAuthUser.email}</div>
+          <div style="font-size:0.72rem;font-weight:700;color:#C0262D;margin-top:3px;">
+            ${isAdmin ? "👑 Quản trị viên toàn khu (25 trò chơi)" : `🎯 Trò chơi phụ trách: ${gameTitle}${subTitle}`}
           </div>
         </div>
       </div>
-      <button type="button" class="btn btn-outline" id="fbModalSignOutBtn" style="font-size:0.76rem;padding:7px 12px;border-color:#C0262D;color:#C0262D;">
-        Đăng xuất Gmail
+      <button type="button" class="btn btn-outline" id="fbModalSignOutBtn" style="font-size:0.78rem;padding:8px 14px;border-radius:10px;border-color:#C0262D;color:#C0262D;display:inline-flex;align-items:center;gap:6px;">
+        <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><polyline points="16 17 21 12 16 7"/><line x1="21" y1="12" x2="9" y2="12"/></svg>
+        <span>Đăng xuất</span>
       </button>
     </div>
 
     ${
       isAdmin
         ? `
-      <div style="border-top:1px solid var(--border);padding-top:12px;">
-        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px;flex-wrap:wrap;gap:6px;">
-          <div style="font-size:0.86rem;font-weight:800;color:var(--text);">
-            👥 Phê duyệt tài khoản Gmail &amp; Gán trò chơi phụ trách
+      <!-- 4. KHỐI THỐNG KÊ NHANH (KPI METRICS): Grid 2 cột gồm 4 ô đếm số liệu -->
+      <div class="sw-admin-stats-grid" id="fbAdminStatsGrid">
+        <div class="sw-admin-stat-box">
+          <div class="sw-admin-stat-top">
+            <span class="sw-admin-stat-lbl">Tổng tài khoản</span>
+            <span style="width:26px;height:26px;border-radius:8px;background:rgba(15,23,42,0.06);color:#334155;display:inline-flex;align-items:center;justify-content:center;font-size:0.78rem;">👥</span>
           </div>
-          <span style="font-size:0.72rem;color:var(--text-muted);">Chọn trò chơi và bấm Duyệt để mở quyền nhập liệu</span>
+          <div class="sw-admin-stat-num" id="statTotalUsers">0</div>
         </div>
-
-        <div class="sw-admin-stats-grid" id="fbAdminStatsGrid">
-          <div class="sw-admin-stat-box">
-            <div class="sw-admin-stat-num" id="statTotalUsers">0</div>
-            <div class="sw-admin-stat-lbl">Tổng tài khoản</div>
+        <div class="sw-admin-stat-box">
+          <div class="sw-admin-stat-top">
+            <span class="sw-admin-stat-lbl">Chờ duyệt</span>
+            <span style="width:26px;height:26px;border-radius:8px;background:rgba(217,119,6,0.12);color:#D97706;display:inline-flex;align-items:center;justify-content:center;font-size:0.78rem;">⏳</span>
           </div>
-          <div class="sw-admin-stat-box">
-            <div class="sw-admin-stat-num" style="color:#D97706;" id="statPendingUsers">0</div>
-            <div class="sw-admin-stat-lbl">Chờ duyệt</div>
-          </div>
-          <div class="sw-admin-stat-box">
-            <div class="sw-admin-stat-num" style="color:#16A34A;" id="statApprovedUsers">0</div>
-            <div class="sw-admin-stat-lbl">Đã duyệt</div>
-          </div>
-          <div class="sw-admin-stat-box">
-            <div class="sw-admin-stat-num" style="color:#C0262D;" id="statAdminUsers">0</div>
-            <div class="sw-admin-stat-lbl">Quản trị viên</div>
-          </div>
+          <div class="sw-admin-stat-num" style="color:#D97706;" id="statPendingUsers">0</div>
         </div>
-
-        <div class="sw-admin-toolbar">
-          <input type="text" class="sw-admin-search" id="fbUserSearchInput" placeholder="🔍 Tìm theo tên hoặc email Gmail..." value="${adminSearchQuery}" />
-          <div class="sw-admin-filter-pills">
-            <button type="button" class="sw-filter-pill ${adminFilterMode === "all" ? "active" : ""}" data-filter="all">Tất cả</button>
-            <button type="button" class="sw-filter-pill ${adminFilterMode === "pending" ? "active" : ""}" data-filter="pending">⏳ Chờ duyệt</button>
-            <button type="button" class="sw-filter-pill ${adminFilterMode === "approved" ? "active" : ""}" data-filter="approved">✓ Đã duyệt</button>
+        <div class="sw-admin-stat-box">
+          <div class="sw-admin-stat-top">
+            <span class="sw-admin-stat-lbl">Đã duyệt</span>
+            <span style="width:26px;height:26px;border-radius:8px;background:rgba(22,163,74,0.12);color:#16A34A;display:inline-flex;align-items:center;justify-content:center;font-size:0.78rem;">✓</span>
           </div>
+          <div class="sw-admin-stat-num" style="color:#16A34A;" id="statApprovedUsers">0</div>
         </div>
+        <div class="sw-admin-stat-box">
+          <div class="sw-admin-stat-top">
+            <span class="sw-admin-stat-lbl">Quản trị viên</span>
+            <span style="width:26px;height:26px;border-radius:8px;background:rgba(192,38,45,0.12);color:#C0262D;display:inline-flex;align-items:center;justify-content:center;font-size:0.78rem;">👑</span>
+          </div>
+          <div class="sw-admin-stat-num" style="color:#C0262D;" id="statAdminUsers">0</div>
+        </div>
+      </div>
 
+      <!-- 5. THANH TÌM KIẾM & TAB LỌC: Ô input search kính lúp + 3 nút toggle lọc -->
+      <div class="sw-admin-toolbar-card">
+        <div class="sw-search-input-wrap">
+          <span class="sw-search-icon-svg">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+          </span>
+          <input type="text" class="sw-admin-search" id="fbUserSearchInput" placeholder="Tìm theo tên hoặc email..." value="${adminSearchQuery}" />
+        </div>
+        <div class="sw-admin-filter-pills" role="tablist" aria-label="Bộ lọc trạng thái tài khoản">
+          <button type="button" class="sw-filter-pill ${adminFilterMode === "all" ? "active" : ""}" data-filter="all">Tất cả</button>
+          <button type="button" class="sw-filter-pill ${adminFilterMode === "pending" ? "active" : ""}" data-filter="pending">Chờ duyệt</button>
+          <button type="button" class="sw-filter-pill ${adminFilterMode === "approved" ? "active" : ""}" data-filter="approved">Đã duyệt</button>
+        </div>
+      </div>
+
+      <!-- 6. DANH SÁCH THẺ TÀI KHOẢN -->
+      <div>
+        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px;padding:0 2px;">
+          <span style="font-size:0.82rem;font-weight:800;color:var(--text);">Danh sách thẻ tài khoản nhân sự</span>
+          <span style="font-size:0.72rem;color:var(--text-muted);">Chọn trò chơi phụ trách &amp; Lưu phân quyền</span>
+        </div>
         <div id="fbUsersListContainer" class="fb-user-list">
-          <div style="font-size:0.78rem;color:var(--text-muted);padding:12px;text-align:center;">Đang tải danh sách tài khoản...</div>
+          <div style="font-size:0.78rem;color:var(--text-muted);padding:16px;text-align:center;background:var(--surface,#fff);border-radius:12px;border:1px solid #E2E8F0;">Đang tải danh sách tài khoản...</div>
         </div>
       </div>
     `
         : `
-      <div style="padding:10px 12px;border-radius:10px;background:var(--surface-alt);border:1px solid var(--border);font-size:0.78rem;color:var(--text-muted);line-height:1.5;">
+      <div style="padding:14px 16px;border-radius:14px;background:var(--surface,#FFFFFF);border:1px solid #E2E8F0;font-size:0.8rem;color:var(--text-muted);line-height:1.55;">
         🔒 <strong>Quyền hạn vận hành:</strong> Tài khoản của bạn được cố định tên nhân viên <strong>${gmailName}</strong> và thao tác tại <strong>Thông tin chung</strong> &amp; <strong>Nhập liệu</strong> của trò chơi <strong>${gameTitle}${subTitle}</strong>. Lịch sử ca trực được bảo vệ chống xóa.
       </div>
     `
@@ -1349,7 +1452,7 @@ function renderFilteredAdminUserList() {
   });
 
   if (filtered.length === 0) {
-    listEl.innerHTML = `<div style="padding:16px;text-align:center;font-size:0.78rem;color:var(--text-muted);">Không có tài khoản nào khớp bộ lọc.</div>`;
+    listEl.innerHTML = `<div style="padding:18px;text-align:center;font-size:0.8rem;color:var(--text-muted);background:var(--surface,#fff);border-radius:14px;border:1px solid #E2E8F0;">Không có tài khoản nào khớp bộ lọc tìm kiếm.</div>`;
     return;
   }
 
@@ -1364,48 +1467,63 @@ function renderFilteredAdminUserList() {
         )
       ].join("");
 
+      const avatarHtml = u.photoURL
+        ? `<img src="${u.photoURL}" alt="" style="width:38px;height:38px;border-radius:50%;object-fit:cover;border:1.5px solid ${isPending ? "#F59E0B" : "#16A34A"};flex-shrink:0;" />`
+        : `<span style="width:38px;height:38px;border-radius:50%;background:${isPending ? "#F59E0B" : u.role === "admin" ? "#C0262D" : "#16A34A"};color:#fff;font-size:0.78rem;font-weight:800;display:inline-flex;align-items:center;justify-content:center;flex-shrink:0;">
+            ${(u.name || u.email || "U").slice(0, 2).toUpperCase()}
+          </span>`;
+
       return `
         <div class="fb-user-row ${isPending ? "is-pending" : "is-approved"}" data-uid="${u.uid}">
           <div class="fb-user-top">
-            <div style="display:flex;align-items:center;gap:8px;min-width:0;">
-              <span style="width:28px;height:28px;border-radius:50%;background:${isPending ? "#F59E0B" : "#16A34A"};color:#fff;font-size:0.7rem;font-weight:800;display:inline-flex;align-items:center;justify-content:center;flex-shrink:0;">
-                ${(u.name || u.email || "U").slice(0, 2).toUpperCase()}
-              </span>
+            <div style="display:flex;align-items:center;gap:10px;min-width:0;">
+              ${avatarHtml}
               <div style="min-width:0;">
-                <div style="font-size:0.8rem;font-weight:800;color:var(--text);">${u.name || "Nhân viên"}</div>
-                <div style="font-size:0.72rem;color:var(--text-muted);">${u.email}</div>
+                <div style="font-size:0.86rem;font-weight:800;color:var(--text);line-height:1.25;">${u.name || "Nhân viên"}</div>
+                <div style="font-size:0.74rem;color:var(--text-muted);word-break:break-all;margin-top:2px;">${u.email}</div>
               </div>
             </div>
-            <span style="font-size:0.68rem;font-weight:800;padding:2px 8px;border-radius:999px;background:${
-              isPending ? "#FFF8E1" : "rgba(22,163,74,0.12)"
-            };color:${isPending ? "#B45309" : "#15803D"};">
-              ${isPending ? "⏳ Chờ duyệt" : u.role === "admin" ? "👑 Admin" : `✓ Đã duyệt • ${getGameTitleById(u.assignedGame)}`}
+            <span style="font-size:0.7rem;font-weight:800;padding:4px 10px;border-radius:999px;white-space:nowrap;border:1px solid ${
+              isPending ? "rgba(245,158,11,0.35)" : u.role === "admin" ? "rgba(192,38,45,0.28)" : "rgba(22,163,74,0.28)"
+            };background:${
+              isPending ? "#FFFBEB" : u.role === "admin" ? "rgba(192,38,45,0.08)" : "rgba(22,163,74,0.1)"
+            };color:${isPending ? "#B45309" : u.role === "admin" ? "#C0262D" : "#15803D"};">
+              ${isPending ? "⏳ Chờ duyệt" : u.role === "admin" ? "👑 Quản trị viên" : `✓ Đã duyệt • ${getGameTitleById(u.assignedGame)}`}
             </span>
           </div>
 
           <div class="fb-user-controls-grid">
-            <select data-role-uid="${u.uid}" title="Vai trò">
-              <option value="pending" ${u.role === "pending" ? "selected" : ""}>⏳ Chờ duyệt</option>
-              <option value="operator" ${u.role === "operator" || u.role === "pending" ? "selected" : ""}>🎯 Nhân viên vận hành</option>
-              <option value="admin" ${u.role === "admin" ? "selected" : ""}>👑 Quản trị viên (Admin)</option>
-            </select>
+            <div class="fb-game-select-full">
+              <label style="display:block;font-size:0.7rem;font-weight:700;color:var(--text-muted);margin-bottom:4px;">Trò chơi phụ trách</label>
+              <select data-game-uid="${u.uid}" title="Chọn trò chơi phụ trách">
+                <option value="ALL" ${u.assignedGame === "ALL" ? "selected" : ""}>-- Chọn trò chơi phụ trách (Hoặc Toàn Khu cho Admin) --</option>
+                ${gameOptions
+                  .map(
+                    (g) =>
+                      `<option value="${g.value}" ${u.assignedGame === g.value ? "selected" : ""}>${g.label}</option>`
+                  )
+                  .join("")}
+              </select>
+            </div>
 
-            <select data-game-uid="${u.uid}" title="Trò chơi được phép thao tác">
-              <option value="ALL" ${u.assignedGame === "ALL" ? "selected" : ""}>-- Chọn trò chơi phụ trách --</option>
-              ${gameOptions
-                .map(
-                  (g) =>
-                    `<option value="${g.value}" ${u.assignedGame === g.value ? "selected" : ""}>${g.label}</option>`
-                )
-                .join("")}
-            </select>
+            <div>
+              <label style="display:block;font-size:0.7rem;font-weight:700;color:var(--text-muted);margin-bottom:4px;">Vai trò &amp; Trạng thái</label>
+              <select data-role-uid="${u.uid}" title="Vai trò">
+                <option value="pending" ${u.role === "pending" ? "selected" : ""}>⏳ Chờ duyệt</option>
+                <option value="operator" ${u.role === "operator" || u.role === "pending" ? "selected" : ""}>🎯 Nhân viên vận hành</option>
+                <option value="admin" ${u.role === "admin" ? "selected" : ""}>👑 Quản trị viên (Admin)</option>
+              </select>
+            </div>
 
-            <select data-subarea-uid="${u.uid}" title="Vị trí Line / Rạp">
-              ${subAreaOptsHtml}
-            </select>
+            <div>
+              <label style="display:block;font-size:0.7rem;font-weight:700;color:var(--text-muted);margin-bottom:4px;">Vị trí Line / Rạp</label>
+              <select data-subarea-uid="${u.uid}" title="Vị trí Line / Rạp">
+                ${subAreaOptsHtml}
+              </select>
+            </div>
 
-            <button type="button" class="btn ${isPending ? "btn-primary" : "btn-outline"}" data-save-uid="${u.uid}" style="padding:6px 12px;font-size:0.74rem;white-space:nowrap;">
-              ${isPending ? "✓ Duyệt & Kích hoạt" : "Lưu phân quyền"}
+            <button type="button" class="btn ${isPending ? "btn-primary" : "btn-outline"} fb-save-perm-btn" data-save-uid="${u.uid}">
+              ${isPending ? "✓ Duyệt & Lưu phân quyền" : "Lưu phân quyền"}
             </button>
           </div>
         </div>
