@@ -1,42 +1,62 @@
 # Hệ thống vận hành Máng Trượt (Alpine Coaster) – Sun World Ba Na Hills
 
-Web app nhập số xe theo giờ cho 3 máng / 6 line, đồng bộ realtime qua Firebase.
+App v3 (dựng lại): nhân viên **nộp phiếu** số xe đơn / xe đôi theo khung giờ, quản lý **duyệt theo khung giờ**,
+số đã duyệt mới vào **báo cáo**. Ô ma trận giờ = tổng cộng dồn các phiếu đã duyệt.
 
 - Web: https://sunworld-ops-laotuung.web.app
 - Firebase project: `sunworld-ops-laotuung`
+- App cũ (v2, bản build đã vá) nằm ở tag `legacy-v2` – dùng để quay lại nếu cần.
+
+## Tiến độ
+
+| Giai đoạn | Nội dung | Trạng thái |
+|---|---|---|
+| 1 | Khung app, đăng nhập Google, phân quyền, màn Tài khoản | ✅ |
+| 2 | Nhân viên nhập phiếu | ⏳ |
+| 3 | Quản lý duyệt theo khung giờ | ⏳ |
+| 4 | Báo cáo, chốt ngày, xuất Excel / Sheets / ảnh Viber | ⏳ |
+| 5 | Chạy song song với app cũ rồi chuyển hẳn | ⏳ |
 
 ## Cấu trúc
 
 | Đường dẫn | Nội dung |
 |---|---|
-| `public/` | Bản build của app (React/Vite) – thư mục được deploy lên Firebase Hosting |
+| `src/config.ts` | Super Admin, 3 máng / 6 line |
+| `src/auth/` | Đăng nhập, hồ sơ `users/{uid}`, quyết định quyền (`access.ts`) |
+| `src/screens/` | Các màn hình |
+| `public/` | Logo, avatar, video nền (copy nguyên vào bản build) |
 | `firestore.rules` | Quyền đọc/ghi Firestore |
-| `firebase.json` | Cấu hình Hosting + Firestore |
+| `tests/rules/` | Kiểm thử rules (chạy trên Firestore emulator) |
 
-> Source React gốc được dựng trong Firebase Studio / AI Studio, chưa có trong repo này.
-> `public/assets/index-mangtruot-v2.js` là bản build đã vá bằng các script trong `patches/`:
-> - `01_google_only.py`: chỉ đăng nhập Google, bỏ đăng nhập mật khẩu trạm và đăng nhập ẩn danh,
->   báo lỗi khi Gmail chưa được duyệt.
-> - `02_giu_du_lieu_ma_tran_gio.py`: bỏ Migration tự động (đẩy số 0 từ máy trống đè lên Cloud),
->   chỉ ghi line thực sự thay đổi, realtime không đè line đang chờ đẩy lên.
->
-> Khi lấy được source gốc, cần sửa lại đúng các điểm này trong source rồi build đè `public/`.
+## Chạy trên máy
+
+```bash
+npm install
+npm run dev        # http://localhost:5178
+npm run check      # kiểm tra kiểu
+npm test           # unit test
+npm run build      # build ra dist/
+```
+
+`npm run test:rules` cần Java (Firestore emulator) – chạy tự động trên GitHub Actions (`.github/workflows/ci.yml`).
 
 ## Đăng nhập & phân quyền
 
-1. Mở app → chọn máng đang trực → **Đăng nhập với Google**.
-2. Super Admin (toàn quyền, không cần duyệt) – khai báo ở **cả hai** nơi:
-   `firestore.rules` (hàm `isSuperAdmin`) và trong bundle (`__sa`):
-   `phongbanana96@gmail.com`, `laotuung@gmail.com`, `laoung1996@gmail.com`, `dieuhanh.mangtruot@gmail.com`.
-3. Nhân viên khác: đăng nhập Google một lần để app tạo hồ sơ `users/{uid}`, sau đó quản lý vào
-   Firebase Console → Firestore → `users` → hồ sơ đó → thêm field `approved` (boolean) = `true`.
-   Khóa tài khoản: đổi `approved` thành `false`.
+| Cấp | Điều kiện | Thấy |
+|---|---|---|
+| Super Admin | Gmail nằm trong `SUPER_ADMINS` (`src/config.ts`) **và** `isSuperAdmin()` (`firestore.rules`) | Chờ duyệt, Báo cáo, Tài khoản |
+| Quản lý | `users/{uid}`: `approved = true`, `appRole = 'manager'` | Chờ duyệt, Báo cáo |
+| Nhân viên | `users/{uid}`: `approved = true`, `appRole = 'staff'`, `mang = 1/2/3` | Nhập phiếu của máng được giao |
 
-Cài đặt cần có trong Firebase Console → Authentication → Sign-in method:
-**Google: bật**, **Anonymous: tắt**, **Email/Password: tắt**.
+Người mới đăng nhập Google một lần → Super Admin vào tab **Tài khoản** → chọn vai trò (và máng) → **Duyệt**.
+Người dùng không tự sửa được `approved / appRole / mang` (rules chặn).
+
+Firebase Console → Authentication → Sign-in method: **Google: bật**, Anonymous / Email-Password: tắt.
+Authentication → Settings → Authorized domains phải có tên miền đang mở app.
 
 ## Deploy
 
-```bash
-firebase deploy --only hosting,firestore:rules --project sunworld-ops-laotuung
-```
+- **Xem thử:** mở Pull Request → GitHub Actions deploy lên kênh xem thử riêng (cần secret `FIREBASE_SERVICE_ACCOUNT`).
+- **Rules:** Firebase Console → Firestore → Rules → dán `firestore.rules` → Publish.
+  Bản rules này vẫn giữ quyền cho app cũ nên publish không làm hỏng app đang chạy.
+- **Bản chính:** chỉ thay khi xong giai đoạn 5.

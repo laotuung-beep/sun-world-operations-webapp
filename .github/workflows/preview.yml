@@ -1,0 +1,40 @@
+name: Preview
+
+# Mỗi Pull Request được deploy lên một kênh xem thử riêng của Firebase Hosting
+# (link dạng sunworld-ops-laotuung--pr-N-xxxx.web.app), KHÔNG đụng tới bản chính.
+# Cần secret FIREBASE_SERVICE_ACCOUNT (JSON khoá service account). Chưa có thì bước deploy được bỏ qua.
+
+on:
+  pull_request:
+
+permissions:
+  checks: write
+  contents: read
+  pull-requests: write
+
+jobs:
+  preview:
+    if: github.event.pull_request.head.repo.full_name == github.repository
+    runs-on: ubuntu-latest
+    env:
+      HAS_SA: ${{ secrets.FIREBASE_SERVICE_ACCOUNT != '' }}
+    steps:
+      - name: Missing secret
+        if: env.HAS_SA != 'true'
+        run: echo "::notice::Chưa có secret FIREBASE_SERVICE_ACCOUNT - bỏ qua deploy xem thử."
+      - uses: actions/checkout@v4
+        if: env.HAS_SA == 'true'
+      - uses: actions/setup-node@v4
+        if: env.HAS_SA == 'true'
+        with:
+          node-version: 24
+          cache: npm
+      - if: env.HAS_SA == 'true'
+        run: npm ci && npm run build
+      - uses: FirebaseExtended/action-hosting-deploy@v0
+        if: env.HAS_SA == 'true'
+        with:
+          repoToken: ${{ secrets.GITHUB_TOKEN }}
+          firebaseServiceAccount: ${{ secrets.FIREBASE_SERVICE_ACCOUNT }}
+          projectId: sunworld-ops-laotuung
+          expires: 14d
