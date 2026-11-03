@@ -39,7 +39,7 @@ export function EntryList({ entries, slotId, myUid, date, closed, error }: Props
   const dayCount = entries.filter((e) => isActive(e.status)).length;
 
   return (
-    <section className="bg-white rounded-3xl border border-slate-200">
+    <section className="bg-white rounded-xl border border-slate-200/90 shadow-sm">
       <div className="px-4 pt-4 pb-2 flex items-baseline justify-between gap-2">
         <h3 className="text-xs font-bold uppercase tracking-wide text-slate-500">
           Phiếu khung <span className="tabular text-slate-800">{slot.label}</span>

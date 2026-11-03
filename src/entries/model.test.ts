@@ -5,6 +5,7 @@ import {
   emptyLines,
   formatDuration,
   linesTotals,
+  normalizeHHMM,
   runMinutes,
   selectableSlots,
   sortNewestFirst,
@@ -92,6 +93,21 @@ describe('totalsBySlot', () => {
     expect(map.get('1000')).toEqual({ single: 4, double: 2, rides: 6, passengers: 8 });
     expect(map.get('1100')?.rides).toBe(3);
     expect(map.has('1200')).toBe(false);
+  });
+});
+
+describe('normalizeHHMM', () => {
+  it('accepts the ways people type a time', () => {
+    expect(normalizeHHMM('08:30')).toBe('08:30');
+    expect(normalizeHHMM('8:30')).toBe('08:30');
+    expect(normalizeHHMM('0830')).toBe('08:30');
+    expect(normalizeHHMM('830')).toBe('08:30');
+    expect(normalizeHHMM('19')).toBe('19:00');
+  });
+  it('rejects nonsense', () => {
+    expect(normalizeHHMM('25:00')).toBeNull();
+    expect(normalizeHHMM('0860')).toBeNull();
+    expect(normalizeHHMM('abc')).toBeNull();
   });
 });
 

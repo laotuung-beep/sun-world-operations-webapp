@@ -1,23 +1,21 @@
 @import "tailwindcss";
 
+/* Bảng màu / chữ giữ đúng như app cũ (v2). */
 @theme {
   --font-sans: "Plus Jakarta Sans", ui-sans-serif, system-ui, sans-serif;
-  --font-num: "Montserrat", ui-sans-serif, system-ui, sans-serif;
+  --font-numeric: "Montserrat", ui-sans-serif, system-ui, sans-serif;
+  --breakpoint-xs: 25rem;
 
   --color-brand: #d71920;
-  --color-brand-dark: #a8131a;
-  --color-sun: #ffc928;
+  --color-brand-dark: #b9151b;
+  --color-gold: #c8a97e;
   --color-page: #f5f6f8;
   --color-ink: #20242b;
-
-  --color-ac1: #10b981;
-  --color-ac2: #0ea5e9;
-  --color-ac3: #ef4444;
 }
 
 :root {
   /* Chiều cao thanh tab dưới cùng trên điện thoại (AppShell). */
-  --nav-h: 60px;
+  --nav-h: 64px;
 }
 
 html,
@@ -29,6 +27,21 @@ body {
 }
 
 .tabular {
-  font-family: var(--font-num);
+  font-family: var(--font-numeric);
   font-variant-numeric: tabular-nums;
+}
+
+@utility no-scrollbar {
+  scrollbar-width: none;
+  &::-webkit-scrollbar {
+    display: none;
+  }
+}
+
+@media print {
+  header,
+  nav,
+  [data-no-print] {
+    display: none !important;
+  }
 }

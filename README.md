@@ -9,12 +9,15 @@ số đã duyệt mới vào **báo cáo**. Ô ma trận giờ = tổng cộng d
 
 ## Màn hình
 
+Giao diện giữ như app cũ (thanh ALPINE COASTER, 3 tab, thanh tab dưới trên điện thoại, màn đăng nhập quả cầu video).
+
 | Tab | Làm gì |
 |---|---|
-| Nhập phiếu | Chọn máng (AC 1/2/3), khung giờ, nhập xe đơn / xe đôi 2 line → **Lưu phiếu** (ô về 0). Giờ chạy máng. |
-| Chờ duyệt | Ma trận khung giờ × 6 line các phiếu chờ, **Duyệt khung** / **Duyệt tất cả**, trả lại phiếu sai kèm lý do. |
-| Báo cáo | Số đã duyệt: khách từng máng, doanh thu, tỷ lệ lên cáp, TB chuyến giờ cao điểm, đối soát cáp treo & cổng, ma trận giờ. **Chốt ngày**, **Xuất Excel**, **Ảnh gửi Viber**, **Gửi Google Sheets**. |
-| Tài khoản | (Super Admin) duyệt / khoá Gmail. |
+| Nhập 6 Line | Khung giờ, chọn máng (AC 1/2/3 kèm số khách hôm nay), xe đơn / xe đôi 2 line → **Lưu phiếu** (ô về 0). Thời gian vận hành tự lưu. Danh sách phiếu của khung đang chọn. |
+| Ma Trận Giờ | Bảng khung giờ × 6 line số **đã duyệt**, số cam **+N** là phiếu chờ. Chạm dòng → xem phiếu, **Duyệt khung**, **Trả lại**. **Duyệt tất cả**, **Xuất Excel**. |
+| Báo Cáo Ca | Số đã duyệt: khách chơi máng, doanh thu, tỷ lệ lên cáp, đối soát cáp treo & cổng, vận hành 6 line. **Chép gửi Viber**, **Gửi báo cáo** (Sheets), **Tải xuống** (Excel), **In**, **Chốt ngày**. |
+
+Ngày xem Ma Trận / Báo Cáo chọn ở nút lịch trên thanh trên. Super Admin: menu tài khoản → Tài khoản (duyệt Gmail), Google Sheets.
 
 ## Cấu trúc
 

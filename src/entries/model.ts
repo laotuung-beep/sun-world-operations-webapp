@@ -117,6 +117,26 @@ export function totalsBySlot(entries: Entry[]): Map<SlotId, Totals> {
   return out;
 }
 
+/** Chuẩn hoá giờ gõ tay: '830' / '0830' / '8:30' / '08:30' → '08:30'. null nếu không hợp lệ. */
+export function normalizeHHMM(raw: string): string | null {
+  const s = raw.trim();
+  let h: number;
+  let m: number;
+  const colon = s.match(/^(\d{1,2}):(\d{2})$/);
+  if (colon) {
+    h = Number(colon[1]);
+    m = Number(colon[2]);
+  } else if (/^\d{3,4}$/.test(s)) {
+    h = Number(s.slice(0, s.length - 2));
+    m = Number(s.slice(-2));
+  } else if (/^\d{1,2}$/.test(s)) {
+    h = Number(s);
+    m = 0;
+  } else return null;
+  if (h > 23 || m > 59) return null;
+  return `${String(h).padStart(2, '0')}:${String(m).padStart(2, '0')}`;
+}
+
 /** Thời gian chạy máng (phút) = giờ đóng − giờ mở − phút tạm dừng. null khi chưa đủ giờ mở / đóng. */
 export function runMinutes(openTime: string, closeTime: string, pausedMinutes: number): number | null {
   if (!openTime || !closeTime) return null;

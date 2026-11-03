@@ -1,28 +1,27 @@
 import { useEffect, useState } from 'react';
-import { ChartColumn, ClipboardPen, ListChecks, LoaderCircle, Users } from 'lucide-react';
-import { useAuth } from './auth/AuthProvider';
+import { FileSpreadsheet, FileText, LoaderCircle, Smartphone, TableProperties, Users } from 'lucide-react';
+import { toast } from 'sonner';
+import { useActor, useAuth } from './auth/AuthProvider';
 import { canManageUsers, type Access } from './auth/access';
 import { isMangId, type MangId } from './config';
 import { dateKeyVN } from './time';
-import { AppShell, type Tab } from './components/AppShell';
+import { AppShell, type MenuItem, type Tab } from './components/AppShell';
 import { LoginScreen } from './screens/LoginScreen';
 import { PendingScreen } from './screens/PendingScreen';
 import { UsersScreen } from './screens/UsersScreen';
 import { StaffEntryScreen } from './screens/staff/StaffEntryScreen';
-import { ReviewScreen } from './screens/review/ReviewScreen';
+import { MatrixScreen } from './screens/review/MatrixScreen';
 import { ReportScreen } from './screens/report/ReportScreen';
+import { saveSheetsWebhook, useSheetsWebhook } from './report/api';
+import { writeErrorMessage } from './entries/api';
 
-type TabId = 'entry' | 'review' | 'report' | 'users';
+type TabId = 'entry' | 'matrix' | 'report' | 'users';
 
-function tabsFor(access: Access): Tab<TabId>[] {
-  const tabs: Tab<TabId>[] = [
-    { id: 'entry', label: 'Nhập phiếu', icon: ClipboardPen },
-    { id: 'review', label: 'Chờ duyệt', icon: ListChecks },
-    { id: 'report', label: 'Báo cáo', icon: ChartColumn },
-  ];
-  if (canManageUsers(access)) tabs.push({ id: 'users', label: 'Tài khoản', icon: Users });
-  return tabs;
-}
+const TABS: Tab<TabId>[] = [
+  { id: 'entry', label: 'Nhập 6 Line', icon: Smartphone },
+  { id: 'matrix', label: 'Ma Trận Giờ', icon: TableProperties },
+  { id: 'report', label: 'Báo Cáo Ca', icon: FileText },
+];
 
 export default function App() {
   const { loading, user, access } = useAuth();
@@ -60,24 +59,50 @@ function writeLocal(key: string, value: string) {
 
 function Workspace({ access }: { access: Access }) {
   const { profile } = useAuth();
-  const tabs = tabsFor(access);
-  const [current, setCurrent] = useState<TabId>(() => (readLocal(TAB_KEY) as TabId) || 'entry');
-  const tab = tabs.some((t) => t.id === current) ? current : tabs[0]!.id;
+  const actor = useActor();
+  const webhook = useSheetsWebhook();
+  const admin = canManageUsers(access);
+  const [current, setCurrent] = useState<TabId>(() => {
+    const saved = readLocal(TAB_KEY) as TabId | null;
+    return saved && (TABS.some((t) => t.id === saved) || (saved === 'users' && admin)) ? saved : 'entry';
+  });
   const [date, setDate] = useState(() => dateKeyVN());
   const [mang, setMang] = useState<MangId>(() => {
     const saved = Number(readLocal(MANG_KEY));
     return isMangId(saved) ? saved : isMangId(profile?.mang) ? profile.mang : 1;
   });
 
-  useEffect(() => writeLocal(TAB_KEY, tab), [tab]);
+  useEffect(() => writeLocal(TAB_KEY, current), [current]);
   useEffect(() => writeLocal(MANG_KEY, String(mang)), [mang]);
 
+  const menu: MenuItem[] = admin
+    ? [
+        { label: 'Tài khoản (duyệt Gmail)', icon: Users, onClick: () => setCurrent('users') },
+        {
+          label: 'Google Sheets',
+          icon: FileSpreadsheet,
+          onClick: () => {
+            const url = window.prompt('URL Web App của Google Apps Script (giống URL đã dùng ở app cũ):', webhook ?? '');
+            if (url === null) return;
+            if (url && !/^https:\/\/script\.google\.com\//.test(url.trim())) {
+              toast.error('URL phải bắt đầu bằng https://script.google.com/');
+              return;
+            }
+            saveSheetsWebhook(url, actor).then(
+              () => toast.success('Đã lưu URL Google Sheets cho mọi máy.'),
+              (e) => toast.error(`Không lưu được: ${writeErrorMessage(e)}`),
+            );
+          },
+        },
+      ]
+    : [];
+
   return (
-    <AppShell tabs={tabs} current={tab} onChange={setCurrent}>
-      {tab === 'entry' && <StaffEntryScreen key={mang} mang={mang} onChangeMang={setMang} />}
-      {tab === 'review' && <ReviewScreen date={date} onDateChange={setDate} />}
-      {tab === 'report' && <ReportScreen date={date} onDateChange={setDate} onGoReview={() => setCurrent('review')} />}
-      {tab === 'users' && <UsersScreen />}
+    <AppShell tabs={TABS} current={current} onChange={setCurrent} date={date} onDateChange={setDate} menu={menu}>
+      {current === 'entry' && <StaffEntryScreen key={mang} mang={mang} onChangeMang={setMang} />}
+      {current === 'matrix' && <MatrixScreen date={date} />}
+      {current === 'report' && <ReportScreen date={date} onGoMatrix={() => setCurrent('matrix')} />}
+      {current === 'users' && admin && <UsersScreen />}
     </AppShell>
   );
 }

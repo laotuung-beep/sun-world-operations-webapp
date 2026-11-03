@@ -1,14 +1,16 @@
-import { useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react';
-import { History, LoaderCircle, Lock, Save, WifiOff } from 'lucide-react';
+import { useEffect, useMemo, useRef, useState } from 'react';
+import { Clock, History, Lock, RotateCcw, Save, WifiOff } from 'lucide-react';
 import { toast } from 'sonner';
-import { LINE_LABEL, mangById, slotById, type LineId, type MangId, type SlotId } from '../../config';
+import { LINE_LABEL, MANGS, TIME_SLOTS, mangById, slotById, type LineId, type MangId, type SlotId } from '../../config';
 import { useAuth } from '../../auth/AuthProvider';
 import { useNow } from '../../hooks/useNow';
-import { dateKeyVN, longDateVN, minutesVN } from '../../time';
+import { useOnline } from '../../hooks/useOnline';
+import { dateKeyVN, minutesVN } from '../../time';
 import {
   countTotals,
   currentSlotId,
   emptyLines,
+  isActive,
   linesTotals,
   selectableSlots,
   totalsBySlot,
@@ -18,24 +20,26 @@ import {
 } from '../../entries/model';
 import { sendEntry, useDayClosed, useDayEntries, writeErrorMessage } from '../../entries/api';
 import { useSchedules } from '../../report/api';
-import { MangOverview } from './MangOverview';
 import { CountStepper } from '../../components/CountStepper';
+import { MANG_UI } from '../../components/brand';
 import { EntryList } from './EntryList';
 import { ScheduleCard } from './ScheduleCard';
 
+/** Tab "Nhập 6 Line": giao diện như app cũ, nhưng mỗi lần bấm Lưu là một phiếu (ô nhập về 0). */
 export function StaffEntryScreen({ mang, onChangeMang }: { mang: MangId; onChangeMang: (m: MangId) => void }) {
   const { user, profile } = useAuth();
   const now = useNow();
+  const online = useOnline();
   const date = dateKeyVN(now);
   const minutes = minutesVN(now);
   const current = currentSlotId(minutes);
-  const slots = selectableSlots(minutes);
+  const allowed = selectableSlots(minutes);
   const m = mangById(mang);
+  const ui = MANG_UI[mang];
 
   const [chosen, setChosen] = useState<SlotId | null>(null);
-  const slotId = chosen && slots.some((s) => s.id === chosen) ? chosen : current;
+  const slotId = chosen && allowed.some((s) => s.id === chosen) ? chosen : current;
   const [lines, setLines] = useState<EntryLines>(() => emptyLines(mang));
-  const [online, setOnline] = useState(() => navigator.onLine);
 
   const closed = useDayClosed(date);
   const { entries: allEntries, error } = useDayEntries(date);
@@ -51,15 +55,15 @@ export function StaffEntryScreen({ mang, onChangeMang }: { mang: MangId; onChang
     setChosen(null);
   }, [date, mang]);
 
+  // Khung đang chọn luôn nằm trong tầm nhìn của thanh khung giờ.
+  const slotBar = useRef<HTMLDivElement>(null);
   useEffect(() => {
-    const update = () => setOnline(navigator.onLine);
-    window.addEventListener('online', update);
-    window.addEventListener('offline', update);
-    return () => {
-      window.removeEventListener('online', update);
-      window.removeEventListener('offline', update);
-    };
-  }, []);
+    const bar = slotBar.current;
+    const el = bar?.querySelector<HTMLElement>(`[data-slot="${slotId}"]`);
+    if (!bar || !el) return;
+    const offset = el.getBoundingClientRect().left - bar.getBoundingClientRect().left;
+    bar.scrollTo({ left: bar.scrollLeft + offset - (bar.clientWidth - el.clientWidth) / 2, behavior: 'instant' });
+  }, [slotId]);
 
   function setCount(line: LineId, key: keyof LineCount, value: number) {
     setLines((prev) => ({ ...prev, [line]: { ...prev[line]!, [key]: value } }));
@@ -76,7 +80,7 @@ export function StaffEntryScreen({ mang, onChangeMang }: { mang: MangId; onChang
       toast.error(err);
       return;
     }
-    const summary = `${slotById(slotId).label}: ${totals.rides} lượt xe`;
+    const summary = `${m.short} ${slotById(slotId).label}: ${totals.rides} chuyến`;
     const { synced } = sendEntry({
       date,
       slotId,
@@ -92,160 +96,165 @@ export function StaffEntryScreen({ mang, onChangeMang }: { mang: MangId; onChang
     setChosen(null);
   }
 
-  return (
-    <div className="pb-56 md:pb-36">
-      <div className="flex items-baseline justify-between gap-2 px-1 mb-2">
-        <p className="font-extrabold">{longDateVN(now)}</p>
-        <p className="text-xs text-slate-500">Chạm máng để nhập</p>
-      </div>
-      <MangOverview entries={allEntries ?? []} schedules={schedules} selected={mang} onSelect={onChangeMang} />
+  // Khách hôm nay của từng máng (phiếu còn hiệu lực) - hiện trên nút chọn máng.
+  const mangPassengers = (id: MangId) =>
+    (allEntries ?? []).filter((e) => e.mang === id && isActive(e.status)).reduce((acc, e) => acc + linesTotals(e.lines).passengers, 0);
 
+  return (
+    <div className="max-w-4xl mx-auto space-y-2.5 pb-44 md:pb-28">
       {closed && (
-        <div className="mt-3 flex items-center gap-2 rounded-2xl bg-slate-900 text-white px-4 py-3 text-sm font-semibold">
+        <div className="flex items-center gap-2 rounded-xl bg-slate-900 text-white px-3 py-2.5 text-xs font-semibold">
           <Lock className="w-4 h-4 shrink-0" /> Ngày đã chốt báo cáo. Không gửi thêm phiếu được.
         </div>
       )}
       {!online && (
-        <div className="mt-3 flex items-center gap-2 rounded-2xl bg-amber-50 border border-amber-200 text-amber-800 px-4 py-3 text-sm font-semibold">
+        <div className="flex items-center gap-2 rounded-xl bg-orange-50 border border-orange-200 text-orange-800 px-3 py-2.5 text-xs font-semibold">
           <WifiOff className="w-4 h-4 shrink-0" /> Mất mạng. Phiếu vẫn lưu trên máy và tự gửi khi có mạng lại.
         </div>
       )}
 
-      <div className="mt-4 grid gap-4 lg:grid-cols-2 lg:items-start">
-        <div className="space-y-4 min-w-0">
-          <SlotPicker
-            slots={slots.map((s) => ({ ...s, reported: reported.get(s.id)?.rides ?? 0 }))}
-            current={current}
-            value={slotId}
-            onChange={setChosen}
-          />
+      {/* Khung giờ + chọn máng */}
+      <div className="bg-white rounded-xl p-2.5 sm:p-3 shadow-sm border border-slate-200/90 space-y-2">
+        <div className="flex items-center justify-between gap-2">
+          <div className="flex items-center gap-1.5 min-w-0">
+            <Clock className="w-3.5 h-3.5 text-slate-500 shrink-0" />
+            <span className="text-xs font-bold text-slate-800 truncate">
+              Khung Giờ: <strong className="font-mono text-slate-900">{slotById(slotId).label.replace(' – ', ' - ')}</strong>
+            </span>
+          </div>
+          <button
+            type="button"
+            onClick={() => setLines(emptyLines(mang))}
+            disabled={totals.rides === 0}
+            title="Xoá số đang nhập (chưa lưu) về 0"
+            className="inline-flex items-center gap-1.5 font-bold active:scale-95 bg-rose-50 hover:bg-rose-100 text-rose-700 border border-rose-200 min-h-[30px] px-2 py-1 text-[11px] rounded-lg disabled:opacity-40 transition"
+          >
+            <RotateCcw className="w-3 h-3" /> Xóa trắng
+          </button>
+        </div>
 
-          {m.lines.map((line) => {
-            const t = countTotals(lines[line]);
+        <div ref={slotBar} className="flex gap-1 overflow-x-auto pb-0.5 no-scrollbar scroll-smooth">
+          {TIME_SLOTS.map((s) => {
+            const active = s.id === slotId;
+            const enabled = allowed.some((a) => a.id === s.id);
+            const done = reported.get(s.id)?.rides ?? 0;
             return (
-              <section key={line} className="bg-white rounded-3xl border border-slate-200 p-4">
-                <div className="flex items-center justify-between">
-                  <h3 className="font-extrabold flex items-center gap-2">
-                    <span className="w-2.5 h-2.5 rounded-full" style={{ background: m.color }} />
-                    {LINE_LABEL[line]}
-                  </h3>
-                  <p className="text-xs text-slate-500 tabular">
-                    {t.rides} lượt · {t.passengers} khách
-                  </p>
-                </div>
-                <div className="mt-3 grid grid-cols-2 gap-3">
-                  <CountStepper
-                    label="Xe đơn"
-                    hint="1 khách"
-                    value={lines[line]?.single ?? 0}
-                    onChange={(v) => setCount(line, 'single', v)}
-                    disabled={!!closed}
-                  />
-                  <CountStepper
-                    label="Xe đôi"
-                    hint="2 khách"
-                    value={lines[line]?.double ?? 0}
-                    onChange={(v) => setCount(line, 'double', v)}
-                    disabled={!!closed}
-                  />
-                </div>
-              </section>
+              <button
+                key={s.id}
+                data-slot={s.id}
+                type="button"
+                disabled={!enabled}
+                onClick={() => setChosen(s.id)}
+                className={`flex-shrink-0 px-2.5 py-1.5 rounded-lg text-[11px] border transition-all active:scale-95 flex items-center gap-1 ${
+                  active
+                    ? 'bg-slate-900 text-white border-slate-900 font-bold shadow-sm'
+                    : 'bg-slate-50 text-slate-600 border-slate-200 hover:bg-slate-100 font-semibold disabled:opacity-40'
+                }`}
+              >
+                {s.peak && <span className="w-1.5 h-1.5 rounded-full shrink-0 bg-rose-500 animate-pulse" />}
+                <span>
+                  {s.start} - {s.end}
+                </span>
+                {done > 0 && (
+                  <span className={`tabular text-[10px] px-1 rounded ${active ? 'bg-white/20' : 'bg-emerald-100 text-emerald-700'}`}>{done}</span>
+                )}
+              </button>
             );
           })}
         </div>
 
-        <div className="space-y-4 min-w-0">
-          {entries === null ? (
-            <div className="grid place-items-center py-10 text-slate-400">
-              <LoaderCircle className="w-6 h-6 animate-spin" />
-            </div>
-          ) : (
-            <EntryList entries={entries} slotId={slotId} myUid={user?.uid ?? ''} date={date} closed={!!closed} error={error} />
-          )}
-          <ScheduleCard date={date} mang={mang} closed={!!closed} />
+        <div className="pt-1.5 border-t border-slate-100 grid grid-cols-3 gap-1.5 bg-slate-100/70 p-1 rounded-xl">
+          {MANGS.map((x) => {
+            const active = x.id === mang;
+            const s = schedules[x.id];
+            const running = !!s?.openTime && !s.closeTime;
+            return (
+              <button
+                key={x.id}
+                type="button"
+                onClick={() => onChangeMang(x.id)}
+                className={`relative min-h-[46px] py-1.5 px-1 rounded-lg text-center transition-all active:scale-95 ${active ? 'text-white font-bold' : 'text-slate-700 hover:bg-white/60'}`}
+              >
+                {active && <div className={`absolute inset-0 bg-gradient-to-r ${MANG_UI[x.id].gradient} rounded-lg shadow-sm border border-gold`} />}
+                <div className="relative z-10 flex flex-col items-center justify-center w-full min-w-0 py-0.5">
+                  <img src={x.badge} alt={x.name} className="h-5 sm:h-[22px] object-contain" />
+                  <span className={`text-[10px] sm:text-[11px] block mt-0.5 font-numeric tabular-nums font-semibold whitespace-nowrap ${active ? MANG_UI[x.id].light : 'text-slate-500'}`}>
+                    {mangPassengers(x.id)} khách
+                  </span>
+                  <span className={`text-[9px] leading-none mt-0.5 font-bold ${active ? 'text-white/80' : running ? 'text-emerald-600' : 'text-slate-400'}`}>
+                    {running ? '● Đang chạy' : s?.closeTime ? 'Đã đóng' : 'Chưa mở'}
+                  </span>
+                </div>
+              </button>
+            );
+          })}
         </div>
       </div>
 
-      <div className="fixed inset-x-0 z-20 bg-white/95 backdrop-blur border-t border-slate-200 bottom-[calc(var(--nav-h)+env(safe-area-inset-bottom))] md:bottom-0">
-        <div className="max-w-6xl mx-auto px-3 sm:px-6 py-3 flex items-center gap-3">
+      {/* 2 line của máng */}
+      {m.lines.map((line) => {
+        const t = countTotals(lines[line]);
+        return (
+          <div key={line} className="bg-white rounded-xl p-3 border border-slate-200/90 shadow-sm space-y-2.5">
+            <div className="flex items-center justify-between gap-1">
+              <span className={`px-2 py-0.5 rounded text-[11px] font-bold tracking-wider shadow-2xs shrink-0 text-white border border-gold ${ui.solid}`}>
+                {LINE_LABEL[line].toUpperCase()}
+              </span>
+              <div className="flex items-center gap-1 sm:gap-1.5 text-[11px] shrink-0">
+                <span className="px-2 py-0.5 rounded inline-flex items-center gap-1 bg-slate-100 text-slate-600 font-medium">
+                  Chuyến: <strong className="text-slate-900 font-bold font-numeric tabular-nums">{t.rides}</strong>
+                </span>
+                <span className="px-2 py-0.5 rounded inline-flex items-center gap-1 bg-slate-100 text-slate-800 font-bold">
+                  Khách: <strong className="text-slate-900 font-bold font-numeric tabular-nums">{t.passengers}</strong>
+                </span>
+              </div>
+            </div>
+            <div className="grid grid-cols-2 gap-2.5 sm:gap-3">
+              {(['single', 'double'] as const).map((k) => (
+                <CountStepper
+                  key={k}
+                  kind={k}
+                  lineLabel={LINE_LABEL[line]}
+                  value={lines[line]?.[k] ?? 0}
+                  onChange={(v) => setCount(line, k, v)}
+                  plusClass={`${ui.solid} ${ui.solidHover}`}
+                  ringClass={ui.ring}
+                  disabled={!!closed}
+                />
+              ))}
+            </div>
+          </div>
+        );
+      })}
+
+      <ScheduleCard date={date} mang={mang} closed={!!closed} />
+
+      {entries !== null && <EntryList entries={entries} slotId={slotId} myUid={user?.uid ?? ''} date={date} closed={!!closed} error={error} />}
+
+      {/* Thanh lưu phiếu (nằm trên thanh tab ở điện thoại) */}
+      <div className="fixed inset-x-0 z-30 bottom-[calc(var(--nav-h)+env(safe-area-inset-bottom))] md:bottom-0 bg-white/95 backdrop-blur border-t border-slate-200/90 shadow-[0_-4px_20px_rgba(0,0,0,0.06)]">
+        <div className="max-w-4xl mx-auto px-3 py-2 flex items-center gap-3">
           <div className="min-w-0 flex-1">
-            <p className={`text-xs font-bold flex items-center gap-1 ${late ? 'text-amber-600' : 'text-slate-500'}`}>
-              {late && <History className="w-3.5 h-3.5" />}
-              {late ? 'Báo trễ · ' : 'Khung '}
-              {slotById(slotId).label}
+            <p className={`text-[11px] font-bold flex items-center gap-1 truncate ${late ? 'text-amber-600' : 'text-slate-500'}`}>
+              {late && <History className="w-3.5 h-3.5 shrink-0" />}
+              {late ? 'Báo trễ · ' : ''}
+              {m.short} · {slotById(slotId).label}
             </p>
-            <p className="tabular text-lg font-extrabold leading-tight">
-              {totals.rides} <span className="text-sm font-semibold text-slate-500">lượt xe ·</span> {totals.passengers}{' '}
-              <span className="text-sm font-semibold text-slate-500">khách</span>
+            <p className="font-numeric tabular-nums text-base font-bold leading-tight">
+              {totals.rides} <span className="text-xs font-semibold text-slate-500">chuyến ·</span> {totals.passengers}{' '}
+              <span className="text-xs font-semibold text-slate-500">khách</span>
             </p>
           </div>
           <button
             type="button"
             onClick={save}
             disabled={totals.rides === 0 || !!closed}
-            className="inline-flex items-center gap-2 rounded-2xl bg-brand text-white font-extrabold px-5 py-3.5 shadow-sm active:scale-[0.98] transition disabled:bg-slate-300 disabled:shadow-none"
+            className="h-11 inline-flex items-center gap-2 rounded-xl bg-brand hover:bg-brand-dark text-white font-bold text-sm px-5 shadow-sm active:scale-[0.98] transition disabled:bg-slate-300 disabled:shadow-none"
           >
-            <Save className="w-5 h-5" /> Lưu phiếu
+            <Save className="w-4 h-4" /> Lưu phiếu
           </button>
         </div>
       </div>
     </div>
-  );
-}
-
-interface SlotChip {
-  id: SlotId;
-  start: string;
-  end: string;
-  peak: boolean;
-  reported: number;
-}
-
-function SlotPicker({
-  slots,
-  current,
-  value,
-  onChange,
-}: {
-  slots: SlotChip[];
-  current: SlotId;
-  value: SlotId;
-  onChange: (id: SlotId) => void;
-}) {
-  const scroller = useRef<HTMLDivElement>(null);
-  // Khung đang chạy luôn nằm cuối danh sách: cuộn sẵn về cuối.
-  useLayoutEffect(() => {
-    const el = scroller.current;
-    if (el) el.scrollLeft = el.scrollWidth;
-  }, [slots.length]);
-
-  return (
-    <section className="bg-white rounded-3xl border border-slate-200 p-4">
-      <h3 className="text-xs font-bold uppercase tracking-wide text-slate-500">Khung giờ</h3>
-      <div ref={scroller} className="mt-2 -mx-1 px-1 flex gap-2 overflow-x-auto pb-1 snap-x">
-        {slots.map((s) => {
-          const active = s.id === value;
-          return (
-            <button
-              key={s.id}
-              type="button"
-              onClick={() => onChange(s.id)}
-              className={`snap-end shrink-0 rounded-2xl border px-3 py-2 text-left transition ${
-                active ? 'border-brand bg-brand text-white' : 'border-slate-200 bg-white text-slate-700 hover:bg-slate-50'
-              }`}
-            >
-              <p className="tabular font-bold text-sm whitespace-nowrap">
-                {s.start}–{s.end}
-              </p>
-              <p className={`text-[11px] whitespace-nowrap ${active ? 'text-white/80' : 'text-slate-400'}`}>
-                {s.id === current ? 'Đang chạy · ' : ''}
-                {s.reported > 0 ? `đã báo ${s.reported} lượt` : 'chưa báo'}
-                {s.peak ? ' · cao điểm' : ''}
-              </p>
-            </button>
-          );
-        })}
-      </div>
-    </section>
   );
 }
