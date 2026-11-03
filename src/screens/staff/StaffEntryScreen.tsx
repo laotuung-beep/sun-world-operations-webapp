@@ -1,7 +1,7 @@
 import { useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react';
 import { History, LoaderCircle, Lock, Save, WifiOff } from 'lucide-react';
 import { toast } from 'sonner';
-import { LINE_LABEL, mangById, slotById, type LineId, type MangId, type SlotId } from '../../config';
+import { LINE_LABEL, MANGS, mangById, slotById, type LineId, type MangId, type SlotId } from '../../config';
 import { useAuth } from '../../auth/AuthProvider';
 import { useNow } from '../../hooks/useNow';
 import { dateKeyVN, longDateVN, minutesVN } from '../../time';
@@ -21,7 +21,7 @@ import { CountStepper } from '../../components/CountStepper';
 import { EntryList } from './EntryList';
 import { ScheduleCard } from './ScheduleCard';
 
-export function StaffEntryScreen({ mang }: { mang: MangId }) {
+export function StaffEntryScreen({ mang, onChangeMang }: { mang: MangId; onChangeMang: (m: MangId) => void }) {
   const { user, profile } = useAuth();
   const now = useNow();
   const date = dateKeyVN(now);
@@ -89,16 +89,33 @@ export function StaffEntryScreen({ mang }: { mang: MangId }) {
   }
 
   return (
-    <div className="pb-36">
-      <div className="bg-white rounded-3xl border border-slate-200 p-4 flex items-center gap-4">
+    <div className="pb-56 md:pb-36">
+      <div className="bg-white rounded-3xl border border-slate-200 p-4 flex flex-wrap items-center gap-x-4 gap-y-3">
         <img src={m.logo} alt={m.name} className="h-11 w-32 object-contain shrink-0" />
-        <div className="min-w-0">
+        <div className="min-w-0 flex-1">
           <p className="font-extrabold truncate" style={{ color: m.color }}>
             {m.name}
           </p>
           <p className="text-sm text-slate-500 truncate">
             {m.lines.map((l) => LINE_LABEL[l]).join(' & ')} · {longDateVN(now)}
           </p>
+        </div>
+        <div className="inline-flex rounded-xl bg-slate-100 p-1 w-full sm:w-auto" role="tablist" aria-label="Chọn máng">
+          {MANGS.map((x) => (
+            <button
+              key={x.id}
+              type="button"
+              role="tab"
+              aria-selected={x.id === mang}
+              onClick={() => onChangeMang(x.id)}
+              className={`flex-1 sm:flex-none px-4 py-2 rounded-lg text-sm font-extrabold transition ${
+                x.id === mang ? 'bg-white shadow-sm' : 'text-slate-500 hover:text-slate-800'
+              }`}
+              style={x.id === mang ? { color: x.color } : undefined}
+            >
+              {x.short}
+            </button>
+          ))}
         </div>
       </div>
 
@@ -168,7 +185,7 @@ export function StaffEntryScreen({ mang }: { mang: MangId }) {
         </div>
       </div>
 
-      <div className="fixed bottom-0 inset-x-0 z-20 bg-white/95 backdrop-blur border-t border-slate-200 pb-[env(safe-area-inset-bottom)]">
+      <div className="fixed inset-x-0 z-20 bg-white/95 backdrop-blur border-t border-slate-200 bottom-[calc(var(--nav-h)+env(safe-area-inset-bottom))] md:bottom-0">
         <div className="max-w-6xl mx-auto px-3 sm:px-6 py-3 flex items-center gap-3">
           <div className="min-w-0 flex-1">
             <p className={`text-xs font-bold flex items-center gap-1 ${late ? 'text-amber-600' : 'text-slate-500'}`}>

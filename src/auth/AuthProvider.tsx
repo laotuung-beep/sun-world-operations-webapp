@@ -101,6 +101,12 @@ export function useAuth(): AuthState {
   return ctx;
 }
 
+/** Người đang thao tác (ghi vào phiếu duyệt / chốt ngày). */
+export function useActor(): { uid: string; name: string } {
+  const { user, profile } = useAuth();
+  return { uid: user?.uid ?? '', name: profile?.displayName || user?.displayName || user?.email || 'Không rõ' };
+}
+
 /** Thông báo lỗi đăng nhập bằng tiếng Việt. */
 export function signInErrorMessage(e: unknown): string | null {
   const code = (e as { code?: string })?.code ?? '';

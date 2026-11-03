@@ -24,6 +24,8 @@ export interface Entry {
   createdAt: Date | null;
   clientCreatedAt: number;
   rejectReason?: string;
+  reviewedByName?: string;
+  reviewedAt?: Date | null;
   /** Đã lưu trên máy nhưng chưa lên tới Cloud (mất mạng). */
   pendingSync: boolean;
 }

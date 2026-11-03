@@ -19,11 +19,10 @@ const google = (email: string): TokenOptions => ({
   firebase: { sign_in_provider: 'google.com' },
 });
 
-const STAFF1 = { uid: 'staff1', token: google('nv1@gmail.com') }; // AC 1
-const STAFF1B = { uid: 'staff1b', token: google('nv1b@gmail.com') }; // AC 1
-const STAFF2 = { uid: 'staff2', token: google('nv2@gmail.com') }; // AC 2
-const MANAGER = { uid: 'mgr', token: google('ql@gmail.com') };
-const PENDING = { uid: 'newbie', token: google('moi@gmail.com') };
+const A = { uid: 'a', token: google('a@gmail.com') }; // đã duyệt
+const B = { uid: 'b', token: google('b@gmail.com') }; // đã duyệt
+const NEWBIE = { uid: 'newbie', token: google('moi@gmail.com') }; // chưa duyệt
+const ADMIN = { uid: 'admin', token: google('laotuung@gmail.com') };
 
 const as = (who: { uid: string; token: TokenOptions }) => env.authenticatedContext(who.uid, who.token).firestore();
 const now = () => firebase.firestore.FieldValue.serverTimestamp();
@@ -48,6 +47,7 @@ function entry(uid: string, over: Record<string, unknown> = {}) {
 }
 
 const entryPath = (id: string, date = TODAY) => `days/${date}/entries/${id}`;
+const approve = (uid: string) => ({ status: 'approved', reviewedBy: uid, reviewedByName: 'QL', reviewedAt: now() });
 
 beforeAll(async () => {
   env = await initializeTestEnvironment({
@@ -62,112 +62,152 @@ beforeEach(async () => {
   await env.clearFirestore();
   await env.withSecurityRulesDisabled(async (ctx) => {
     const db = ctx.firestore();
-    await db.doc('users/staff1').set({ approved: true, appRole: 'staff', mang: 1 });
-    await db.doc('users/staff1b').set({ approved: true, appRole: 'staff', mang: 1 });
-    await db.doc('users/staff2').set({ approved: true, appRole: 'staff', mang: 2 });
-    await db.doc('users/mgr').set({ approved: true, appRole: 'manager', mang: null });
+    await db.doc('users/a').set({ approved: true });
+    await db.doc('users/b').set({ approved: true, mang: 3 });
     await db.doc('users/newbie').set({ email: 'moi@gmail.com' });
   });
 });
 
 describe('phiếu: create', () => {
-  it('staff sends a phiếu for own máng today', async () => {
-    await assertSucceeds(as(STAFF1).doc(entryPath('e1')).set(entry('staff1')));
-  });
-
-  it('staff cannot send for another máng or with other lines', async () => {
-    await assertFails(as(STAFF2).doc(entryPath('e1')).set(entry('staff2')));
-    await assertFails(
-      as(STAFF2).doc(entryPath('e1')).set(entry('staff2', { mang: 2 })), // lines 1/2 do not belong to AC 2
-    );
+  it('any approved Gmail sends a phiếu for any máng today', async () => {
+    await assertSucceeds(as(A).doc(entryPath('e1')).set(entry('a')));
     await assertSucceeds(
-      as(STAFF2)
+      as(B)
         .doc(entryPath('e2'))
-        .set(entry('staff2', { mang: 2, lines: { line3: { single: 1, double: 0 }, line4: { single: 0, double: 0 } } })),
+        .set(entry('b', { mang: 2, lines: { line3: { single: 1, double: 0 }, line4: { single: 0, double: 0 } } })),
     );
   });
 
-  it('unapproved users and managers cannot send phiếu', async () => {
-    await assertFails(as(PENDING).doc(entryPath('e1')).set(entry('newbie')));
-    await assertFails(as(MANAGER).doc(entryPath('e1')).set(entry('mgr')));
+  it('lines must belong to the máng', async () => {
+    await assertFails(as(A).doc(entryPath('e1')).set(entry('a', { mang: 2 })));
+  });
+
+  it('unapproved Gmail cannot', async () => {
+    await assertFails(as(NEWBIE).doc(entryPath('e1')).set(entry('newbie')));
   });
 
   it('cannot pretend to be someone else or pre-approve', async () => {
-    await assertFails(as(STAFF1).doc(entryPath('e1')).set(entry('staff1b')));
-    await assertFails(as(STAFF1).doc(entryPath('e1')).set(entry('staff1', { status: 'approved' })));
+    await assertFails(as(A).doc(entryPath('e1')).set(entry('b')));
+    await assertFails(as(A).doc(entryPath('e1')).set(entry('a', { status: 'approved' })));
   });
 
   it('rejects bad numbers', async () => {
-    const bad = (line1: unknown) => entry('staff1', { lines: { line1, line2: { single: 0, double: 0 } } });
-    await assertFails(as(STAFF1).doc(entryPath('a')).set(bad({ single: -1, double: 2 })));
-    await assertFails(as(STAFF1).doc(entryPath('b')).set(bad({ single: 1.5, double: 0 })));
-    await assertFails(as(STAFF1).doc(entryPath('c')).set(bad({ single: 501, double: 0 })));
-    await assertFails(as(STAFF1).doc(entryPath('d')).set(bad({ single: '3', double: 0 })));
-    await assertFails(as(STAFF1).doc(entryPath('e')).set(bad({ single: 0, double: 0 }))); // all zero
-    await assertFails(as(STAFF1).doc(entryPath('f')).set(bad({ single: 1, double: 0, triple: 1 })));
+    const bad = (line1: unknown) => entry('a', { lines: { line1, line2: { single: 0, double: 0 } } });
+    await assertFails(as(A).doc(entryPath('a')).set(bad({ single: -1, double: 2 })));
+    await assertFails(as(A).doc(entryPath('b')).set(bad({ single: 1.5, double: 0 })));
+    await assertFails(as(A).doc(entryPath('c')).set(bad({ single: 501, double: 0 })));
+    await assertFails(as(A).doc(entryPath('d')).set(bad({ single: '3', double: 0 })));
+    await assertFails(as(A).doc(entryPath('e')).set(bad({ single: 0, double: 0 })));
+    await assertFails(as(A).doc(entryPath('f')).set(bad({ single: 1, double: 0, triple: 1 })));
   });
 
   it('rejects unknown slot, extra fields, other dates and a fake time', async () => {
-    await assertFails(as(STAFF1).doc(entryPath('a')).set(entry('staff1', { slotId: '1900' })));
-    await assertFails(as(STAFF1).doc(entryPath('b')).set(entry('staff1', { rides: 99 })));
-    await assertFails(as(STAFF1).doc(entryPath('c', YESTERDAY)).set(entry('staff1', { date: YESTERDAY })));
-    await assertFails(as(STAFF1).doc(entryPath('d')).set(entry('staff1', { date: YESTERDAY })));
-    await assertFails(as(STAFF1).doc(entryPath('e')).set(entry('staff1', { createdAt: new Date(0) })));
+    await assertFails(as(A).doc(entryPath('a')).set(entry('a', { slotId: '1900' })));
+    await assertFails(as(A).doc(entryPath('b')).set(entry('a', { rides: 99 })));
+    await assertFails(as(A).doc(entryPath('c', YESTERDAY)).set(entry('a', { date: YESTERDAY })));
+    await assertFails(as(A).doc(entryPath('d')).set(entry('a', { date: YESTERDAY })));
+    await assertFails(as(A).doc(entryPath('e')).set(entry('a', { createdAt: new Date(0) })));
   });
 
   it('rejects phiếu after the day is closed', async () => {
     await env.withSecurityRulesDisabled(async (ctx) => {
       await ctx.firestore().doc(`days/${TODAY}`).set({ closed: true });
     });
-    await assertFails(as(STAFF1).doc(entryPath('e1')).set(entry('staff1')));
+    await assertFails(as(A).doc(entryPath('e1')).set(entry('a')));
   });
 });
 
-describe('phiếu: numbers are never edited, only cancelled by the sender', () => {
+describe('phiếu: cancel, approve, return', () => {
   beforeEach(async () => {
-    await as(STAFF1).doc(entryPath('e1')).set(entry('staff1'));
+    await as(A).doc(entryPath('e1')).set(entry('a'));
   });
 
-  it('sender cancels own pending phiếu', async () => {
-    await assertSucceeds(as(STAFF1).doc(entryPath('e1')).update({ status: 'cancelled', cancelledAt: now() }));
+  it('sender cancels own pending phiếu; others cannot', async () => {
+    await assertFails(as(B).doc(entryPath('e1')).update({ status: 'cancelled', cancelledAt: now() }));
+    await assertSucceeds(as(A).doc(entryPath('e1')).update({ status: 'cancelled', cancelledAt: now() }));
   });
 
-  it('cannot change numbers or status otherwise', async () => {
-    await assertFails(as(STAFF1).doc(entryPath('e1')).update({ 'lines.line1.single': 99 }));
-    await assertFails(as(STAFF1).doc(entryPath('e1')).update({ status: 'approved' }));
-    await assertFails(as(STAFF1).doc(entryPath('e1')).delete());
+  it('any member approves a pending phiếu', async () => {
+    await assertSucceeds(as(B).doc(entryPath('e1')).update(approve('b')));
   });
 
-  it('colleague cannot cancel it', async () => {
-    await assertFails(as(STAFF1B).doc(entryPath('e1')).update({ status: 'cancelled', cancelledAt: now() }));
+  it('returning needs a reason', async () => {
+    const reject = (reason?: string) => ({ ...approve('b'), status: 'rejected', ...(reason === undefined ? {} : { rejectReason: reason }) });
+    await assertFails(as(B).doc(entryPath('e1')).update(reject()));
+    await assertFails(as(B).doc(entryPath('e1')).update(reject('')));
+    await assertSucceeds(as(B).doc(entryPath('e1')).update(reject('Trùng phiếu')));
   });
 
-  it('cannot cancel once approved', async () => {
+  it('approving cannot touch numbers or fake the reviewer', async () => {
+    await assertFails(as(B).doc(entryPath('e1')).update({ ...approve('b'), 'lines.line1.single': 99 }));
+    await assertFails(as(B).doc(entryPath('e1')).update(approve('a')));
+    await assertFails(as(B).doc(entryPath('e1')).update({ ...approve('b'), reviewedAt: new Date(0) }));
+  });
+
+  it('numbers are never edited and phiếu never deleted', async () => {
+    await assertFails(as(A).doc(entryPath('e1')).update({ 'lines.line1.single': 99 }));
+    await assertFails(as(A).doc(entryPath('e1')).delete());
+  });
+
+  it('approved phiếu is final (cannot cancel or approve again)', async () => {
+    await as(B).doc(entryPath('e1')).update(approve('b'));
+    await assertFails(as(A).doc(entryPath('e1')).update({ status: 'cancelled', cancelledAt: now() }));
+    await assertFails(as(B).doc(entryPath('e1')).update({ ...approve('b'), status: 'rejected', rejectReason: 'x' }));
+  });
+
+  it('nothing changes after the day is closed', async () => {
     await env.withSecurityRulesDisabled(async (ctx) => {
-      await ctx.firestore().doc(entryPath('e1')).update({ status: 'approved' });
+      await ctx.firestore().doc(`days/${TODAY}`).set({ closed: true });
     });
-    await assertFails(as(STAFF1).doc(entryPath('e1')).update({ status: 'cancelled', cancelledAt: now() }));
+    await assertFails(as(B).doc(entryPath('e1')).update(approve('b')));
+    await assertFails(as(A).doc(entryPath('e1')).update({ status: 'cancelled', cancelledAt: now() }));
+  });
+
+  it('unapproved Gmail cannot read or review', async () => {
+    await assertFails(as(NEWBIE).collection(`days/${TODAY}/entries`).get());
+    await assertFails(as(NEWBIE).doc(entryPath('e1')).update(approve('newbie')));
+    await assertSucceeds(as(B).collection(`days/${TODAY}/entries`).get());
   });
 });
 
-describe('phiếu: read', () => {
-  beforeEach(async () => {
-    await as(STAFF1).doc(entryPath('e1')).set(entry('staff1'));
+describe('ngày: số liệu đối soát, chốt ngày', () => {
+  const meta = (uid: string, over: Record<string, unknown> = {}) => ({
+    date: TODAY,
+    cableCarVisitors: 1500,
+    paidGateVisitors: 5000,
+    freeGateVisitors: 20,
+    nightComboVisitors: 0,
+    counterRevenue: 373360000,
+    metaUpdatedBy: uid,
+    metaUpdatedByName: 'A',
+    metaUpdatedAt: now(),
+    ...over,
+  });
+  const close = (uid: string, closed = true) => ({ date: TODAY, closed, closedBy: uid, closedByName: 'X', closedAt: now() });
+
+  it('members save numbers and close the day', async () => {
+    await assertSucceeds(as(A).doc(`days/${TODAY}`).set(meta('a'), { merge: true }));
+    await assertSucceeds(as(B).doc(`days/${TODAY}`).set(close('b'), { merge: true }));
   });
 
-  it('staff of the máng read its phiếu (query by máng)', async () => {
-    await assertSucceeds(as(STAFF1B).collection(`days/${TODAY}/entries`).where('mang', '==', 1).get());
+  it('rejects bad numbers and unknown fields', async () => {
+    await assertFails(as(A).doc(`days/${TODAY}`).set(meta('a', { counterRevenue: -1 })));
+    await assertFails(as(A).doc(`days/${TODAY}`).set(meta('a', { cableCarVisitors: 1.5 })));
+    await assertFails(as(A).doc(`days/${TODAY}`).set(meta('a', { hack: true })));
+    await assertFails(as(A).doc(`days/${TODAY}`).set(close('b')));
   });
 
-  it('staff of another máng cannot', async () => {
-    await assertFails(as(STAFF2).collection(`days/${TODAY}/entries`).where('mang', '==', 1).get());
-    await assertFails(as(STAFF2).doc(entryPath('e1')).get());
-    await assertFails(as(STAFF2).collection(`days/${TODAY}/entries`).get());
+  it('closed day: members cannot edit or reopen, but can mark Sheets sent; super admin can reopen', async () => {
+    await as(A).doc(`days/${TODAY}`).set(close('a'));
+    await assertFails(as(B).doc(`days/${TODAY}`).set(meta('b'), { merge: true }));
+    await assertFails(as(A).doc(`days/${TODAY}`).set(close('a', false), { merge: true }));
+    await assertSucceeds(as(B).doc(`days/${TODAY}`).set({ sheetsSyncedBy: 'b', sheetsSyncedAt: now() }, { merge: true }));
+    await assertSucceeds(as(ADMIN).doc(`days/${TODAY}`).set(close('admin', false), { merge: true }));
   });
 
-  it('managers read everything, unapproved users nothing', async () => {
-    await assertSucceeds(as(MANAGER).collection(`days/${TODAY}/entries`).get());
-    await assertFails(as(PENDING).collection(`days/${TODAY}/entries`).where('mang', '==', 1).get());
+  it('unapproved Gmail cannot read or write the day', async () => {
+    await assertFails(as(NEWBIE).doc(`days/${TODAY}`).get());
+    await assertFails(as(NEWBIE).doc(`days/${TODAY}`).set(meta('newbie')));
   });
 });
 
@@ -183,23 +223,22 @@ describe('giờ chạy máng', () => {
     ...over,
   });
 
-  it('staff sets own máng schedule today, not another máng', async () => {
-    await assertSucceeds(as(STAFF1).doc(`days/${TODAY}/schedules/1`).set(schedule('staff1', 1)));
-    await assertFails(as(STAFF1).doc(`days/${TODAY}/schedules/2`).set(schedule('staff1', 2)));
-    await assertFails(as(STAFF1).doc(`days/${YESTERDAY}/schedules/1`).set(schedule('staff1', 1)));
+  it('members set any máng; bad values rejected', async () => {
+    await assertSucceeds(as(A).doc(`days/${TODAY}/schedules/2`).set(schedule('a', 2)));
+    await assertSucceeds(as(A).doc(`days/${YESTERDAY}/schedules/3`).set(schedule('a', 3)));
+    await assertFails(as(A).doc(`days/${TODAY}/schedules/1`).set(schedule('a', 2)));
+    await assertFails(as(A).doc(`days/${TODAY}/schedules/1`).set(schedule('a', 1, { openTime: '25:00' })));
+    await assertFails(as(A).doc(`days/${TODAY}/schedules/1`).set(schedule('a', 1, { pausedMinutes: -5 })));
+    await assertFails(as(NEWBIE).doc(`days/${TODAY}/schedules/1`).set(schedule('newbie', 1)));
   });
+});
 
-  it('manager can set any máng, any day', async () => {
-    await assertSucceeds(as(MANAGER).doc(`days/${YESTERDAY}/schedules/3`).set(schedule('mgr', 3)));
-  });
-
-  it('rejects bad times', async () => {
-    await assertFails(as(STAFF1).doc(`days/${TODAY}/schedules/1`).set(schedule('staff1', 1, { openTime: '25:00' })));
-    await assertFails(as(STAFF1).doc(`days/${TODAY}/schedules/1`).set(schedule('staff1', 1, { pausedMinutes: -5 })));
-  });
-
-  it('staff reads only own máng', async () => {
-    await assertSucceeds(as(STAFF1).doc(`days/${TODAY}/schedules/1`).get());
-    await assertFails(as(STAFF2).doc(`days/${TODAY}/schedules/1`).get());
+describe('settings/app (Google Sheets)', () => {
+  it('members read, only super admin writes', async () => {
+    const s = { sheetsWebhookUrl: 'https://script.google.com/macros/s/x/exec', updatedBy: 'x', updatedAt: now() };
+    await assertFails(as(A).doc('settings/app').set(s));
+    await assertSucceeds(as(ADMIN).doc('settings/app').set(s));
+    await assertSucceeds(as(A).doc('settings/app').get());
+    await assertFails(as(NEWBIE).doc('settings/app').get());
   });
 });

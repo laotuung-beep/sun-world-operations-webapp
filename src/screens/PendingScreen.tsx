@@ -2,7 +2,7 @@ import { Hourglass, LogOut } from 'lucide-react';
 import { useAuth } from '../auth/AuthProvider';
 import { Avatar } from '../components/Avatar';
 
-export function PendingScreen({ reason }: { reason: 'not_approved' | 'no_mang' }) {
+export function PendingScreen() {
   const { user, signOut } = useAuth();
 
   return (
@@ -11,13 +11,9 @@ export function PendingScreen({ reason }: { reason: 'not_approved' | 'no_mang' }
         <div className="mx-auto w-14 h-14 rounded-2xl bg-amber-50 text-amber-600 grid place-items-center">
           <Hourglass className="w-7 h-7" />
         </div>
-        <h1 className="mt-4 text-lg font-extrabold">
-          {reason === 'not_approved' ? 'Tài khoản đang chờ duyệt' : 'Chưa được giao vai trò'}
-        </h1>
+        <h1 className="mt-4 text-lg font-extrabold">Tài khoản đang chờ duyệt</h1>
         <p className="mt-2 text-sm text-slate-600 leading-relaxed">
-          {reason === 'not_approved'
-            ? 'Nhờ quản trị viên vào mục Tài khoản để duyệt Gmail này. Màn hình sẽ tự mở khi được duyệt.'
-            : 'Tài khoản đã được duyệt nhưng chưa được giao vai trò hoặc máng. Nhờ quản trị viên cập nhật.'}
+          Nhờ quản trị viên vào mục Tài khoản để duyệt Gmail này. Màn hình sẽ tự mở khi được duyệt.
         </p>
 
         <div className="mt-5 flex items-center gap-3 rounded-2xl bg-slate-50 border border-slate-200 p-3 text-left">

@@ -7,15 +7,14 @@ số đã duyệt mới vào **báo cáo**. Ô ma trận giờ = tổng cộng d
 - Firebase project: `sunworld-ops-laotuung`
 - App cũ (v2, bản build đã vá) nằm ở tag `legacy-v2` – dùng để quay lại nếu cần.
 
-## Tiến độ
+## Màn hình
 
-| Giai đoạn | Nội dung | Trạng thái |
-|---|---|---|
-| 1 | Khung app, đăng nhập Google, phân quyền, màn Tài khoản | ✅ |
-| 2 | Nhân viên nhập phiếu, giờ chạy máng | ✅ |
-| 3 | Quản lý duyệt theo khung giờ | ⏳ |
-| 4 | Báo cáo, chốt ngày, xuất Excel / Sheets / ảnh Viber | ⏳ |
-| 5 | Chạy song song với app cũ rồi chuyển hẳn | ⏳ |
+| Tab | Làm gì |
+|---|---|
+| Nhập phiếu | Chọn máng (AC 1/2/3), khung giờ, nhập xe đơn / xe đôi 2 line → **Lưu phiếu** (ô về 0). Giờ chạy máng. |
+| Chờ duyệt | Ma trận khung giờ × 6 line các phiếu chờ, **Duyệt khung** / **Duyệt tất cả**, trả lại phiếu sai kèm lý do. |
+| Báo cáo | Số đã duyệt: khách từng máng, doanh thu, tỷ lệ lên cáp, TB chuyến giờ cao điểm, đối soát cáp treo & cổng, ma trận giờ. **Chốt ngày**, **Xuất Excel**, **Ảnh gửi Viber**, **Gửi Google Sheets**. |
+| Tài khoản | (Super Admin) duyệt / khoá Gmail. |
 
 ## Cấu trúc
 
@@ -33,12 +32,14 @@ số đã duyệt mới vào **báo cáo**. Ô ma trận giờ = tổng cộng d
 | Đường dẫn | Nội dung | Ai ghi |
 |---|---|---|
 | `users/{uid}` | Hồ sơ, `approved`, `appRole`, `mang` | Chính người đó (trừ quyền) · Super Admin (quyền) |
-| `days/{YYYY-MM-DD}` | Ngày vận hành, `closed` = đã chốt | Quản lý (giai đoạn 4) |
-| `days/{date}/entries/{id}` | Phiếu: `slotId`, `mang`, `lines.{lineX}.{single,double}`, `status` | Nhân viên của máng, trong ngày |
-| `days/{date}/schedules/{1\|2\|3}` | Giờ mở, giờ đóng, phút tạm dừng của máng | Nhân viên của máng (trong ngày) · Quản lý |
+| `days/{YYYY-MM-DD}` | Số liệu đối soát (cáp treo, cổng, doanh thu), `closed` = đã chốt | Gmail đã duyệt (ngày đã chốt: chỉ Super Admin) |
+| `days/{date}/entries/{id}` | Phiếu: `slotId`, `mang`, `lines.{lineX}.{single,double}`, `status` | Gửi: trong ngày · Duyệt / trả lại: Gmail đã duyệt |
+| `days/{date}/schedules/{1\|2\|3}` | Giờ mở, giờ đóng, phút tạm dừng của máng | Gmail đã duyệt |
+| `settings/app` | URL Apps Script Google Sheets | Super Admin |
 
 Phiếu không bao giờ bị sửa số. `status`: `pending` (chờ duyệt) → `approved` / `rejected` (quản lý),
-hoặc `cancelled` (người gửi tự huỷ khi còn chờ duyệt). Số khách = xe đơn × 1 + xe đôi × 2.
+hoặc `cancelled` (người gửi tự huỷ khi còn chờ duyệt).
+Báo cáo chỉ tính phiếu `approved`. Gửi Google Sheets giữ đúng khuôn dữ liệu của app cũ (`syncDailyReport6Line`). Số khách = xe đơn × 1 + xe đôi × 2.
 
 ## Chạy trên máy
 
@@ -50,27 +51,24 @@ npm test           # unit test
 npm run build      # build ra dist/
 ```
 
-Xem giao diện sau đăng nhập mà không cần Gmail: http://localhost:5178/?preview (người dùng giả, chỉ có khi `npm run dev`).
+Xem giao diện sau đăng nhập mà không cần Gmail: http://localhost:5178/?preview (người dùng giả, chỉ có khi `npm run dev`; thêm `&admin` để xem như Super Admin).
 
 `npm run test:rules` cần Java (Firestore emulator) – chạy tự động trên GitHub Actions (`.github/workflows/ci.yml`).
 
-## Đăng nhập & phân quyền
+## Đăng nhập & quyền
 
-| Cấp | Điều kiện | Thấy |
-|---|---|---|
-| Super Admin | Gmail nằm trong `SUPER_ADMINS` (`src/config.ts`) **và** `isSuperAdmin()` (`firestore.rules`) | Chờ duyệt, Báo cáo, Tài khoản |
-| Quản lý | `users/{uid}`: `approved = true`, `appRole = 'manager'` | Chờ duyệt, Báo cáo |
-| Nhân viên | `users/{uid}`: `approved = true`, `appRole = 'staff'`, `mang = 1/2/3` | Nhập phiếu của máng được giao |
+Không chia cấp: **mọi Gmail đã được duyệt** thấy và làm được tất cả các tab (trừ Tài khoản).
+Super Admin (`SUPER_ADMINS` trong `src/config.ts` **và** `isSuperAdmin()` trong `firestore.rules`) thêm quyền:
+duyệt / khoá Gmail, mở lại ngày đã chốt, cấu hình URL Google Sheets.
 
-Người mới đăng nhập Google một lần → Super Admin vào tab **Tài khoản** → chọn vai trò (và máng) → **Duyệt**.
-Người dùng không tự sửa được `approved / appRole / mang` (rules chặn).
+Người mới đăng nhập Google một lần → Super Admin vào tab **Tài khoản** → **Duyệt**.
+Rules vẫn chặn: không ai tự duyệt mình, không ai sửa số trên phiếu, ngày đã chốt thì khoá.
 
 Firebase Console → Authentication → Sign-in method: **Google: bật**, Anonymous / Email-Password: tắt.
 Authentication → Settings → Authorized domains phải có tên miền đang mở app.
 
 ## Deploy
 
-- **Xem thử:** mở Pull Request → GitHub Actions deploy lên kênh xem thử riêng (cần secret `FIREBASE_SERVICE_ACCOUNT`).
-- **Rules:** Firebase Console → Firestore → Rules → dán `firestore.rules` → Publish.
-  Bản rules này vẫn giữ quyền cho app cũ nên publish không làm hỏng app đang chạy.
-- **Bản chính:** chỉ thay khi xong giai đoạn 5.
+- **Bản chính:** https://mangtuot-bc.vercel.app – Vercel tự build mỗi lần đẩy lên `main` (cấu hình trong `vercel.json`).
+- **Rules:** Firebase Console → Firestore → Rules → dán `firestore.rules` → Publish (mỗi lần file này đổi).
+- **Quay lại app cũ:** tag `legacy-v2`.

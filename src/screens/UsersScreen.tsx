@@ -3,10 +3,8 @@ import { collection, doc, onSnapshot, serverTimestamp, updateDoc, type Timestamp
 import { Check, Lock, LoaderCircle, Search, ShieldCheck } from 'lucide-react';
 import { toast } from 'sonner';
 import { db } from '../firebase';
-import { MANGS, type MangId } from '../config';
 import { useAuth } from '../auth/AuthProvider';
-import { isSuperAdminEmail, type AppRole, type UserProfile } from '../auth/access';
-import { buildAccessUpdate, type AccessDraft } from '../auth/userAdmin';
+import { isSuperAdminEmail, type UserProfile } from '../auth/access';
 import { Avatar } from '../components/Avatar';
 
 type Row = UserProfile & { lastLoginAt?: Timestamp };
@@ -75,7 +73,7 @@ export function UsersScreen() {
       <div className="flex flex-col sm:flex-row sm:items-end gap-3 justify-between">
         <div>
           <h2 className="text-lg font-extrabold">Tài khoản</h2>
-          <p className="text-sm text-slate-500">Duyệt Gmail mới, chọn vai trò và giao máng cho nhân viên.</p>
+          <p className="text-sm text-slate-500">Duyệt Gmail mới. Gmail đã duyệt dùng được toàn bộ app: nhập phiếu, duyệt, báo cáo.</p>
         </div>
         <label className="relative sm:w-72">
           <Search className="w-4 h-4 text-slate-400 absolute left-3 top-1/2 -translate-y-1/2" />
@@ -90,13 +88,13 @@ export function UsersScreen() {
 
       <Section title="Chờ duyệt" count={groups.pending.length} empty="Không có tài khoản nào chờ duyệt.">
         {groups.pending.map((r) => (
-          <UserRow key={`${r.uid}:${r.appRole}:${r.mang}`} row={r} />
+          <UserRow key={r.uid} row={r} />
         ))}
       </Section>
 
       <Section title="Đang hoạt động" count={groups.active.length} empty="Chưa có tài khoản nào được duyệt.">
         {groups.active.map((r) => (
-          <UserRow key={`${r.uid}:${r.appRole}:${r.mang}`} row={r} />
+          <UserRow key={r.uid} row={r} />
         ))}
       </Section>
 
@@ -143,26 +141,19 @@ function Identity({ row }: { row: Row }) {
 
 function UserRow({ row }: { row: Row }) {
   const { user } = useAuth();
-  const initial: AccessDraft = { appRole: row.appRole ?? '', mang: row.mang ?? null };
-  const [draft, setDraft] = useState<AccessDraft>(initial);
   const [busy, setBusy] = useState(false);
   const approved = row.approved === true;
-  const dirty = draft.appRole !== initial.appRole || (draft.appRole === 'staff' && draft.mang !== initial.mang);
 
-  async function save() {
-    const update = buildAccessUpdate(draft);
-    if (!update.ok) {
-      toast.error(update.error);
-      return;
-    }
+  async function setApproved(next: boolean) {
+    if (!next && !window.confirm(`Khoá tài khoản ${row.email}? Người này sẽ không dùng được app cho tới khi duyệt lại.`)) return;
     setBusy(true);
     try {
       await updateDoc(doc(db, 'users', row.uid), {
-        ...update.data,
+        approved: next,
         approvedBy: user?.email ?? '',
         approvedAt: serverTimestamp(),
       });
-      toast.success(`${approved ? 'Đã cập nhật' : 'Đã duyệt'} ${row.displayName || row.email}`);
+      toast.success(`${next ? 'Đã duyệt' : 'Đã khoá'} ${row.displayName || row.email}`);
     } catch (e) {
       console.warn(e);
       toast.error('Không lưu được. Kiểm tra rules Firestore đã publish bản mới chưa.');
@@ -171,63 +162,19 @@ function UserRow({ row }: { row: Row }) {
     }
   }
 
-  async function lock() {
-    if (!window.confirm(`Khoá tài khoản ${row.email}? Người này sẽ không dùng được app cho tới khi duyệt lại.`)) return;
-    setBusy(true);
-    try {
-      await updateDoc(doc(db, 'users', row.uid), {
-        approved: false,
-        approvedBy: user?.email ?? '',
-        approvedAt: serverTimestamp(),
-      });
-      toast.success(`Đã khoá ${row.displayName || row.email}`);
-    } catch (e) {
-      console.warn(e);
-      toast.error('Không khoá được tài khoản.');
-    } finally {
-      setBusy(false);
-    }
-  }
-
   return (
-    <div className="p-3 sm:p-4 flex flex-col lg:flex-row lg:items-center gap-3">
-      <div className="flex items-center gap-3 min-w-0 lg:w-80">
-        <Avatar name={row.displayName} photoURL={row.photoURL} />
-        <Identity row={row} />
-      </div>
-
-      <div className="flex flex-wrap items-center gap-2 lg:ml-auto">
-        <Segmented<AppRole>
-          value={draft.appRole}
-          options={[
-            { value: 'staff', label: 'Nhân viên' },
-            { value: 'manager', label: 'Quản lý' },
-          ]}
-          onChange={(appRole) => setDraft((d) => ({ ...d, appRole }))}
-        />
-        {draft.appRole === 'staff' && (
-          <Segmented<MangId>
-            value={draft.mang ?? ''}
-            options={MANGS.map((m) => ({ value: m.id, label: m.short, color: m.color }))}
-            onChange={(mang) => setDraft((d) => ({ ...d, mang }))}
-          />
-        )}
-
-        {!approved ? (
-          <button type="button" onClick={save} disabled={busy} className={btn('bg-brand text-white hover:bg-brand-dark')}>
-            {busy ? <LoaderCircle className="w-4 h-4 animate-spin" /> : <Check className="w-4 h-4" />} Duyệt
+    <div className="p-3 sm:p-4 flex items-center gap-3">
+      <Avatar name={row.displayName} photoURL={row.photoURL} />
+      <Identity row={row} />
+      <div className="ml-auto shrink-0">
+        {approved ? (
+          <button type="button" onClick={() => setApproved(false)} disabled={busy} className={btn('border border-slate-200 text-slate-600 hover:bg-slate-50')}>
+            <Lock className="w-4 h-4" /> Khoá
           </button>
         ) : (
-          <>
-            {dirty && (
-              <button type="button" onClick={save} disabled={busy} className={btn('bg-slate-900 text-white hover:bg-slate-700')}>
-                <Check className="w-4 h-4" /> Lưu
-              </button>
-            )}
-            <button type="button" onClick={lock} disabled={busy} className={btn('border border-slate-200 text-slate-600 hover:bg-slate-50')}>
-              <Lock className="w-4 h-4" /> Khoá
-            </button>
-          </>
+          <button type="button" onClick={() => setApproved(true)} disabled={busy} className={btn('bg-brand text-white hover:bg-brand-dark')}>
+            {busy ? <LoaderCircle className="w-4 h-4 animate-spin" /> : <Check className="w-4 h-4" />} Duyệt
+          </button>
         )}
       </div>
     </div>
@@ -236,35 +183,4 @@ function UserRow({ row }: { row: Row }) {
 
 function btn(extra: string): string {
   return `inline-flex items-center gap-1.5 rounded-xl px-3 py-2 text-sm font-bold transition disabled:opacity-50 ${extra}`;
-}
-
-function Segmented<T extends string | number>({
-  value,
-  options,
-  onChange,
-}: {
-  value: T | '';
-  options: { value: T; label: string; color?: string }[];
-  onChange: (value: T) => void;
-}) {
-  return (
-    <div className="inline-flex rounded-xl bg-slate-100 p-1">
-      {options.map((o) => {
-        const active = o.value === value;
-        return (
-          <button
-            key={String(o.value)}
-            type="button"
-            onClick={() => onChange(o.value)}
-            className={`px-3 py-1.5 rounded-lg text-xs font-bold transition ${
-              active ? 'bg-white shadow-sm text-slate-900' : 'text-slate-500 hover:text-slate-800'
-            }`}
-            style={active && o.color ? { color: o.color } : undefined}
-          >
-            {o.label}
-          </button>
-        );
-      })}
-    </div>
-  );
 }

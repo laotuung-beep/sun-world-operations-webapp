@@ -2,7 +2,6 @@ import type { ReactNode } from 'react';
 import { LogOut, type LucideIcon } from 'lucide-react';
 import { useAuth } from '../auth/AuthProvider';
 import { ACCESS_LABEL } from '../auth/access';
-import { mangById } from '../config';
 import { Avatar } from './Avatar';
 
 export interface Tab<T extends string> {
@@ -20,8 +19,7 @@ interface Props<T extends string> {
 
 export function AppShell<T extends string>({ tabs, current, onChange, children }: Props<T>) {
   const { user, profile, access, signOut } = useAuth();
-  const roleLabel =
-    access?.kind === 'staff' ? `${ACCESS_LABEL.staff} · ${mangById(access.mang).short}` : access ? ACCESS_LABEL[access.kind] : '';
+  const roleLabel = access ? ACCESS_LABEL[access.kind] : '';
   const showNav = tabs.length > 1;
 
   return (
@@ -78,7 +76,7 @@ export function AppShell<T extends string>({ tabs, current, onChange, children }
               key={t.id}
               type="button"
               onClick={() => onChange(t.id)}
-              className={`flex flex-col items-center gap-0.5 py-2.5 text-[11px] font-bold ${t.id === current ? 'text-brand' : 'text-slate-500'}`}
+              className={`h-[var(--nav-h)] flex flex-col items-center justify-center gap-0.5 text-[11px] font-bold ${t.id === current ? 'text-brand' : 'text-slate-500'}`}
             >
               <t.icon className="w-5 h-5" />
               {t.label}

@@ -15,6 +15,11 @@
   --color-ac3: #ef4444;
 }
 
+:root {
+  /* Chiều cao thanh tab dưới cùng trên điện thoại (AppShell). */
+  --nav-h: 60px;
+}
+
 html,
 body {
   background: var(--color-page);

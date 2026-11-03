@@ -4,19 +4,18 @@ rules_version = '2';
 // BẢO MẬT HỆ THỐNG VẬN HÀNH MÁNG TRƯỢT (ALPINE COASTER) - SUN WORLD BA NA HILLS
 // Mặc định TỪ CHỐI. Chỉ tài khoản Google đã xác minh email mới được vào.
 //
-// Phân cấp (app v3):
-//   - Super Admin : 4 Gmail trong isSuperAdmin(), toàn quyền, duyệt tài khoản.
-//   - Quản lý     : users/{uid} approved == true, appRole == 'manager'.
-//   - Nhân viên   : users/{uid} approved == true, appRole == 'staff', mang = 1 | 2 | 3.
-// Mỗi người tự tạo hồ sơ users/{uid} khi đăng nhập nhưng KHÔNG được tự đặt
-// approved / appRole / mang / approvedBy / approvedAt - chỉ Super Admin đặt (màn Tài khoản).
+// Không chia cấp (app v3): mọi Gmail đã được duyệt (users/{uid}.approved == true) đều nhập phiếu,
+// duyệt phiếu, xem / chốt báo cáo. Super Admin (4 Gmail trong isSuperAdmin()) thêm quyền duyệt
+// tài khoản, mở lại ngày đã chốt và cấu hình Google Sheets.
+// Mỗi người tự tạo hồ sơ users/{uid} khi đăng nhập nhưng KHÔNG được tự đặt approved.
 //
 // Dữ liệu:
 //   users/{uid}                          - hồ sơ người đăng nhập
-//   days/{date}                          - ngày vận hành (closed = đã chốt)
+//   days/{date}                          - ngày vận hành: số liệu đối soát + closed (đã chốt)
 //   days/{date}/entries/{id}             - phiếu báo số xe của một máng trong một khung giờ
 //   days/{date}/schedules/{1|2|3}        - giờ chạy của từng máng trong ngày
-//   daily_reports/{date}[/lines/{line}]  - APP CŨ (v2), giữ quyền cũ cho tới khi chuyển hẳn sang v3
+//   settings/app                         - URL Google Sheets dùng chung
+//   daily_reports/{date}[/lines/{line}]  - APP CŨ (v2), chỉ còn để đọc lại số cũ
 // =============================================================================
 service cloud.firestore {
   match /databases/{database}/documents {
@@ -61,20 +60,8 @@ service cloud.firestore {
       return date.matches('^[0-9]{4}-[0-9]{2}-[0-9]{2}$');
     }
 
-    function myProfile() {
-      return get(myProfilePath()).data;
-    }
-
-    function isManager() {
-      return isSuperAdmin() || (isApproved() && myProfile().get('appRole', '') == 'manager');
-    }
-
-    function isStaff() {
-      return isApproved() && myProfile().get('appRole', '') == 'staff';
-    }
-
-    function isStaffOf(mang) {
-      return isStaff() && myProfile().get('mang', 0) == mang;
+    function isMember() {
+      return isSuperAdmin() || isApproved();
     }
 
     // Ngày theo giờ Việt Nam (UTC+7) của thời điểm ghi.
@@ -145,6 +132,51 @@ service cloud.firestore {
         && d.updatedAt == request.time;
     }
 
+    function validInt(d, key, max) {
+      return !(key in d) || (d[key] is int && d[key] >= 0 && d[key] <= max);
+    }
+
+    function validDay(date) {
+      let d = request.resource.data;
+      return d.keys().hasOnly(['date', 'closed', 'closedBy', 'closedByName', 'closedAt',
+                               'cableCarVisitors', 'paidGateVisitors', 'freeGateVisitors', 'nightComboVisitors',
+                               'counterRevenue', 'metaUpdatedBy', 'metaUpdatedByName', 'metaUpdatedAt',
+                               'sheetsSyncedBy', 'sheetsSyncedAt'])
+        && (!('date' in d) || d.date == date)
+        && (!('closed' in d) || d.closed is bool)
+        && validInt(d, 'cableCarVisitors', 1000000)
+        && validInt(d, 'paidGateVisitors', 1000000)
+        && validInt(d, 'freeGateVisitors', 1000000)
+        && validInt(d, 'nightComboVisitors', 1000000)
+        && validInt(d, 'counterRevenue', 100000000000);
+    }
+
+    function changed() {
+      return request.resource.data.diff(resource.data).affectedKeys();
+    }
+
+    // Người gửi tự huỷ phiếu của mình khi còn chờ duyệt.
+    function isOwnCancel() {
+      return resource.data.createdBy == request.auth.uid
+        && resource.data.status == 'pending'
+        && changed().hasOnly(['status', 'cancelledAt'])
+        && request.resource.data.status == 'cancelled'
+        && request.resource.data.cancelledAt == request.time;
+    }
+
+    // Duyệt hoặc trả lại phiếu đang chờ. Không đụng tới số trên phiếu.
+    function isReview() {
+      let d = request.resource.data;
+      return resource.data.status == 'pending'
+        && d.status in ['approved', 'rejected']
+        && changed().hasOnly(['status', 'reviewedBy', 'reviewedByName', 'reviewedAt', 'rejectReason'])
+        && d.reviewedBy == request.auth.uid
+        && d.reviewedByName is string && d.reviewedByName.size() <= 100
+        && d.reviewedAt == request.time
+        && (d.status == 'approved'
+            || (d.rejectReason is string && d.rejectReason.size() > 0 && d.rejectReason.size() <= 200));
+    }
+
     // ---------- 1. Hồ sơ người dùng ----------
     match /users/{userId} {
       allow read: if isGoogleUser() && (request.auth.uid == userId || isSuperAdmin());
@@ -163,43 +195,54 @@ service cloud.firestore {
 
     // ---------- 2. Ngày vận hành (app v3) ----------
     match /days/{date} {
-      allow read: if isManager() || isStaff();
-      // Chốt ngày / thông số chung: giai đoạn 4.
+      allow read: if isMember();
 
-      // Phiếu: nhân viên chỉ gửi cho máng mình, trong ngày hôm nay, khi ngày chưa chốt.
-      // Không ai sửa được số trên phiếu - chỉ đổi trạng thái.
+      allow create: if isMember() && isValidDate(date) && validDay(date)
+        && (!('closed' in request.resource.data) || request.resource.data.closedBy == request.auth.uid);
+
+      // Ngày đang mở: ai cũng sửa số liệu / chốt được. Ngày đã chốt: chỉ còn ghi dấu đã gửi Sheets;
+      // mở lại (hoặc sửa) ngày đã chốt chỉ Super Admin.
+      allow update: if isMember() && validDay(date)
+        && (!changed().hasAny(['closed']) || request.resource.data.closedBy == request.auth.uid)
+        && (isSuperAdmin()
+            || resource.data.get('closed', false) != true
+            || changed().hasOnly(['sheetsSyncedBy', 'sheetsSyncedAt']));
+
+      // Phiếu: gửi trong ngày hôm nay, khi ngày chưa chốt. Không ai sửa được số trên phiếu.
       match /entries/{entryId} {
-        allow read: if isManager() || isStaffOf(resource.data.mang);
+        allow read: if isMember();
 
-        allow create: if isValidDate(date)
-          && isStaffOf(request.resource.data.mang)
+        allow create: if isMember()
+          && isValidDate(date)
           && isToday(date)
           && isDayOpen(date)
           && validNewEntry(date);
 
-        // Người gửi tự huỷ phiếu của mình khi phiếu còn chờ duyệt.
-        allow update: if isStaff()
-          && resource.data.createdBy == request.auth.uid
-          && resource.data.status == 'pending'
-          && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['status', 'cancelledAt'])
-          && request.resource.data.status == 'cancelled'
-          && request.resource.data.cancelledAt == request.time
-          && isDayOpen(date);
+        allow update: if isMember() && isDayOpen(date) && (isOwnCancel() || isReview());
       }
 
-      // Giờ chạy máng: nhân viên của máng đó (trong ngày) hoặc quản lý.
+      // Giờ chạy máng.
       match /schedules/{mangKey} {
-        allow read: if isManager() || (mangKey in ['1', '2', '3'] && isStaffOf(int(mangKey)));
-        allow create, update: if isValidDate(date)
+        allow read: if isMember();
+        allow create, update: if isMember()
+          && isValidDate(date)
           && mangKey in ['1', '2', '3']
           && isDayOpen(date)
-          && validSchedule(int(mangKey))
-          && (isManager() || (isStaffOf(int(mangKey)) && isToday(date)));
+          && validSchedule(int(mangKey));
       }
     }
 
-    // ---------- 3. APP CŨ (v2): báo cáo ngày + số liệu từng line ----------
-    // Giữ nguyên để app cũ chạy song song trong lúc thử app mới. Xoá khi chuyển hẳn.
+    // ---------- 3. Cấu hình dùng chung ----------
+    match /settings/app {
+      allow read: if isMember();
+      allow write: if isSuperAdmin()
+        && request.resource.data.keys().hasOnly(['sheetsWebhookUrl', 'updatedBy', 'updatedAt'])
+        && request.resource.data.sheetsWebhookUrl is string
+        && request.resource.data.sheetsWebhookUrl.size() <= 500;
+    }
+
+    // ---------- 4. APP CŨ (v2): báo cáo ngày + số liệu từng line ----------
+    // Giữ để đọc lại số cũ. Xoá khi không còn cần.
     function isLegacyStaff() {
       return isSuperAdmin() || isApproved();
     }
@@ -220,7 +263,7 @@ service cloud.firestore {
       }
     }
 
-    // ---------- 4. Mọi đường dẫn khác: TỪ CHỐI ----------
+    // ---------- 5. Mọi đường dẫn khác: TỪ CHỐI ----------
     match /{document=**} {
       allow read, write: if false;
     }
