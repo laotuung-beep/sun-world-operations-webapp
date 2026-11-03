@@ -11,7 +11,7 @@ import { doc, getDoc, onSnapshot, serverTimestamp, setDoc } from 'firebase/fires
 import { auth, db, googleProvider } from '../firebase';
 import { resolveAccess, type Access, type UserProfile } from './access';
 
-interface AuthState {
+export interface AuthState {
   /** true cho tới khi biết chắc đã / chưa đăng nhập và đã đọc xong hồ sơ. */
   loading: boolean;
   user: User | null;
@@ -21,7 +21,8 @@ interface AuthState {
   signOut: () => Promise<void>;
 }
 
-const AuthContext = createContext<AuthState | null>(null);
+/** Xuất ra để màn xem thử khi dev (src/dev/Preview.tsx) gắn người dùng giả. */
+export const AuthContext = createContext<AuthState | null>(null);
 
 /** Ghi / cập nhật hồ sơ của chính mình. Không bao giờ đụng tới approved / appRole / mang. */
 async function upsertOwnProfile(user: User): Promise<void> {

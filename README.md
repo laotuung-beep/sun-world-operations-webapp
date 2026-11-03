@@ -12,7 +12,7 @@ số đã duyệt mới vào **báo cáo**. Ô ma trận giờ = tổng cộng d
 | Giai đoạn | Nội dung | Trạng thái |
 |---|---|---|
 | 1 | Khung app, đăng nhập Google, phân quyền, màn Tài khoản | ✅ |
-| 2 | Nhân viên nhập phiếu | ⏳ |
+| 2 | Nhân viên nhập phiếu, giờ chạy máng | ✅ |
 | 3 | Quản lý duyệt theo khung giờ | ⏳ |
 | 4 | Báo cáo, chốt ngày, xuất Excel / Sheets / ảnh Viber | ⏳ |
 | 5 | Chạy song song với app cũ rồi chuyển hẳn | ⏳ |
@@ -28,6 +28,18 @@ số đã duyệt mới vào **báo cáo**. Ô ma trận giờ = tổng cộng d
 | `firestore.rules` | Quyền đọc/ghi Firestore |
 | `tests/rules/` | Kiểm thử rules (chạy trên Firestore emulator) |
 
+## Dữ liệu Firestore
+
+| Đường dẫn | Nội dung | Ai ghi |
+|---|---|---|
+| `users/{uid}` | Hồ sơ, `approved`, `appRole`, `mang` | Chính người đó (trừ quyền) · Super Admin (quyền) |
+| `days/{YYYY-MM-DD}` | Ngày vận hành, `closed` = đã chốt | Quản lý (giai đoạn 4) |
+| `days/{date}/entries/{id}` | Phiếu: `slotId`, `mang`, `lines.{lineX}.{single,double}`, `status` | Nhân viên của máng, trong ngày |
+| `days/{date}/schedules/{1\|2\|3}` | Giờ mở, giờ đóng, phút tạm dừng của máng | Nhân viên của máng (trong ngày) · Quản lý |
+
+Phiếu không bao giờ bị sửa số. `status`: `pending` (chờ duyệt) → `approved` / `rejected` (quản lý),
+hoặc `cancelled` (người gửi tự huỷ khi còn chờ duyệt). Số khách = xe đơn × 1 + xe đôi × 2.
+
 ## Chạy trên máy
 
 ```bash
@@ -37,6 +49,8 @@ npm run check      # kiểm tra kiểu
 npm test           # unit test
 npm run build      # build ra dist/
 ```
+
+Xem giao diện sau đăng nhập mà không cần Gmail: http://localhost:5178/?preview (người dùng giả, chỉ có khi `npm run dev`).
 
 `npm run test:rules` cần Java (Firestore emulator) – chạy tự động trên GitHub Actions (`.github/workflows/ci.yml`).
 

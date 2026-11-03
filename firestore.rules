@@ -13,6 +13,9 @@ rules_version = '2';
 //
 // Dữ liệu:
 //   users/{uid}                          - hồ sơ người đăng nhập
+//   days/{date}                          - ngày vận hành (closed = đã chốt)
+//   days/{date}/entries/{id}             - phiếu báo số xe của một máng trong một khung giờ
+//   days/{date}/schedules/{1|2|3}        - giờ chạy của từng máng trong ngày
 //   daily_reports/{date}[/lines/{line}]  - APP CŨ (v2), giữ quyền cũ cho tới khi chuyển hẳn sang v3
 // =============================================================================
 service cloud.firestore {
@@ -58,6 +61,90 @@ service cloud.firestore {
       return date.matches('^[0-9]{4}-[0-9]{2}-[0-9]{2}$');
     }
 
+    function myProfile() {
+      return get(myProfilePath()).data;
+    }
+
+    function isManager() {
+      return isSuperAdmin() || (isApproved() && myProfile().get('appRole', '') == 'manager');
+    }
+
+    function isStaff() {
+      return isApproved() && myProfile().get('appRole', '') == 'staff';
+    }
+
+    function isStaffOf(mang) {
+      return isStaff() && myProfile().get('mang', 0) == mang;
+    }
+
+    // Ngày theo giờ Việt Nam (UTC+7) của thời điểm ghi.
+    function isToday(date) {
+      let p = date.split('-');
+      return (request.time + duration.value(7, 'h')).date()
+        == timestamp.date(int(p[0]), int(p[1]), int(p[2]));
+    }
+
+    function dayPath(date) {
+      return /databases/$(database)/documents/days/$(date);
+    }
+
+    function isDayOpen(date) {
+      return !exists(dayPath(date)) || get(dayPath(date)).data.get('closed', false) != true;
+    }
+
+    // PHẢI KHỚP với TIME_SLOTS trong src/config.ts
+    function slotIds() {
+      return ['0830', '1000', '1100', '1200', '1300', '1400', '1500', '1600', '1700', '1800'];
+    }
+
+    function linesOf(mang) {
+      return mang == 1 ? ['line1', 'line2'] : (mang == 2 ? ['line3', 'line4'] : ['line5', 'line6']);
+    }
+
+    // PHẢI KHỚP với MAX_CARTS trong src/config.ts
+    function validCount(n) {
+      return n is int && n >= 0 && n <= 500;
+    }
+
+    function validLineCount(c) {
+      return c is map
+        && c.keys().hasOnly(['single', 'double']) && c.keys().hasAll(['single', 'double'])
+        && validCount(c.single) && validCount(c.double);
+    }
+
+    function validNewEntry(date) {
+      let d = request.resource.data;
+      let ls = linesOf(d.mang);
+      return d.keys().hasOnly(['date', 'slotId', 'mang', 'lines', 'status', 'createdBy', 'createdByName',
+                               'createdByEmail', 'createdAt', 'clientCreatedAt'])
+        && d.keys().hasAll(['date', 'slotId', 'mang', 'lines', 'status', 'createdBy', 'createdByName',
+                            'createdAt', 'clientCreatedAt'])
+        && d.date == date
+        && d.slotId in slotIds()
+        && d.mang in [1, 2, 3]
+        && d.lines is map && d.lines.keys().hasOnly(ls) && d.lines.keys().hasAll(ls)
+        && validLineCount(d.lines[ls[0]]) && validLineCount(d.lines[ls[1]])
+        && d.lines[ls[0]].single + d.lines[ls[0]].double + d.lines[ls[1]].single + d.lines[ls[1]].double > 0
+        && d.status == 'pending'
+        && d.createdBy == request.auth.uid
+        && d.createdByName is string && d.createdByName.size() <= 100
+        && d.createdAt == request.time
+        && d.clientCreatedAt is int;
+    }
+
+    function validSchedule(mang) {
+      let d = request.resource.data;
+      let hhmm = '^(|([01][0-9]|2[0-3]):[0-5][0-9])$';
+      return d.keys().hasOnly(['mang', 'openTime', 'closeTime', 'pausedMinutes', 'updatedBy', 'updatedByName', 'updatedAt'])
+        && d.mang == mang
+        && d.openTime is string && d.openTime.matches(hhmm)
+        && d.closeTime is string && d.closeTime.matches(hhmm)
+        && d.pausedMinutes is int && d.pausedMinutes >= 0 && d.pausedMinutes <= 720
+        && d.updatedBy == request.auth.uid
+        && d.updatedByName is string && d.updatedByName.size() <= 100
+        && d.updatedAt == request.time;
+    }
+
     // ---------- 1. Hồ sơ người dùng ----------
     match /users/{userId} {
       allow read: if isGoogleUser() && (request.auth.uid == userId || isSuperAdmin());
@@ -74,7 +161,44 @@ service cloud.firestore {
       allow delete: if isSuperAdmin();
     }
 
-    // ---------- 2. APP CŨ (v2): báo cáo ngày + số liệu từng line ----------
+    // ---------- 2. Ngày vận hành (app v3) ----------
+    match /days/{date} {
+      allow read: if isManager() || isStaff();
+      // Chốt ngày / thông số chung: giai đoạn 4.
+
+      // Phiếu: nhân viên chỉ gửi cho máng mình, trong ngày hôm nay, khi ngày chưa chốt.
+      // Không ai sửa được số trên phiếu - chỉ đổi trạng thái.
+      match /entries/{entryId} {
+        allow read: if isManager() || isStaffOf(resource.data.mang);
+
+        allow create: if isValidDate(date)
+          && isStaffOf(request.resource.data.mang)
+          && isToday(date)
+          && isDayOpen(date)
+          && validNewEntry(date);
+
+        // Người gửi tự huỷ phiếu của mình khi phiếu còn chờ duyệt.
+        allow update: if isStaff()
+          && resource.data.createdBy == request.auth.uid
+          && resource.data.status == 'pending'
+          && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['status', 'cancelledAt'])
+          && request.resource.data.status == 'cancelled'
+          && request.resource.data.cancelledAt == request.time
+          && isDayOpen(date);
+      }
+
+      // Giờ chạy máng: nhân viên của máng đó (trong ngày) hoặc quản lý.
+      match /schedules/{mangKey} {
+        allow read: if isManager() || (mangKey in ['1', '2', '3'] && isStaffOf(int(mangKey)));
+        allow create, update: if isValidDate(date)
+          && mangKey in ['1', '2', '3']
+          && isDayOpen(date)
+          && validSchedule(int(mangKey))
+          && (isManager() || (isStaffOf(int(mangKey)) && isToday(date)));
+      }
+    }
+
+    // ---------- 3. APP CŨ (v2): báo cáo ngày + số liệu từng line ----------
     // Giữ nguyên để app cũ chạy song song trong lúc thử app mới. Xoá khi chuyển hẳn.
     function isLegacyStaff() {
       return isSuperAdmin() || isApproved();
@@ -96,7 +220,7 @@ service cloud.firestore {
       }
     }
 
-    // ---------- 3. Mọi đường dẫn khác: TỪ CHỐI ----------
+    // ---------- 4. Mọi đường dẫn khác: TỪ CHỐI ----------
     match /{document=**} {
       allow read, write: if false;
     }
