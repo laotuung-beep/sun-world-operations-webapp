@@ -11,7 +11,7 @@ import {
 } from 'firebase/firestore';
 import { db } from '../firebase';
 import type { MangId, SlotId } from '../config';
-import type { Entry, EntryLines } from './model';
+import { linesTotals, type Entry, type EntryLines } from './model';
 import type { MangSchedule } from '../report/compute';
 
 const entriesCol = (date: string) => collection(db, 'days', date, 'entries');
@@ -78,6 +78,67 @@ export function sendEntry(e: NewEntry): { id: string; synced: Promise<void> } {
 
 export function cancelEntry(date: string, id: string): Promise<void> {
   return updateDoc(doc(entriesCol(date), id), { status: 'cancelled', cancelledAt: serverTimestamp() });
+}
+
+export interface SaveSlotEntryParams {
+  date: string;
+  slotId: SlotId;
+  mang: MangId;
+  lines: EntryLines;
+  uid: string;
+  name: string;
+  email: string;
+  activeEntries: Entry[];
+}
+
+/**
+ * Lưu hoặc cập nhật số liệu cho một khung giờ & máng:
+ * - Nếu lines có tổng số chuyến > 0 và đã có phiếu: cập nhật lines trên phiếu đầu tiên, huỷ các phiếu trùng lặp.
+ * - Nếu lines có tổng số chuyến > 0 và chưa có phiếu: tạo phiếu mới (approved).
+ * - Nếu lines có tổng số chuyến = 0 và đã có phiếu: huỷ các phiếu active của khung giờ đó để trở về 0.
+ */
+export async function saveOrUpdateSlotEntry(
+  params: SaveSlotEntryParams,
+): Promise<{ action: 'created' | 'updated' | 'cleared'; id?: string }> {
+  const { date, slotId, mang, lines, uid, name, email, activeEntries } = params;
+  const isZero = linesTotals(lines).rides === 0;
+
+  if (isZero) {
+    for (const e of activeEntries) {
+      await updateDoc(doc(entriesCol(date), e.id), {
+        status: 'cancelled',
+        cancelledAt: serverTimestamp(),
+        cancelledBy: uid,
+        cancelledByName: name.slice(0, 100),
+      });
+    }
+    return { action: 'cleared' };
+  }
+
+  if (activeEntries.length > 0) {
+    const target = activeEntries[0];
+    await updateDoc(doc(entriesCol(date), target.id), {
+      lines,
+      updatedBy: uid,
+      updatedByName: name.slice(0, 100),
+      updatedAt: serverTimestamp(),
+    });
+
+    for (let i = 1; i < activeEntries.length; i++) {
+      await updateDoc(doc(entriesCol(date), activeEntries[i].id), {
+        status: 'cancelled',
+        cancelledAt: serverTimestamp(),
+        cancelledBy: uid,
+        cancelledByName: name.slice(0, 100),
+      });
+    }
+
+    return { action: 'updated', id: target.id };
+  }
+
+  const { id, synced } = sendEntry({ date, slotId, mang, lines, uid, name, email });
+  await synced;
+  return { action: 'created', id };
 }
 
 /** Mọi phiếu của một ngày (màn Chờ duyệt / Báo cáo). */

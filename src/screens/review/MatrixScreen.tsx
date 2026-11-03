@@ -17,7 +17,7 @@ export function MatrixScreen({
   onSelectSlot,
 }: {
   date: string;
-  onSelectSlot?: (slotId: SlotId) => void;
+  onSelectSlot?: (slotId: SlotId, mangId?: MangId) => void;
 }) {
   const day = useDay(date);
   const schedules = useSchedules(date);
@@ -121,7 +121,7 @@ export function MatrixScreen({
                 return (
                   <tr
                     key={s.id}
-                    onClick={() => onSelectSlot?.(s.id)}
+                    onClick={() => onSelectSlot?.(s.id, mangs[0]?.id ?? 1)}
                     title="Chạm để chuyển sang Nhập 6 Line hiệu chỉnh khung giờ này"
                     className={`cursor-pointer active:bg-slate-200/80 hover:bg-slate-50/80 border-b border-slate-100 ${hasRides ? 'text-slate-900' : 'bg-slate-50/40 text-slate-400'}`}
                   >
@@ -139,7 +139,12 @@ export function MatrixScreen({
                       return (
                         <td
                           key={l}
-                          className={`py-1.5 px-0.5 font-bold border-r ${i % 2 === 1 ? `border-slate-300 ${MANG_UI[m.id].tint}` : 'border-slate-200'} text-xs sm:text-sm leading-tight`}
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            onSelectSlot?.(s.id, m.id);
+                          }}
+                          title={`Chạm để hiệu chỉnh ${LINE_LABEL[l]} (${m.name}) khung ${s.start}-${s.end}`}
+                          className={`py-1.5 px-0.5 font-bold border-r hover:bg-emerald-50 transition-colors ${i % 2 === 1 ? `border-slate-300 ${MANG_UI[m.id].tint}` : 'border-slate-200'} text-xs sm:text-sm leading-tight`}
                         >
                           <span className={`font-numeric tabular-nums ${r ? 'text-slate-900' : 'text-slate-300'}`}>{r || '-'}</span>
                         </td>

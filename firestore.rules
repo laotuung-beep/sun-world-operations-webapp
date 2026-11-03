@@ -64,13 +64,6 @@ service cloud.firestore {
       return isSuperAdmin() || isApproved();
     }
 
-    // Ngày theo giờ Việt Nam (UTC+7) của thời điểm ghi.
-    function isToday(date) {
-      let p = date.split('-');
-      return (request.time + duration.value(7, 'h')).date()
-        == timestamp.date(int(p[0]), int(p[1]), int(p[2]));
-    }
-
     function dayPath(date) {
       return /databases/$(database)/documents/days/$(date);
     }
@@ -164,6 +157,29 @@ service cloud.firestore {
         && request.resource.data.cancelledAt == request.time;
     }
 
+    // Nhân viên / quản lý huỷ phiếu (xoá trắng khung giờ hoặc huỷ phiếu trùng).
+    function isMemberCancel() {
+      let d = request.resource.data;
+      return changed().hasOnly(['status', 'cancelledAt', 'cancelledBy', 'cancelledByName'])
+        && d.status == 'cancelled'
+        && d.cancelledAt == request.time
+        && (!('cancelledBy' in d) || d.cancelledBy == request.auth.uid)
+        && (!('cancelledByName' in d) || (d.cancelledByName is string && d.cancelledByName.size() <= 100));
+    }
+
+    // Cập nhật số liệu lines trên phiếu đã có.
+    function isUpdateLines() {
+      let d = request.resource.data;
+      let ls = linesOf(resource.data.mang);
+      return changed().hasOnly(['lines', 'updatedBy', 'updatedByName', 'updatedAt'])
+        && d.lines is map && d.lines.keys().hasOnly(ls) && d.lines.keys().hasAll(ls)
+        && validLineCount(d.lines[ls[0]]) && validLineCount(d.lines[ls[1]])
+        && d.lines[ls[0]].single + d.lines[ls[0]].double + d.lines[ls[1]].single + d.lines[ls[1]].double > 0
+        && d.updatedBy == request.auth.uid
+        && d.updatedByName is string && d.updatedByName.size() <= 100
+        && d.updatedAt == request.time;
+    }
+
     // Duyệt hoặc trả lại phiếu đang chờ. Không đụng tới số trên phiếu.
     function isReview() {
       let d = request.resource.data;
@@ -208,17 +224,18 @@ service cloud.firestore {
             || resource.data.get('closed', false) != true
             || changed().hasOnly(['sheetsSyncedBy', 'sheetsSyncedAt']));
 
-      // Phiếu: gửi trong ngày hôm nay, khi ngày chưa chốt. Không ai sửa được số trên phiếu.
+      // Phiếu: nhập trên mọi ngày vận hành hợp lệ, khi ngày chưa chốt (hoặc Super Admin).
       match /entries/{entryId} {
         allow read: if isMember();
 
         allow create: if isMember()
           && isValidDate(date)
-          && isToday(date)
-          && isDayOpen(date)
+          && (isDayOpen(date) || isSuperAdmin())
           && validNewEntry(date);
 
-        allow update: if isMember() && isDayOpen(date) && (isOwnCancel() || isReview());
+        allow update: if isMember()
+          && (isDayOpen(date) || isSuperAdmin())
+          && (isUpdateLines() || isMemberCancel() || isOwnCancel() || isReview());
       }
 
       // Giờ chạy máng.
@@ -227,7 +244,7 @@ service cloud.firestore {
         allow create, update: if isMember()
           && isValidDate(date)
           && mangKey in ['1', '2', '3']
-          && isDayOpen(date)
+          && (isDayOpen(date) || isSuperAdmin())
           && validSchedule(int(mangKey));
       }
     }

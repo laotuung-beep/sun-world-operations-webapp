@@ -1,9 +1,10 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
-import { Clock, History, Lock, Save, WifiOff } from 'lucide-react';
+import { CheckCircle2, Clock, History, Lock, Save, ShieldAlert, WifiOff } from 'lucide-react';
 import NumberFlow from '@number-flow/react';
 import { toast } from 'sonner';
 import { LINE_LABEL, MANGS, TIME_SLOTS, mangById, slotById, type LineId, type MangId, type SlotId } from '../../config';
 import { useAuth } from '../../auth/AuthProvider';
+import { isSuperAdminEmail } from '../../auth/access';
 import { useNow } from '../../hooks/useNow';
 import { useOnline } from '../../hooks/useOnline';
 import { dateKeyVN, minutesVN } from '../../time';
@@ -17,33 +18,37 @@ import {
   type EntryLines,
   type LineCount,
 } from '../../entries/model';
-import { sendEntry, useDayClosed, useDayEntries, writeErrorMessage } from '../../entries/api';
+import { saveOrUpdateSlotEntry, useDayClosed, useDayEntries, writeErrorMessage } from '../../entries/api';
 import { useSchedules } from '../../report/api';
 import { CountStepper } from '../../components/CountStepper';
 import { MANG_UI } from '../../components/brand';
 import { EntryList } from './EntryList';
 import { ScheduleCard } from './ScheduleCard';
 
-/** Tab "Nhập 6 Line": giao diện như app cũ, số liệu lưu trực tiếp vào Ma Trận Giờ. */
+/** Tab "Nhập 6 Line": hiển thị số đã nhập, cho phép hiệu chỉnh và lưu trực tiếp vào Ma Trận Giờ. */
 export function StaffEntryScreen({
+  date: propDate,
   mang,
   onChangeMang,
   selectedSlotId,
   onSelectSlotId,
 }: {
+  date?: string;
   mang: MangId;
   onChangeMang: (m: MangId) => void;
   selectedSlotId?: SlotId | null;
   onSelectSlotId?: (s: SlotId) => void;
 }) {
-  const { user, profile } = useAuth();
+  const { user, profile, access } = useAuth();
   const now = useNow();
   const online = useOnline();
-  const date = dateKeyVN(now);
+  const date = propDate ?? dateKeyVN(now);
   const minutes = minutesVN(now);
   const current = currentSlotId(minutes);
   const m = mangById(mang);
   const ui = MANG_UI[mang];
+
+  const isSuperAdmin = access?.kind === 'superadmin' || isSuperAdminEmail(user?.email);
 
   const [chosen, setChosen] = useState<SlotId | null>(() => selectedSlotId ?? null);
   const slotId = chosen ?? current;
@@ -54,17 +59,54 @@ export function StaffEntryScreen({
   }, [selectedSlotId]);
 
   const closed = useDayClosed(date);
+  const canEdit = !closed || isSuperAdmin;
+
   const { entries: allEntries, error } = useDayEntries(date);
   const schedules = useSchedules(date);
   const entries = useMemo(() => (allEntries ? allEntries.filter((e) => e.mang === mang) : null), [allEntries, mang]);
+
+  // Lọc các phiếu active của khung giờ và máng hiện tại
+  const activeEntries = useMemo(() => {
+    if (!entries) return [];
+    return entries.filter((e) => e.slotId === slotId && isActive(e.status));
+  }, [entries, slotId]);
+
+  // Tính số liệu đã nhập sẵn trong hệ thống cho khung giờ này
+  const existingLines = useMemo(() => {
+    if (!entries) return null;
+    const res = emptyLines(mang);
+    let hasData = false;
+    for (const l of m.lines) {
+      let single = 0;
+      let double = 0;
+      for (const e of activeEntries) {
+        if (e.lines && e.lines[l]) {
+          single += e.lines[l]?.single || 0;
+          double += e.lines[l]?.double || 0;
+          hasData = true;
+        }
+      }
+      res[l] = { single, double };
+    }
+    return hasData ? res : null;
+  }, [activeEntries, entries, m.lines, mang]);
+
+  // Tự động tải số đã nhập vào các ô Stepper khi chuyển khung giờ / máng / ngày
+  const targetKey = `${date}:${mang}:${slotId}`;
+  const loadedKeyRef = useRef<string>('');
+
+  useEffect(() => {
+    if (entries === null) return;
+    if (loadedKeyRef.current !== targetKey) {
+      loadedKeyRef.current = targetKey;
+      setLines(existingLines ?? emptyLines(mang));
+    }
+  }, [entries, existingLines, mang, targetKey]);
+
   const totals = linesTotals(lines);
   const late = slotId !== current;
-
-  // Sang ngày mới: bỏ phiếu đang nhập dở (trừ khi có selectedSlotId được truyền vào).
-  useEffect(() => {
-    setLines(emptyLines(mang));
-    if (!selectedSlotId) setChosen(null);
-  }, [date, mang, selectedSlotId]);
+  const hasExisting = activeEntries.length > 0;
+  const canSave = (totals.rides > 0 || hasExisting) && canEdit;
 
   // Khung đang chọn luôn nằm trong tầm nhìn của thanh khung giờ.
   const slotBar = useRef<HTMLDivElement>(null);
@@ -80,31 +122,41 @@ export function StaffEntryScreen({
     setLines((prev) => ({ ...prev, [line]: { ...prev[line]!, [key]: value } }));
   }
 
-  function save() {
+  async function save() {
     if (!user) return;
-    if (closed) {
-      toast.error('Ngày đã chốt, không gửi thêm phiếu được.');
+    if (closed && !isSuperAdmin) {
+      toast.error('Ngày đã chốt báo cáo. Chỉ Super Admin mới có thể chỉnh sửa.');
       return;
     }
     const err = validateLines(mang, lines);
-    if (err) {
+    if (err && totals.rides > 0) {
       toast.error(err);
       return;
     }
-    const summary = `${m.short} ${slotById(slotId).label}: ${totals.rides} chuyến`;
-    const { synced } = sendEntry({
-      date,
-      slotId,
-      mang,
-      lines,
-      uid: user.uid,
-      name: profile?.displayName || user.displayName || user.email || 'Nhân viên',
-      email: user.email ?? '',
-    });
-    synced.catch((e) => toast.error(`Phiếu ${summary} bị từ chối: ${writeErrorMessage(e)}`, { duration: 15_000 }));
-    toast.success(navigator.onLine ? `Đã lưu phiếu ${summary}` : `Đã lưu trên máy (${summary}). Có mạng sẽ tự gửi.`);
-    setLines(emptyLines(mang));
-    setChosen(null);
+    const summary = `${m.short} ${slotById(slotId).label}`;
+    try {
+      const res = await saveOrUpdateSlotEntry({
+        date,
+        slotId,
+        mang,
+        lines,
+        uid: user.uid,
+        name: profile?.displayName || user.displayName || user.email || 'Nhân viên',
+        email: user.email ?? '',
+        activeEntries,
+      });
+      if (res.action === 'cleared') {
+        toast.success(`Đã xoá số liệu khung ${summary}`);
+      } else if (res.action === 'updated') {
+        toast.success(`Đã cập nhật ${totals.rides} chuyến cho ${summary}`);
+      } else {
+        toast.success(`Đã lưu phiếu ${summary}: ${totals.rides} chuyến`);
+      }
+      // Đồng bộ loadedKeyRef để tiếp tục giữ số vừa lưu
+      loadedKeyRef.current = targetKey;
+    } catch (e) {
+      toast.error(`Không lưu được số liệu ${summary}: ${writeErrorMessage(e)}`);
+    }
   }
 
   // Khách hôm nay của từng máng (phiếu còn hiệu lực) - hiện trên nút chọn máng.
@@ -114,8 +166,21 @@ export function StaffEntryScreen({
   return (
     <div className="max-w-4xl mx-auto space-y-2.5 pb-44 md:pb-28">
       {closed && (
-        <div className="flex items-center gap-2 rounded-xl bg-slate-900 text-white px-3 py-2.5 text-xs font-semibold">
-          <Lock className="w-4 h-4 shrink-0" /> Ngày đã chốt báo cáo. Không gửi thêm phiếu được.
+        <div
+          className={`flex items-center justify-between gap-2 rounded-xl px-3 py-2.5 text-xs font-semibold ${
+            isSuperAdmin
+              ? 'bg-amber-950 text-amber-200 border border-amber-800'
+              : 'bg-slate-900 text-white'
+          }`}
+        >
+          <div className="flex items-center gap-2 min-w-0">
+            {isSuperAdmin ? <ShieldAlert className="w-4 h-4 text-amber-400 shrink-0" /> : <Lock className="w-4 h-4 shrink-0" />}
+            <span>
+              {isSuperAdmin
+                ? 'Ngày đã chốt báo cáo. Chế độ Super Admin: Bạn có quyền hiệu chỉnh và lưu lại số liệu.'
+                : 'Ngày đã chốt báo cáo. Chỉ Super Admin mới có thể chỉnh sửa số liệu.'}
+            </span>
+          </div>
         </div>
       )}
       {!online && (
@@ -132,11 +197,16 @@ export function StaffEntryScreen({
             <span className="text-xs font-bold text-slate-800 truncate">
               Khung Giờ: <strong className="font-mono text-slate-900">{slotById(slotId).label.replace(' – ', ' - ')}</strong>
             </span>
+            {hasExisting && (
+              <span className="inline-flex items-center gap-0.5 text-[10px] font-bold text-emerald-700 bg-emerald-50 border border-emerald-200 px-1.5 py-0.5 rounded">
+                <CheckCircle2 className="w-3 h-3 text-emerald-600" /> Đã có số
+              </span>
+            )}
           </div>
           <button
             type="button"
             onClick={save}
-            disabled={totals.rides === 0 || !!closed}
+            disabled={!canSave}
             title="Lưu số liệu khung giờ vào hệ thống"
             className="inline-flex items-center gap-1.5 font-bold active:scale-95 bg-emerald-600 hover:bg-emerald-700 text-white shadow-xs min-h-[30px] px-3 py-1 text-[11px] rounded-lg disabled:opacity-40 disabled:bg-slate-300 transition"
           >
@@ -228,7 +298,7 @@ export function StaffEntryScreen({
                     onChange={(v) => setCount(line, k, v)}
                     plusClass={`${ui.solid} ${ui.solidHover}`}
                     ringClass={ui.ring}
-                    disabled={!!closed}
+                    disabled={!canEdit}
                   />
                 ))}
               </div>
@@ -236,10 +306,10 @@ export function StaffEntryScreen({
           );
         })}
 
-        <ScheduleCard date={date} mang={mang} closed={!!closed} />
+        <ScheduleCard date={date} mang={mang} closed={!canEdit} />
       </div>
 
-      {entries !== null && <EntryList entries={entries} slotId={slotId} myUid={user?.uid ?? ''} date={date} closed={!!closed} error={error} />}
+      {entries !== null && <EntryList entries={entries} slotId={slotId} myUid={user?.uid ?? ''} date={date} closed={!canEdit} error={error} />}
 
       {/* Thanh lưu phiếu (nằm trên thanh tab ở điện thoại) */}
       <div className="fixed inset-x-0 z-30 bottom-[calc(var(--nav-h)+env(safe-area-inset-bottom))] md:bottom-0 bg-white/95 backdrop-blur border-t border-slate-200/90 shadow-[0_-4px_20px_rgba(0,0,0,0.06)]">
@@ -258,7 +328,7 @@ export function StaffEntryScreen({
           <button
             type="button"
             onClick={save}
-            disabled={totals.rides === 0 || !!closed}
+            disabled={!canSave}
             className="h-11 inline-flex items-center gap-2 rounded-xl bg-brand hover:bg-brand-dark text-white font-bold text-sm px-5 shadow-sm active:scale-[0.98] transition disabled:bg-slate-300 disabled:shadow-none"
           >
             <Save className="w-4 h-4" /> Lưu phiếu

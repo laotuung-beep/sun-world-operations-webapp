@@ -103,7 +103,8 @@ function Workspace({ access }: { access: Access }) {
       <div key={current} className="animate-tab-fade">
         {current === 'entry' && (
           <StaffEntryScreen
-            key={mang}
+            key={`${mang}:${date}`}
+            date={date}
             mang={mang}
             onChangeMang={setMang}
             selectedSlotId={selectedSlot}
@@ -113,7 +114,8 @@ function Workspace({ access }: { access: Access }) {
         {current === 'matrix' && (
           <MatrixScreen
             date={date}
-            onSelectSlot={(slotId) => {
+            onSelectSlot={(slotId, mangId) => {
+              if (mangId) setMang(mangId);
               setSelectedSlot(slotId);
               setCurrent('entry');
             }}
