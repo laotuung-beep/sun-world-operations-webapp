@@ -164,9 +164,6 @@ export function ReportScreen({ date, onGoMatrix }: { date: string; onGoMatrix: (
               </p>
             </div>
           </div>
-          <span className={`text-[10px] font-bold px-2 py-0.5 rounded ${closed ? 'bg-slate-900 text-white' : 'bg-amber-50 text-amber-700 border border-amber-200'}`}>
-            {closed ? 'ĐÃ CHỐT' : 'CHƯA CHỐT'}
-          </span>
         </div>
 
         <div className="p-3.5 sm:p-5 space-y-3.5">

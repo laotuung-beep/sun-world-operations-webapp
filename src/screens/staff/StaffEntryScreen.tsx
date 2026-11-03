@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
-import { CheckCircle2, Clock, History, Lock, Save, ShieldAlert, WifiOff } from 'lucide-react';
+import { CheckCircle2, Clock, Eye, EyeOff, Lock, Save, ShieldAlert, WifiOff } from 'lucide-react';
 import NumberFlow from '@number-flow/react';
 import { toast } from 'sonner';
 import { LINE_LABEL, MANGS, TIME_SLOTS, mangById, slotById, type LineId, type MangId, type SlotId } from '../../config';
@@ -53,6 +53,7 @@ export function StaffEntryScreen({
   const [chosen, setChosen] = useState<SlotId | null>(() => selectedSlotId ?? null);
   const slotId = chosen ?? current;
   const [lines, setLines] = useState<EntryLines>(() => emptyLines(mang));
+  const [showAdminEntries, setShowAdminEntries] = useState(false);
 
   useEffect(() => {
     if (selectedSlotId) setChosen(selectedSlotId);
@@ -104,8 +105,7 @@ export function StaffEntryScreen({
   }, [entries, existingLines, mang, targetKey]);
 
   const totals = linesTotals(lines);
-  const late = slotId !== current;
-  const hasExisting = activeEntries.length > 0;
+    const hasExisting = activeEntries.length > 0;
   const canSave = (totals.rides > 0 || hasExisting) && canEdit;
 
   // Khung đang chọn luôn nằm trong tầm nhìn của thanh khung giờ.
@@ -164,7 +164,7 @@ export function StaffEntryScreen({
     (allEntries ?? []).filter((e) => e.mang === id && isActive(e.status)).reduce((acc, e) => acc + linesTotals(e.lines).passengers, 0);
 
   return (
-    <div className="max-w-4xl mx-auto space-y-2.5 pb-44 md:pb-28">
+    <div className="max-w-4xl mx-auto space-y-2.5 pb-16">
       {closed && (
         <div
           className={`flex items-center justify-between gap-2 rounded-xl px-3 py-2.5 text-xs font-semibold ${
@@ -309,32 +309,25 @@ export function StaffEntryScreen({
         <ScheduleCard date={date} mang={mang} closed={!canEdit} />
       </div>
 
-      {entries !== null && <EntryList entries={entries} slotId={slotId} myUid={user?.uid ?? ''} date={date} closed={!canEdit} error={error} />}
-
-      {/* Thanh lưu phiếu (nằm trên thanh tab ở điện thoại) */}
-      <div className="fixed inset-x-0 z-30 bottom-[calc(var(--nav-h)+env(safe-area-inset-bottom))] md:bottom-0 bg-white/95 backdrop-blur border-t border-slate-200/90 shadow-[0_-4px_20px_rgba(0,0,0,0.06)]">
-        <div className="max-w-4xl mx-auto px-3 py-2 flex items-center gap-3">
-          <div className="min-w-0 flex-1">
-            <p className={`text-[11px] font-bold flex items-center gap-1 truncate ${late ? 'text-amber-600' : 'text-slate-500'}`}>
-              {late && <History className="w-3.5 h-3.5 shrink-0" />}
-              {late ? 'Báo trễ · ' : ''}
-              {m.short} · {slotById(slotId).label}
-            </p>
-            <p className="font-numeric tabular-nums text-base font-bold leading-tight flex items-center gap-1">
-              <NumberFlow value={totals.rides} /> <span className="text-xs font-semibold text-slate-500">chuyến ·</span>
-              <NumberFlow value={totals.passengers} /> <span className="text-xs font-semibold text-slate-500">khách</span>
-            </p>
+      {/* Nhật ký phiếu chi tiết: chỉ Admin mới xem được, mặc định ẩn cho thoáng giao diện */}
+      {isSuperAdmin && entries !== null && (
+        <div className="space-y-2 pt-1">
+          <div className="flex items-center justify-between px-1">
+            <button
+              type="button"
+              onClick={() => setShowAdminEntries((v) => !v)}
+              className="inline-flex items-center gap-1.5 text-xs font-semibold text-slate-600 hover:text-slate-900 bg-white hover:bg-slate-100 border border-slate-200 px-3 py-1.5 rounded-xl transition active:scale-95 shadow-2xs cursor-pointer"
+            >
+              {showAdminEntries ? <EyeOff className="w-3.5 h-3.5 text-slate-500" /> : <Eye className="w-3.5 h-3.5 text-slate-500" />}
+              <span>{showAdminEntries ? 'Ẩn nhật ký phiếu (Admin)' : 'Xem nhật ký phiếu chi tiết (Chỉ Admin)'}</span>
+            </button>
+            <span className="text-[10px] text-slate-400">Chỉ Admin mới xem được</span>
           </div>
-          <button
-            type="button"
-            onClick={save}
-            disabled={!canSave}
-            className="h-11 inline-flex items-center gap-2 rounded-xl bg-brand hover:bg-brand-dark text-white font-bold text-sm px-5 shadow-sm active:scale-[0.98] transition disabled:bg-slate-300 disabled:shadow-none"
-          >
-            <Save className="w-4 h-4" /> Lưu phiếu
-          </button>
+          {showAdminEntries && (
+            <EntryList entries={entries} slotId={slotId} myUid={user?.uid ?? ''} date={date} closed={!canEdit} error={error} />
+          )}
         </div>
-      </div>
+      )}
     </div>
   );
 }

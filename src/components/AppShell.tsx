@@ -1,11 +1,11 @@
 import { useEffect, useRef, useState, type ReactNode } from 'react';
-import { Calendar, ChevronDown, Cloud, CloudOff, LogOut, type LucideIcon } from 'lucide-react';
+import { ChevronDown, Cloud, CloudOff, LogOut, type LucideIcon } from 'lucide-react';
 import { useAuth } from '../auth/AuthProvider';
 import { ACCESS_LABEL } from '../auth/access';
 import { useOnline } from '../hooks/useOnline';
-import { dateKeyVN } from '../time';
 import { Avatar } from './Avatar';
 import { BrandLogo } from './brand';
+import { DateSelector } from './DateSelector';
 
 export interface Tab<T extends string> {
   id: T;
@@ -39,7 +39,7 @@ export function AppShell<T extends string>({ tabs, current, onChange, date, onDa
             <BrandLogo />
             <div className="flex items-center gap-1.5 sm:gap-2 shrink-0">
               <SyncBadge />
-              <DateButton date={date} onChange={onDateChange} />
+              <DateSelector date={date} onChange={onDateChange} />
               <AccountMenu menu={menu} />
             </div>
           </div>
@@ -109,51 +109,6 @@ function SyncBadge() {
     <div className="inline-flex items-center gap-1.5 px-2 py-1 rounded-lg text-[11px] font-semibold bg-orange-50 text-orange-700 border border-orange-200 shrink-0 select-none" title="Mất mạng - phiếu lưu trên máy, có mạng sẽ tự gửi">
       <CloudOff className="w-3 h-3 shrink-0" />
       <span className="hidden sm:inline">Mất mạng</span>
-    </div>
-  );
-}
-
-function DateButton({ date, onChange }: { date: string; onChange: (d: string) => void }) {
-  const input = useRef<HTMLInputElement>(null);
-  const today = dateKeyVN();
-  const [y, m, d] = date.split('-');
-  const isToday = date === today;
-  return (
-    <div className="relative">
-      <button
-        type="button"
-        onClick={() => input.current?.showPicker?.()}
-        className="flex items-center gap-1 border rounded-xl px-2 sm:px-2.5 py-1 sm:py-1.5 text-xs min-h-[30px] sm:min-h-[34px] shrink-0 shadow-xs bg-white hover:bg-slate-50 border-slate-200 text-slate-700 active:scale-[0.98] transition"
-        title="Chọn ngày xem Ma Trận / Báo Cáo"
-        aria-label="Chọn ngày vận hành"
-      >
-        <Calendar className="w-3.5 h-3.5 text-brand shrink-0" />
-        <span className={`w-2 h-2 rounded-full shrink-0 ${isToday ? 'bg-emerald-500 animate-pulse' : 'bg-amber-400'}`} />
-        <span className="text-xs font-bold text-slate-900 whitespace-nowrap">
-          <span className="sm:hidden">
-            {d}/{m}
-          </span>
-          <span className="hidden sm:inline">
-            {d}/{m}/{y}
-          </span>
-        </span>
-        {isToday && (
-          <span className="hidden md:inline-block text-[9px] font-bold uppercase tracking-wider px-1.5 rounded bg-emerald-50 text-emerald-700 border border-emerald-200">
-            Hôm nay
-          </span>
-        )}
-        <ChevronDown className="w-3.5 h-3.5 text-slate-400" />
-      </button>
-      <input
-        ref={input}
-        type="date"
-        value={date}
-        max={today}
-        onChange={(e) => e.target.value && onChange(e.target.value)}
-        className="absolute inset-0 opacity-0 pointer-events-none"
-        tabIndex={-1}
-        aria-hidden="true"
-      />
     </div>
   );
 }
