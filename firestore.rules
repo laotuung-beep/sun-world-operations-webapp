@@ -1,138 +1,86 @@
 rules_version = '2';
 
 // =============================================================================
-// BẢO MẬT SUN WORLD OPERATIONS WEB APP
+// BẢO MẬT HỆ THỐNG VẬN HÀNH MÁNG TRƯỢT (ALPINE COASTER) - SUN WORLD BA NA HILLS
 // Mô hình: MẶC ĐỊNH TỪ CHỐI. Chỉ cho phép khi:
-//   1. Đăng nhập Google (Firebase Auth) với email đã xác minh, VÀ
-//   2. Là Super Admin (Gmail chủ sở hữu) HOẶC hồ sơ /users/{uid} đã được Admin duyệt.
-// Vai trò: admin > manager > operator. User mới tự đăng ký chỉ có role 'pending'.
-// NV vận hành (operator) chỉ được ghi dữ liệu của trò chơi mình phụ trách.
+//   1. Đăng nhập bằng Google (Gmail) với email đã xác minh, VÀ
+//   2. Là Super Admin (danh sách bên dưới) HOẶC hồ sơ users/{uid} có approved == true.
+// App tự ghi hồ sơ users/{uid} khi đăng nhập nhưng KHÔNG được tự đặt "approved".
+// Duyệt nhân viên: Firebase Console > Firestore > users > {uid} > thêm field
+//   approved (boolean) = true. Khóa: đổi thành false.
+//
+// Dữ liệu của app:
+//   users/{uid}                          - hồ sơ người đăng nhập
+//   daily_reports/{YYYY-MM-DD}           - thông số chung của ngày
+//   daily_reports/{date}/lines/{lineId}  - số xe theo từng line (line1..line6)
 // =============================================================================
 service cloud.firestore {
   match /databases/{database}/documents {
 
-    // ---------- Hàm tiện ích ----------
-    function isSignedIn() {
+    function isGoogleUser() {
       return request.auth != null
-        && request.auth.token.email != null;
+        && request.auth.token.firebase.sign_in_provider == 'google.com'
+        && request.auth.token.email_verified == true;
     }
 
-    // Gmail chủ sở hữu luôn có toàn quyền (không phụ thuộc dữ liệu trong DB)
+    // PHẢI KHỚP với danh sách Super Admin trong app (public/assets/index-mangtruot-gauth.js)
     function isSuperAdmin() {
-      return isSignedIn() && request.auth.token.email.lower() in [
+      return isGoogleUser() && request.auth.token.email.lower() in [
         'phongbanana96@gmail.com',
         'laotuung@gmail.com',
-        'laoung1996@gmail.com'
+        'laoung1996@gmail.com',
+        'dieuhanh.mangtruot@gmail.com'
       ];
     }
 
-    function profilePath() {
-      return /databases/$(database)/documents/users/$(request.auth.uid);
-    }
-
-    function hasProfile() {
-      return isSignedIn() && exists(profilePath());
-    }
-
-    function profile() {
-      return get(profilePath()).data;
-    }
-
-    // Hồ sơ đã được Admin duyệt và đang hoạt động
     function isApproved() {
-      return hasProfile()
-        && profile().active == true
-        && profile().role in ['admin', 'manager', 'operator'];
+      let path = /databases/$(database)/documents/users/$(request.auth.uid);
+      return isGoogleUser() && exists(path) && get(path).data.get('approved', false) == true;
     }
 
-    function isAdmin() {
-      return isSuperAdmin() || (isApproved() && profile().role == 'admin');
-    }
-
-    function isManager() {
-      return isAdmin() || (isApproved() && profile().role == 'manager');
-    }
-
-    function canRead() {
+    function isStaff() {
       return isSuperAdmin() || isApproved();
     }
 
-    // NV vận hành chỉ ghi được trò chơi mình phụ trách; Manager/Admin ghi mọi trò
-    function canWriteGame(gameId) {
-      return isManager()
-        || (isApproved() && profile().role == 'operator' && profile().assignedGame == gameId);
+    function isValidDate(date) {
+      return date.matches('^[0-9]{4}-[0-9]{2}-[0-9]{2}$');
     }
 
-    // ---------- 1. Hồ sơ & phân quyền người dùng ----------
+    // ---------- 1. Hồ sơ người dùng ----------
     match /users/{userId} {
-      // Tự đọc hồ sơ của mình (kể cả khi đang chờ duyệt); Manager/Admin đọc tất cả
-      allow read: if (isSignedIn() && request.auth.uid == userId) || isManager();
+      allow read: if isGoogleUser() && (request.auth.uid == userId || isSuperAdmin());
 
-      // Lần đầu đăng nhập: chỉ được tự tạo hồ sơ ở trạng thái CHỜ DUYỆT
-      allow create: if isAdmin() || (
-        isSignedIn()
+      // Tự tạo / cập nhật hồ sơ của mình, nhưng không được đụng tới "approved"
+      allow create: if isGoogleUser()
         && request.auth.uid == userId
-        && request.resource.data.role == 'pending'
-        && request.resource.data.active == false
-      );
-
-      // Chỉ Admin được đổi vai trò / duyệt / khóa. User chỉ được cập nhật tên, ảnh, giờ đăng nhập.
-      allow update: if isAdmin() || (
-        isSignedIn()
+        && !('approved' in request.resource.data);
+      allow update: if isSuperAdmin() || (
+        isGoogleUser()
         && request.auth.uid == userId
-        && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['name', 'photoURL', 'lastLoginAt'])
+        && !request.resource.data.diff(resource.data).affectedKeys().hasAny(['approved'])
       );
-
-      allow delete: if isAdmin();
+      allow delete: if isSuperAdmin();
     }
 
-    // ---------- 2. Trạng thái trực tiếp từng trò chơi (đồng bộ từ Web App) ----------
-    match /games/{gameId} {
-      allow read: if canRead();
-      allow create, update: if canWriteGame(gameId)
-        && request.resource.data.gameId == gameId
-        && request.resource.data.updatedBy == request.auth.token.email;
-      allow delete: if isAdmin();
+    // ---------- 2. Báo cáo ngày ----------
+    match /daily_reports/{date} {
+      allow read: if isStaff();
+      allow create, update: if isStaff() && isValidDate(date);
+      allow delete: if isSuperAdmin();
+
+      // ---------- 3. Số liệu từng line ----------
+      match /lines/{lineId} {
+        allow read: if isStaff();
+        allow create, update: if isStaff()
+          && isValidDate(date)
+          && lineId in ['line1', 'line2', 'line3', 'line4', 'line5', 'line6']
+          && request.resource.data.lineId == lineId
+          && request.resource.data.date == date;
+        allow delete: if isSuperAdmin();
+      }
     }
 
-    // ---------- 3. Ca trực vận hành ----------
-    match /shifts/{shiftId} {
-      allow read: if canRead();
-      allow create, update: if request.resource.data.keys().hasAll(['date', 'gameId', 'gameName'])
-        && canWriteGame(request.resource.data.gameId);
-      allow delete: if isManager();
-    }
-
-    // ---------- 4. Thời gian dừng ----------
-    match /downtimes/{downtimeId} {
-      allow read: if canRead();
-      allow create, update: if request.resource.data.keys().hasAll(['date', 'gameId', 'reason'])
-        && canWriteGame(request.resource.data.gameId);
-      allow delete: if isManager();
-    }
-
-    // ---------- 5. Chuyến / lượt chơi ----------
-    match /cycles/{cycleId} {
-      allow read: if canRead();
-      allow create, update: if request.resource.data.keys().hasAll(['date', 'gameId', 'pax'])
-        && canWriteGame(request.resource.data.gameId);
-      allow delete: if isManager();
-    }
-
-    // ---------- 6. Cấu hình chung toàn khu ----------
-    match /settings/{settingId} {
-      allow read: if canRead();
-      allow write: if isAdmin();
-    }
-
-    // ---------- 6b. Nhật ký vận hành hàng ngày (ride_operations) ----------
-    match /ride_operations/{docId} {
-      allow read: if canRead();
-      allow create, update: if isSignedIn() && (isSuperAdmin() || isApproved());
-      allow delete: if isManager();
-    }
-
-    // ---------- 7. Mọi đường dẫn khác: TỪ CHỐI ----------
+    // ---------- 4. Mọi đường dẫn khác: TỪ CHỐI ----------
     match /{document=**} {
       allow read, write: if false;
     }

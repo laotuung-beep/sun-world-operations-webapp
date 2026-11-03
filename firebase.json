@@ -4,19 +4,11 @@
     "indexes": "firestore.indexes.json"
   },
   "hosting": {
-    "public": ".",
+    "public": "public",
     "ignore": [
       "firebase.json",
       "**/.*",
-      "**/node_modules/**",
-      "Code.gs",
-      "start.bat",
-      "test_exports/**",
-      "*.ps1",
-      "*.md",
-      "firestore.rules",
-      "firestore.indexes.json",
-      "sun_world_v_n_h_nh_tr_ch_i_web_app.html"
+      "**/node_modules/**"
     ],
     "rewrites": [
       {
