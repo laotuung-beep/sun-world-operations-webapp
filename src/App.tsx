@@ -3,7 +3,7 @@ import { FileSpreadsheet, FileText, LoaderCircle, Smartphone, TableProperties, U
 import { toast } from 'sonner';
 import { useActor, useAuth } from './auth/AuthProvider';
 import { canManageUsers, type Access } from './auth/access';
-import { isMangId, type MangId } from './config';
+import { isMangId, type MangId, type SlotId } from './config';
 import { dateKeyVN } from './time';
 import { AppShell, type MenuItem, type Tab } from './components/AppShell';
 import { LoginScreen } from './screens/LoginScreen';
@@ -67,6 +67,7 @@ function Workspace({ access }: { access: Access }) {
     return saved && (TABS.some((t) => t.id === saved) || (saved === 'users' && admin)) ? saved : 'entry';
   });
   const [date, setDate] = useState(() => dateKeyVN());
+  const [selectedSlot, setSelectedSlot] = useState<SlotId | null>(null);
   const [mang, setMang] = useState<MangId>(() => {
     const saved = Number(readLocal(MANG_KEY));
     return isMangId(saved) ? saved : isMangId(profile?.mang) ? profile.mang : 1;
@@ -99,10 +100,28 @@ function Workspace({ access }: { access: Access }) {
 
   return (
     <AppShell tabs={TABS} current={current} onChange={setCurrent} date={date} onDateChange={setDate} menu={menu}>
-      {current === 'entry' && <StaffEntryScreen key={mang} mang={mang} onChangeMang={setMang} />}
-      {current === 'matrix' && <MatrixScreen date={date} />}
-      {current === 'report' && <ReportScreen date={date} onGoMatrix={() => setCurrent('matrix')} />}
-      {current === 'users' && admin && <UsersScreen />}
+      <div key={current} className="animate-tab-fade">
+        {current === 'entry' && (
+          <StaffEntryScreen
+            key={mang}
+            mang={mang}
+            onChangeMang={setMang}
+            selectedSlotId={selectedSlot}
+            onSelectSlotId={setSelectedSlot}
+          />
+        )}
+        {current === 'matrix' && (
+          <MatrixScreen
+            date={date}
+            onSelectSlot={(slotId) => {
+              setSelectedSlot(slotId);
+              setCurrent('entry');
+            }}
+          />
+        )}
+        {current === 'report' && <ReportScreen date={date} onGoMatrix={() => setCurrent('matrix')} />}
+        {current === 'users' && admin && <UsersScreen />}
+      </div>
     </AppShell>
   );
 }

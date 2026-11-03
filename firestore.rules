@@ -112,7 +112,7 @@ service cloud.firestore {
         && d.lines is map && d.lines.keys().hasOnly(ls) && d.lines.keys().hasAll(ls)
         && validLineCount(d.lines[ls[0]]) && validLineCount(d.lines[ls[1]])
         && d.lines[ls[0]].single + d.lines[ls[0]].double + d.lines[ls[1]].single + d.lines[ls[1]].double > 0
-        && d.status == 'pending'
+        && d.status in ['pending', 'approved']
         && d.createdBy == request.auth.uid
         && d.createdByName is string && d.createdByName.size() <= 100
         && d.createdAt == request.time

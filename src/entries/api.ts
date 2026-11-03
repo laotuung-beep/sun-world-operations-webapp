@@ -66,7 +66,7 @@ export function sendEntry(e: NewEntry): { id: string; synced: Promise<void> } {
     slotId: e.slotId,
     mang: e.mang,
     lines: e.lines,
-    status: 'pending',
+    status: 'approved',
     createdBy: e.uid,
     createdByName: e.name.slice(0, 100),
     createdByEmail: e.email,

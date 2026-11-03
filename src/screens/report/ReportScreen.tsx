@@ -6,6 +6,7 @@ import { useActor, useAuth } from '../../auth/AuthProvider';
 import { canReopenDay } from '../../auth/access';
 import { clockVN } from '../../time';
 import { useDayEntries, writeErrorMessage } from '../../entries/api';
+import { isActive } from '../../entries/model';
 import { META_LABEL, buildMatrix, legacySheetsPayload, reportMetrics, type DayMeta } from '../../report/compute';
 import { markSheetsSynced, postToSheets, saveMeta, setDayClosed, useDay, useSchedules, useSheetsWebhook } from '../../report/api';
 import { CoasterMark } from '../../components/brand';
@@ -29,10 +30,10 @@ export function ReportScreen({ date, onGoMatrix }: { date: string; onGoMatrix: (
   const [editMeta, setEditMeta] = useState(false);
 
   const all = entries ?? [];
-  const matrix = useMemo(() => buildMatrix(all, (s) => s === 'approved'), [all]);
+  const matrix = useMemo(() => buildMatrix(all, (s) => isActive(s)), [all]);
   const meta = day?.meta;
   const metrics = useMemo(() => (meta ? reportMetrics(matrix, meta, schedules) : null), [matrix, meta, schedules]);
-  const pendingCount = all.filter((e) => e.status === 'pending').length;
+  const pendingCount = 0;
   const closed = day?.closed ?? false;
   const [y, mo, d] = date.split('-');
 

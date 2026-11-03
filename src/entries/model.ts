@@ -137,12 +137,16 @@ export function normalizeHHMM(raw: string): string | null {
   return `${String(h).padStart(2, '0')}:${String(m).padStart(2, '0')}`;
 }
 
-/** Thời gian chạy máng (phút) = giờ đóng − giờ mở − phút tạm dừng. null khi chưa đủ giờ mở / đóng. */
+/** Thời gian chạy máng (phút) = giờ đóng − giờ mở − phút tạm dừng. 0 khi máng nghỉ. null khi chưa đủ giờ mở / đóng. */
 export function runMinutes(openTime: string, closeTime: string, pausedMinutes: number): number | null {
   if (!openTime || !closeTime) return null;
-  const span = hhmmToMinutes(closeTime) - hhmmToMinutes(openTime);
+  const openMin = hhmmToMinutes(openTime);
+  const closeMin = hhmmToMinutes(closeTime);
+  if (openMin === 0 && closeMin === 0) return 0;
+  const span = closeMin - openMin;
   if (span <= 0) return null;
-  return Math.max(0, span - pausedMinutes);
+  const paused = Math.max(0, Number(pausedMinutes) || 0);
+  return Math.max(0, span - paused);
 }
 
 export function formatDuration(minutes: number): string {

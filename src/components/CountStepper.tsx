@@ -1,4 +1,5 @@
 import { Minus, Plus, User, Users } from 'lucide-react';
+import NumberFlow from '@number-flow/react';
 import { MAX_CARTS } from '../config';
 
 interface Props {
@@ -27,7 +28,7 @@ export function CountStepper({ kind, lineLabel, value, onChange, plusClass, ring
           <span>{label}</span>
         </span>
         <span className="text-[10px] font-bold px-1.5 py-0.5 rounded border inline-flex items-center shadow-2xs text-emerald-800 bg-emerald-50 border-emerald-200" title="Số khách">
-          = {passengers}K
+          = <NumberFlow value={passengers} /> khách
         </span>
       </div>
       <div className="flex items-center w-full gap-1">

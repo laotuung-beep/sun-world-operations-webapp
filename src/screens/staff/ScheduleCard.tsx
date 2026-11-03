@@ -3,7 +3,7 @@ import { CircleCheck, CirclePause, Clock, DoorClosed, DoorOpen, LoaderCircle, Ti
 import { toast } from 'sonner';
 import { mangById, type MangId } from '../../config';
 import { useActor } from '../../auth/AuthProvider';
-import { clockVN } from '../../time';
+import { clockVN, hhmmToMinutes } from '../../time';
 import { normalizeHHMM, runMinutes } from '../../entries/model';
 import { saveSchedule, useSchedule, writeErrorMessage, type Schedule } from '../../entries/api';
 
@@ -41,9 +41,13 @@ function ScheduleForm({ date, mang, closed, saved }: { date: string; mang: MangI
     timer.current = setTimeout(async () => {
       timer.current = null;
       if (next.openTime === saved.openTime && next.closeTime === saved.closeTime && next.pausedMinutes === saved.pausedMinutes) return;
-      if (next.openTime && next.closeTime && runMinutes(next.openTime, next.closeTime, 0) === null) {
-        toast.error('Giờ đóng cửa phải sau giờ mở cửa.');
-        return;
+      if (next.openTime && next.closeTime) {
+        const o = hhmmToMinutes(next.openTime);
+        const c = hhmmToMinutes(next.closeTime);
+        if ((o > 0 || c > 0) && c <= o) {
+          toast.error('Giờ đóng cửa phải sau giờ mở cửa.');
+          return;
+        }
       }
       setSaving(true);
       try {
@@ -83,22 +87,27 @@ function ScheduleForm({ date, mang, closed, saved }: { date: string; mang: MangI
 
   return (
     <div className="bg-white rounded-xl p-3 sm:p-3.5 shadow-sm border border-slate-200/90 space-y-2.5">
-      <div className="flex items-center justify-between gap-2">
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-1">
         <div className="flex items-center gap-1.5 min-w-0">
           <Timer className="w-4 h-4 text-slate-800 shrink-0" />
           <span className="text-xs font-bold text-slate-900 uppercase tracking-wider truncate">Thời Gian Vận Hành • {mangById(mang).name}</span>
         </div>
-        <span className="text-[10px] text-slate-400 flex items-center gap-1 shrink-0">
-          {saving ? (
-            <>
-              <LoaderCircle className="w-3 h-3 animate-spin" /> Đang lưu
-            </>
-          ) : saved.updatedByName && saved.updatedAt ? (
-            <>
-              <CircleCheck className="w-3 h-3 text-emerald-500" /> {clockVN(saved.updatedAt)} · {saved.updatedByName}
-            </>
-          ) : null}
-        </span>
+        <div className="flex items-center justify-between sm:justify-end gap-2 flex-wrap">
+          <span className="text-[10px] text-slate-500 font-medium tracking-tight bg-slate-50 px-1.5 py-0.5 rounded border border-slate-200">
+            Giờ chạy Máng = Giờ đóng cửa − Giờ mở cửa − Dừng vận hành
+          </span>
+          <span className="text-[10px] text-slate-400 flex items-center gap-1 shrink-0">
+            {saving ? (
+              <>
+                <LoaderCircle className="w-3 h-3 animate-spin" /> Đang lưu
+              </>
+            ) : saved.updatedByName && saved.updatedAt ? (
+              <>
+                <CircleCheck className="w-3 h-3 text-emerald-500" /> {clockVN(saved.updatedAt)} · {saved.updatedByName}
+              </>
+            ) : null}
+          </span>
+        </div>
       </div>
 
       <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
