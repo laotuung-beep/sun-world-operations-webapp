@@ -14,8 +14,12 @@ Web app nhập số xe theo giờ cho 3 máng / 6 line, đồng bộ realtime qu
 | `firebase.json` | Cấu hình Hosting + Firestore |
 
 > Source React gốc được dựng trong Firebase Studio / AI Studio, chưa có trong repo này.
-> `public/assets/index-mangtruot-gauth.js` là bản build đã vá: chỉ đăng nhập Google,
-> bỏ đăng nhập mật khẩu trạm và đăng nhập ẩn danh, báo lỗi khi Gmail chưa được duyệt.
+> `public/assets/index-mangtruot-v2.js` là bản build đã vá bằng các script trong `patches/`:
+> - `01_google_only.py`: chỉ đăng nhập Google, bỏ đăng nhập mật khẩu trạm và đăng nhập ẩn danh,
+>   báo lỗi khi Gmail chưa được duyệt.
+> - `02_giu_du_lieu_ma_tran_gio.py`: bỏ Migration tự động (đẩy số 0 từ máy trống đè lên Cloud),
+>   chỉ ghi line thực sự thay đổi, realtime không đè line đang chờ đẩy lên.
+>
 > Khi lấy được source gốc, cần sửa lại đúng các điểm này trong source rồi build đè `public/`.
 
 ## Đăng nhập & phân quyền

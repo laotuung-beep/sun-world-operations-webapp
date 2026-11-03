@@ -23,7 +23,7 @@ service cloud.firestore {
         && request.auth.token.email_verified == true;
     }
 
-    // PHẢI KHỚP với danh sách Super Admin trong app (public/assets/index-mangtruot-gauth.js)
+    // PHẢI KHỚP với danh sách Super Admin trong app (public/assets/index-mangtruot-v2.js)
     function isSuperAdmin() {
       return isGoogleUser() && request.auth.token.email.lower() in [
         'phongbanana96@gmail.com',
