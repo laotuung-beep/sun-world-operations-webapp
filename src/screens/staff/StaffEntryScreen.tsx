@@ -1,7 +1,7 @@
 import { useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react';
 import { History, LoaderCircle, Lock, Save, WifiOff } from 'lucide-react';
 import { toast } from 'sonner';
-import { LINE_LABEL, MANGS, mangById, slotById, type LineId, type MangId, type SlotId } from '../../config';
+import { LINE_LABEL, mangById, slotById, type LineId, type MangId, type SlotId } from '../../config';
 import { useAuth } from '../../auth/AuthProvider';
 import { useNow } from '../../hooks/useNow';
 import { dateKeyVN, longDateVN, minutesVN } from '../../time';
@@ -16,7 +16,9 @@ import {
   type EntryLines,
   type LineCount,
 } from '../../entries/model';
-import { sendEntry, useDayClosed, useMangEntries, writeErrorMessage } from '../../entries/api';
+import { sendEntry, useDayClosed, useDayEntries, writeErrorMessage } from '../../entries/api';
+import { useSchedules } from '../../report/api';
+import { MangOverview } from './MangOverview';
 import { CountStepper } from '../../components/CountStepper';
 import { EntryList } from './EntryList';
 import { ScheduleCard } from './ScheduleCard';
@@ -36,7 +38,9 @@ export function StaffEntryScreen({ mang, onChangeMang }: { mang: MangId; onChang
   const [online, setOnline] = useState(() => navigator.onLine);
 
   const closed = useDayClosed(date);
-  const { entries, error } = useMangEntries(date, mang);
+  const { entries: allEntries, error } = useDayEntries(date);
+  const schedules = useSchedules(date);
+  const entries = useMemo(() => (allEntries ? allEntries.filter((e) => e.mang === mang) : null), [allEntries, mang]);
   const reported = useMemo(() => totalsBySlot(entries ?? []), [entries]);
   const totals = linesTotals(lines);
   const late = slotId !== current;
@@ -90,34 +94,11 @@ export function StaffEntryScreen({ mang, onChangeMang }: { mang: MangId; onChang
 
   return (
     <div className="pb-56 md:pb-36">
-      <div className="bg-white rounded-3xl border border-slate-200 p-4 flex flex-wrap items-center gap-x-4 gap-y-3">
-        <img src={m.logo} alt={m.name} className="h-11 w-32 object-contain shrink-0" />
-        <div className="min-w-0 flex-1">
-          <p className="font-extrabold truncate" style={{ color: m.color }}>
-            {m.name}
-          </p>
-          <p className="text-sm text-slate-500 truncate">
-            {m.lines.map((l) => LINE_LABEL[l]).join(' & ')} · {longDateVN(now)}
-          </p>
-        </div>
-        <div className="inline-flex rounded-xl bg-slate-100 p-1 w-full sm:w-auto" role="tablist" aria-label="Chọn máng">
-          {MANGS.map((x) => (
-            <button
-              key={x.id}
-              type="button"
-              role="tab"
-              aria-selected={x.id === mang}
-              onClick={() => onChangeMang(x.id)}
-              className={`flex-1 sm:flex-none px-4 py-2 rounded-lg text-sm font-extrabold transition ${
-                x.id === mang ? 'bg-white shadow-sm' : 'text-slate-500 hover:text-slate-800'
-              }`}
-              style={x.id === mang ? { color: x.color } : undefined}
-            >
-              {x.short}
-            </button>
-          ))}
-        </div>
+      <div className="flex items-baseline justify-between gap-2 px-1 mb-2">
+        <p className="font-extrabold">{longDateVN(now)}</p>
+        <p className="text-xs text-slate-500">Chạm máng để nhập</p>
       </div>
+      <MangOverview entries={allEntries ?? []} schedules={schedules} selected={mang} onSelect={onChangeMang} />
 
       {closed && (
         <div className="mt-3 flex items-center gap-2 rounded-2xl bg-slate-900 text-white px-4 py-3 text-sm font-semibold">
@@ -179,7 +160,7 @@ export function StaffEntryScreen({ mang, onChangeMang }: { mang: MangId; onChang
               <LoaderCircle className="w-6 h-6 animate-spin" />
             </div>
           ) : (
-            <EntryList entries={entries} myUid={user?.uid ?? ''} date={date} closed={!!closed} error={error} />
+            <EntryList entries={entries} slotId={slotId} myUid={user?.uid ?? ''} date={date} closed={!!closed} error={error} />
           )}
           <ScheduleCard date={date} mang={mang} closed={!!closed} />
         </div>

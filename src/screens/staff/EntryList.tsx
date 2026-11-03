@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { CloudOff, X } from 'lucide-react';
 import { toast } from 'sonner';
-import { LINE_LABEL, TIME_SLOTS, type LineId } from '../../config';
+import { LINE_LABEL, slotById, type LineId, type SlotId } from '../../config';
 import { clockVN } from '../../time';
 import {
   STATUS_LABEL,
@@ -16,6 +16,8 @@ import { cancelEntry, writeErrorMessage } from '../../entries/api';
 
 interface Props {
   entries: Entry[];
+  /** Chỉ hiện phiếu của khung giờ đang chọn cho gọn. */
+  slotId: SlotId;
   myUid: string;
   date: string;
   closed: boolean;
@@ -29,42 +31,39 @@ const STATUS_STYLE: Record<Entry['status'], string> = {
   cancelled: 'bg-slate-100 text-slate-500 border-slate-200',
 };
 
-/** Phiếu hôm nay của máng, nhóm theo khung giờ (khung mới nhất trước). */
-export function EntryList({ entries, myUid, date, closed, error }: Props) {
-  const totals = totalsBySlot(entries);
-  const groups = [...TIME_SLOTS]
-    .reverse()
-    .map((slot) => ({ slot, items: sortNewestFirst(entries.filter((e) => e.slotId === slot.id)) }))
-    .filter((g) => g.items.length > 0);
+/** Phiếu của máng trong khung giờ đang chọn (chọn khung khác ở thanh Khung giờ để xem). */
+export function EntryList({ entries, slotId, myUid, date, closed, error }: Props) {
+  const slot = slotById(slotId);
+  const items = sortNewestFirst(entries.filter((e) => e.slotId === slotId));
+  const t = totalsBySlot(entries).get(slotId);
+  const dayCount = entries.filter((e) => isActive(e.status)).length;
 
   return (
     <section className="bg-white rounded-3xl border border-slate-200">
-      <div className="px-4 pt-4 pb-2 flex items-baseline justify-between">
-        <h3 className="text-xs font-bold uppercase tracking-wide text-slate-500">Phiếu hôm nay</h3>
-        <p className="text-xs text-slate-400 tabular">{entries.filter((e) => isActive(e.status)).length} phiếu</p>
+      <div className="px-4 pt-4 pb-2 flex items-baseline justify-between gap-2">
+        <h3 className="text-xs font-bold uppercase tracking-wide text-slate-500">
+          Phiếu khung <span className="tabular text-slate-800">{slot.label}</span>
+        </h3>
+        <p className="text-xs text-slate-400 tabular shrink-0">{dayCount} phiếu cả ngày</p>
+      </div>
+      <div className="px-4 pb-2 flex items-center justify-between text-xs">
+        <span className="text-slate-500">{items.length} phiếu trong khung</span>
+        <span className="tabular font-bold text-slate-700">
+          {t?.rides ?? 0} lượt · {t?.passengers ?? 0} khách
+        </span>
       </div>
 
       {error && <p className="px-4 pb-4 text-sm text-red-600">Không tải được danh sách phiếu. Kiểm tra mạng hoặc quyền tài khoản.</p>}
-      {!error && groups.length === 0 && <p className="px-4 pb-4 text-sm text-slate-400">Chưa có phiếu nào.</p>}
-
-      {groups.map(({ slot, items }) => {
-        const t = totals.get(slot.id);
-        return (
-          <div key={slot.id} className="border-t border-slate-100">
-            <div className="px-4 py-2 bg-slate-50/70 flex items-center justify-between">
-              <p className="tabular text-sm font-bold">{slot.label}</p>
-              <p className="tabular text-xs font-semibold text-slate-600">
-                {t?.rides ?? 0} lượt · {t?.passengers ?? 0} khách
-              </p>
-            </div>
-            <ul className="divide-y divide-slate-100">
-              {items.map((e) => (
-                <EntryRow key={e.id} entry={e} mine={e.createdBy === myUid} date={date} closed={closed} />
-              ))}
-            </ul>
-          </div>
-        );
-      })}
+      {!error && items.length === 0 && (
+        <p className="px-4 pb-4 text-sm text-slate-400 border-t border-slate-100 pt-3">Chưa có phiếu nào trong khung này.</p>
+      )}
+      {items.length > 0 && (
+        <ul className="divide-y divide-slate-100 border-t border-slate-100">
+          {items.map((e) => (
+            <EntryRow key={e.id} entry={e} mine={e.createdBy === myUid} date={date} closed={closed} />
+          ))}
+        </ul>
+      )}
     </section>
   );
 }

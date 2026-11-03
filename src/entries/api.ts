@@ -3,11 +3,9 @@ import {
   collection,
   doc,
   onSnapshot,
-  query,
   serverTimestamp,
   setDoc,
   updateDoc,
-  where,
   writeBatch,
   type DocumentSnapshot,
 } from 'firebase/firestore';
@@ -80,29 +78,6 @@ export function sendEntry(e: NewEntry): { id: string; synced: Promise<void> } {
 
 export function cancelEntry(date: string, id: string): Promise<void> {
   return updateDoc(doc(entriesCol(date), id), { status: 'cancelled', cancelledAt: serverTimestamp() });
-}
-
-/** Phiếu của một máng trong ngày, cập nhật trực tiếp (kể cả phiếu chưa gửi được). */
-export function useMangEntries(date: string, mang: MangId): { entries: Entry[] | null; error: boolean } {
-  const [entries, setEntries] = useState<Entry[] | null>(null);
-  const [error, setError] = useState(false);
-
-  useEffect(() => {
-    setEntries(null);
-    setError(false);
-    return onSnapshot(
-      query(entriesCol(date), where('mang', '==', mang)),
-      { includeMetadataChanges: true },
-      (snap) => setEntries(snap.docs.map(toEntry)),
-      (e) => {
-        console.warn('Không đọc được phiếu:', e);
-        setError(true);
-        setEntries([]);
-      },
-    );
-  }, [date, mang]);
-
-  return { entries, error };
 }
 
 /** Mọi phiếu của một ngày (màn Chờ duyệt / Báo cáo). */
