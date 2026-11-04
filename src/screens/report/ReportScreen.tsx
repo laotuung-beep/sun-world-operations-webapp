@@ -7,7 +7,7 @@ import { canReopenDay } from '../../auth/access';
 import { clockVN } from '../../time';
 import { useDayEntries, writeErrorMessage } from '../../entries/api';
 import { isActive } from '../../entries/model';
-import { META_LABEL, buildMatrix, legacySheetsPayload, reportMetrics, type DayMeta } from '../../report/compute';
+import { META_LABEL, buildMatrix, computeFreeGate, legacySheetsPayload, matrixTotal, reportMetrics, type DayMeta } from '../../report/compute';
 import { markSheetsSynced, postToSheets, saveMeta, setDayClosed, useDay, useSchedules, useSheetsWebhook } from '../../report/api';
 import { CoasterMark } from '../../components/brand';
 
@@ -31,7 +31,15 @@ export function ReportScreen({ date, onGoMatrix }: { date: string; onGoMatrix: (
 
   const all = entries ?? [];
   const matrix = useMemo(() => buildMatrix(all, (s) => isActive(s)), [all]);
-  const meta = day?.meta;
+  const rawMeta = day?.meta;
+  const totalCoasterPassengers = useMemo(() => matrixTotal(matrix).passengers, [matrix]);
+  const meta = useMemo<DayMeta | undefined>(() => {
+    if (!rawMeta) return undefined;
+    return {
+      ...rawMeta,
+      freeGateVisitors: computeFreeGate(totalCoasterPassengers, rawMeta.paidGateVisitors),
+    };
+  }, [rawMeta, totalCoasterPassengers]);
   const metrics = useMemo(() => (meta ? reportMetrics(matrix, meta, schedules) : null), [matrix, meta, schedules]);
   const pendingCount = 0;
   const closed = day?.closed ?? false;
@@ -62,6 +70,9 @@ export function ReportScreen({ date, onGoMatrix }: { date: string; onGoMatrix: (
       if (!closed) {
         const warn = pendingCount ? `\n\nCòn ${pendingCount} phiếu chờ duyệt sẽ KHÔNG được tính.` : '';
         if (!window.confirm(`Chốt báo cáo ngày ${d}/${mo}/${y}? Sau khi chốt không gửi / duyệt thêm phiếu được.${warn}`)) return;
+        if (meta) {
+          await saveMeta(date, meta, actor);
+        }
       } else if (!window.confirm(`Mở lại ngày ${d}/${mo}/${y} để sửa?`)) return;
       await setDayClosed(date, !closed, actor);
       toast.success(closed ? 'Đã mở lại ngày.' : 'Đã chốt ngày.');
@@ -227,7 +238,7 @@ export function ReportScreen({ date, onGoMatrix }: { date: string; onGoMatrix: (
               )}
             </div>
             {editMeta && !closed ? (
-              <MetaForm date={date} meta={meta} onDone={() => setEditMeta(false)} />
+              <MetaForm date={date} meta={meta} totalPassengers={totalCoasterPassengers} onDone={() => setEditMeta(false)} />
             ) : (
               <div className="grid grid-cols-2 md:grid-cols-4 gap-2.5 sm:gap-3">
                 {(Object.keys(META_ICON) as (keyof typeof META_ICON)[]).map((k) => {
@@ -292,15 +303,27 @@ export function ReportScreen({ date, onGoMatrix }: { date: string; onGoMatrix: (
   );
 }
 
-function MetaForm({ date, meta, onDone }: { date: string; meta: DayMeta; onDone: () => void }) {
+function MetaForm({
+  date,
+  meta,
+  totalPassengers,
+  onDone,
+}: {
+  date: string;
+  meta: DayMeta;
+  totalPassengers: number;
+  onDone: () => void;
+}) {
   const actor = useActor();
   const [draft, setDraft] = useState<DayMeta>(meta);
   const [busy, setBusy] = useState(false);
 
+  const autoFreeGate = computeFreeGate(totalPassengers, draft.paidGateVisitors);
+
   async function save() {
     setBusy(true);
     try {
-      await saveMeta(date, draft, actor);
+      await saveMeta(date, { ...draft, freeGateVisitors: autoFreeGate }, actor);
       toast.success('Đã lưu thông số đối soát.');
       onDone();
     } catch (e) {
@@ -314,22 +337,46 @@ function MetaForm({ date, meta, onDone }: { date: string; meta: DayMeta; onDone:
     <div data-no-capture className="bg-[#FAFAFA] border border-[#EAECEF] rounded-xl p-3 space-y-3">
       <p className="text-xs font-bold text-slate-700">Cập nhật số liệu đối soát &amp; doanh thu:</p>
       <div className="grid grid-cols-2 sm:grid-cols-3 gap-2.5">
-        {(Object.keys(META_LABEL) as (keyof DayMeta)[]).map((k) => (
-          <label key={k} className="block">
-            <span className="text-[11px] font-semibold text-slate-600">{META_LABEL[k]}:</span>
-            <input
-              type="text"
-              inputMode="numeric"
-              value={draft[k] ? fmt.format(draft[k]) : ''}
-              placeholder="0"
-              onChange={(e) => {
-                const digits = e.target.value.replace(/\D/g, '');
-                setDraft((d) => ({ ...d, [k]: digits ? Math.min(Number(digits), 99_999_999_999) : 0 }));
-              }}
-              className="mt-1 w-full rounded-lg border border-slate-300 bg-white px-2.5 py-1.5 font-bold tabular-nums outline-none focus:border-slate-900"
-            />
-          </label>
-        ))}
+        {(Object.keys(META_LABEL) as (keyof DayMeta)[]).map((k) => {
+          if (k === 'freeGateVisitors') {
+            return (
+              <label key={k} className="block">
+                <span className="text-[11px] font-semibold text-slate-600 flex items-center justify-between">
+                  <span>{META_LABEL[k]}:</span>
+                  <span className="text-[9.5px] font-bold text-emerald-600 bg-emerald-50 px-1.5 py-0.5 rounded border border-emerald-200">
+                    Tự động
+                  </span>
+                </span>
+                <input
+                  type="text"
+                  readOnly
+                  value={fmt.format(autoFreeGate)}
+                  className="mt-1 w-full rounded-lg border border-slate-200 bg-slate-100 px-2.5 py-1.5 font-bold tabular-nums text-slate-700 cursor-not-allowed outline-none select-none"
+                  title="Khách miễn phí = Khách chơi máng - Cổng tính phí"
+                />
+                <span className="text-[10px] text-slate-400 mt-1 block leading-tight">
+                  = Khách chơi máng ({fmt.format(totalPassengers)}) − Cổng tính phí ({fmt.format(draft.paidGateVisitors)})
+                </span>
+              </label>
+            );
+          }
+          return (
+            <label key={k} className="block">
+              <span className="text-[11px] font-semibold text-slate-600">{META_LABEL[k]}:</span>
+              <input
+                type="text"
+                inputMode="numeric"
+                value={draft[k] ? fmt.format(draft[k]) : ''}
+                placeholder="0"
+                onChange={(e) => {
+                  const digits = e.target.value.replace(/\D/g, '');
+                  setDraft((d) => ({ ...d, [k]: digits ? Math.min(Number(digits), 99_999_999_999) : 0 }));
+                }}
+                className="mt-1 w-full rounded-lg border border-slate-300 bg-white px-2.5 py-1.5 font-bold tabular-nums outline-none focus:border-slate-900"
+              />
+            </label>
+          );
+        })}
       </div>
       <button
         type="button"

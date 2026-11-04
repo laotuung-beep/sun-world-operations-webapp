@@ -26,10 +26,17 @@ export const EMPTY_META: DayMeta = {
 export const META_LABEL: Record<keyof DayMeta, string> = {
   cableCarVisitors: 'Khách lên cáp',
   paidGateVisitors: 'Cổng tính phí',
-  freeGateVisitors: 'Cổng miễn phí',
+  freeGateVisitors: 'Khách miễn phí',
   nightComboVisitors: 'Combo đêm',
   counterRevenue: 'Doanh thu vé quầy (đ)',
 };
+
+/**
+ * Tự động tính Khách miễn phí = Math.max(0, Khách chơi máng - Cổng tính phí).
+ */
+export function computeFreeGate(coasterPassengers: number, paidGateVisitors: number): number {
+  return Math.max(0, Math.round((coasterPassengers || 0) - (paidGateVisitors || 0)));
+}
 
 export interface MangSchedule {
   openTime: string;

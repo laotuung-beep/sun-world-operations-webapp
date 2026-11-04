@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import type { Entry } from '../entries/model';
-import { EMPTY_META, buildMatrix, legacySheetsPayload, lineTotal, matrixTotal, reportMetrics } from './compute';
+import { EMPTY_META, buildMatrix, computeFreeGate, legacySheetsPayload, lineTotal, matrixTotal, reportMetrics } from './compute';
 
 function entry(p: Partial<Entry>): Entry {
   return {
@@ -68,6 +68,15 @@ describe('reportMetrics (same formulas as the old app)', () => {
   it('peak average = rides in 11h–15h slots / 4', () => {
     // 1100: 8+2 = 10, 1200: 3+1 = 4, 1300: 0, 1400: 0
     expect(reportMetrics(m, EMPTY_META, {}).peakAvgRides).toBe(4);
+  });
+});
+
+describe('computeFreeGate', () => {
+  it('calculates khách chơi máng - cổng tính phí', () => {
+    expect(computeFreeGate(4351, 4220)).toBe(131);
+    expect(computeFreeGate(1000, 1000)).toBe(0);
+    expect(computeFreeGate(1000, 1200)).toBe(0); // không âm
+    expect(computeFreeGate(0, 0)).toBe(0);
   });
 });
 
