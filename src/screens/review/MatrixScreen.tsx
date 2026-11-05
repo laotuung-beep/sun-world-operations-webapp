@@ -1,17 +1,16 @@
 import { useMemo, useState } from 'react';
-import { Download, LoaderCircle } from 'lucide-react';
+import { LoaderCircle } from 'lucide-react';
 import NumberFlow from '@number-flow/react';
-import { toast } from 'sonner';
 import { LINE_LABEL, MANGS, TIME_SLOTS, type LineId, type MangId, type SlotId } from '../../config';
 import { isActive } from '../../entries/model';
-import { useDayEntries, writeErrorMessage } from '../../entries/api';
-import { buildMatrix, lineTotal, reportMetrics } from '../../report/compute';
-import { useDay, useSchedules } from '../../report/api';
+import { useDayEntries } from '../../entries/api';
+import { buildMatrix, lineTotal } from '../../report/compute';
+import { useDay } from '../../report/api';
 import { MANG_UI } from '../../components/brand';
 
 type Filter = 'all' | MangId;
 
-/** Tab "Ma Trận Giờ": bảng 6 line chuẩn (chỉ đọc), nhấn vào dòng để chuyển về Nhập 6 Line hiệu chỉnh. */
+/** Tab "Ma Trận Giờ": bảng 6 line chuẩn (chỉ đọc), nhấn vào dòng để chuyển về Nhập liệu hiệu chỉnh. */
 export function MatrixScreen({
   date,
   onSelectSlot,
@@ -20,7 +19,6 @@ export function MatrixScreen({
   onSelectSlot?: (slotId: SlotId, mangId?: MangId) => void;
 }) {
   const day = useDay(date);
-  const schedules = useSchedules(date);
   const { entries, error } = useDayEntries(date);
   const [filter, setFilter] = useState<Filter>('all');
   const closed = day?.closed ?? false;
@@ -29,17 +27,6 @@ export function MatrixScreen({
   const matrix = useMemo(() => buildMatrix(all, (s) => isActive(s)), [all]);
   const mangs = filter === 'all' ? MANGS : MANGS.filter((m) => m.id === filter);
   const lines = mangs.flatMap((m) => m.lines) as LineId[];
-
-  async function excel() {
-    if (!day) return;
-    try {
-      const { exportExcel } = await import('../../report/exporters');
-      await exportExcel({ date, matrix, metrics: reportMetrics(matrix, day.meta, schedules), meta: day.meta, entries: all, closed });
-      toast.success('Đã tải file Excel.');
-    } catch (e) {
-      toast.error(`Không xuất được Excel: ${writeErrorMessage(e)}`);
-    }
-  }
 
   return (
     <div className="max-w-7xl mx-auto space-y-2.5 pb-16">
@@ -56,13 +43,6 @@ export function MatrixScreen({
               </span>
             </div>
           </div>
-          <button
-            type="button"
-            onClick={excel}
-            className="inline-flex items-center gap-1.5 bg-slate-900 hover:bg-black text-white shadow-sm border border-slate-900 py-1 px-2.5 text-xs rounded-lg font-semibold shrink-0 active:scale-95 transition"
-          >
-            <Download className="w-3.5 h-3.5" /> Xuất Excel
-          </button>
         </div>
         <div className="flex items-center justify-between gap-2 flex-wrap pt-0.5">
           <div className="flex bg-slate-100 p-0.5 rounded-xl text-xs font-semibold overflow-x-auto no-scrollbar max-w-full">
@@ -79,7 +59,7 @@ export function MatrixScreen({
               </button>
             ))}
           </div>
-          <span className="text-[10px] text-slate-400">Chạm dòng để quay về Nhập 6 Line hiệu chỉnh</span>
+          <span className="text-[10px] text-slate-400">Chạm dòng để quay về Nhập liệu hiệu chỉnh</span>
         </div>
       </div>
 
@@ -122,7 +102,7 @@ export function MatrixScreen({
                   <tr
                     key={s.id}
                     onClick={() => onSelectSlot?.(s.id, mangs[0]?.id ?? 1)}
-                    title="Chạm để chuyển sang Nhập 6 Line hiệu chỉnh khung giờ này"
+                    title="Chạm để chuyển sang Nhập liệu hiệu chỉnh khung giờ này"
                     className={`cursor-pointer active:bg-slate-200/80 hover:bg-slate-50/80 border-b border-slate-100 ${hasRides ? 'text-slate-900' : 'bg-slate-50/40 text-slate-400'}`}
                   >
                     <td className="py-2 px-1 text-left border-r border-slate-200 font-medium overflow-hidden">

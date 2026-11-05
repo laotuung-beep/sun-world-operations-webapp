@@ -1,5 +1,5 @@
 import { useMemo, useRef, useState } from 'react';
-import { Copy, Download, LoaderCircle, Lock, LockOpen, Moon, Mountain, Pen, Printer, Send, Ticket, TriangleAlert, UserCheck, X } from 'lucide-react';
+import { Copy, Download, FileSpreadsheet, LoaderCircle, Lock, LockOpen, Moon, Mountain, Pen, Ticket, TriangleAlert, UserCheck, X } from 'lucide-react';
 import { toast } from 'sonner';
 import { MANGS } from '../../config';
 import { useActor, useAuth } from '../../auth/AuthProvider';
@@ -7,8 +7,8 @@ import { canReopenDay } from '../../auth/access';
 import { clockVN } from '../../time';
 import { useDayEntries, writeErrorMessage } from '../../entries/api';
 import { isActive } from '../../entries/model';
-import { META_LABEL, buildMatrix, computeFreeGate, legacySheetsPayload, matrixTotal, reportMetrics, type DayMeta } from '../../report/compute';
-import { markSheetsSynced, postToSheets, saveMeta, setDayClosed, useDay, useSchedules, useSheetsWebhook } from '../../report/api';
+import { META_LABEL, buildMatrix, computeFreeGate, matrixTotal, reportMetrics, type DayMeta } from '../../report/compute';
+import { saveMeta, setDayClosed, useDay, useSchedules } from '../../report/api';
 import { CoasterMark } from '../../components/brand';
 
 const fmt = new Intl.NumberFormat('vi-VN');
@@ -24,9 +24,8 @@ export function ReportScreen({ date, onGoMatrix }: { date: string; onGoMatrix: (
   const day = useDay(date);
   const schedules = useSchedules(date);
   const { entries } = useDayEntries(date);
-  const webhook = useSheetsWebhook();
   const captureRef = useRef<HTMLDivElement>(null);
-  const [busy, setBusy] = useState<'close' | 'excel' | 'image' | 'sheets' | null>(null);
+  const [busy, setBusy] = useState<'close' | 'excel' | 'image' | 'download' | null>(null);
   const [editMeta, setEditMeta] = useState(false);
 
   const all = entries ?? [];
@@ -91,18 +90,15 @@ export function ReportScreen({ date, onGoMatrix }: { date: string; onGoMatrix: (
     run('excel', async () => {
       const { exportExcel } = await import('../../report/exporters');
       await exportExcel({ date, matrix, metrics, meta, entries: all, closed });
-      toast.success('Đã tải file Excel.');
+      toast.success('Đã xuất dữ liệu ra file Excel.');
     });
 
-  const sheets = () =>
-    run('sheets', async () => {
-      if (!webhook) {
-        toast.error('Chưa cấu hình Google Sheets. Super Admin vào menu tài khoản → Google Sheets để dán URL Apps Script.');
-        return;
-      }
-      await postToSheets(webhook, legacySheetsPayload(date, matrix, meta, schedules, closed));
-      await markSheetsSynced(date, actor);
-      toast.success('Đã gửi báo cáo sang Google Sheets.');
+  const download = () =>
+    run('download', async () => {
+      if (!captureRef.current) return;
+      const { downloadReportImage } = await import('../../report/exporters');
+      await downloadReportImage(captureRef.current, date);
+      toast.success('Đã tải ảnh báo cáo về máy.');
     });
 
   const btn = 'h-10 px-3 sm:px-3.5 rounded-lg font-semibold text-xs bg-white hover:bg-[#F5F6F8] active:scale-[0.98] border border-[#E5E7EB] text-[#20242B] flex items-center gap-1.5 transition-all shrink-0 disabled:opacity-50';
@@ -119,16 +115,13 @@ export function ReportScreen({ date, onGoMatrix }: { date: string; onGoMatrix: (
           {busy === 'image' ? <LoaderCircle className="w-4 h-4 animate-spin" /> : <Copy className="w-4 h-4 shrink-0" />}
           <span className="truncate">Chép gửi Viber</span>
         </button>
-        <button type="button" onClick={sheets} disabled={busy === 'sheets'} className={btn} title="Gửi Google Sheets">
-          {busy === 'sheets' ? <LoaderCircle className="w-3.5 h-3.5 animate-spin" /> : <Send className="w-3.5 h-3.5 text-[#6B7280]" />}
-          <span className="hidden xs:inline">Gửi báo cáo</span>
+        <button type="button" onClick={excel} disabled={busy === 'excel'} className={btn} title="Xuất dữ liệu Ma Trận Giờ ra file Excel">
+          {busy === 'excel' ? <LoaderCircle className="w-3.5 h-3.5 animate-spin" /> : <FileSpreadsheet className="w-3.5 h-3.5 text-[#16A34A]" />}
+          <span className="hidden xs:inline">Xuất dữ liệu</span>
         </button>
-        <button type="button" onClick={excel} disabled={busy === 'excel'} className={btn} title="Tải file Excel">
-          {busy === 'excel' ? <LoaderCircle className="w-3.5 h-3.5 animate-spin" /> : <Download className="w-3.5 h-3.5 text-[#6B7280]" />}
+        <button type="button" onClick={download} disabled={busy === 'download'} className={btn} title="Tải ảnh báo cáo về máy">
+          {busy === 'download' ? <LoaderCircle className="w-3.5 h-3.5 animate-spin" /> : <Download className="w-3.5 h-3.5 text-[#6B7280]" />}
           <span className="hidden xs:inline">Tải xuống</span>
-        </button>
-        <button type="button" onClick={() => window.print()} className="h-10 w-10 rounded-lg bg-white hover:bg-[#F5F6F8] border border-[#E5E7EB] text-[#6B7280] hover:text-[#20242B] flex items-center justify-center shrink-0" aria-label="In báo cáo">
-          <Printer className="w-4 h-4" />
         </button>
       </div>
 

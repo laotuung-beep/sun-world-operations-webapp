@@ -124,3 +124,14 @@ export async function shareReportImage(node: HTMLElement, date: string): Promise
   saveBlob(blob, file.name);
   return 'downloaded';
 }
+
+/** Tải ảnh PNG của khối báo cáo về máy. */
+export async function downloadReportImage(node: HTMLElement, date: string): Promise<void> {
+  const { toBlob } = await import('html-to-image');
+  const blob = await Promise.race([
+    toBlob(node, { pixelRatio: 2, backgroundColor: '#ffffff', filter: (n) => !(n instanceof HTMLElement && n.dataset.noCapture !== undefined) }),
+    new Promise<never>((_, reject) => setTimeout(() => reject(new Error('Chụp ảnh quá lâu, thử lại.')), 20_000)),
+  ]);
+  if (!blob) throw new Error('Không tạo được ảnh');
+  saveBlob(blob, `bao-cao-mang-truot-${date}.png`);
+}

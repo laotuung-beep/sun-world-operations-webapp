@@ -25,7 +25,7 @@ import { MANG_UI } from '../../components/brand';
 import { EntryList } from './EntryList';
 import { ScheduleCard } from './ScheduleCard';
 
-/** Tab "Nhập 6 Line": hiển thị số đã nhập, cho phép hiệu chỉnh và lưu trực tiếp vào Ma Trận Giờ. */
+/** Tab "Nhập liệu": hiển thị số đã nhập, cho phép hiệu chỉnh và lưu trực tiếp vào Ma Trận Giờ. */
 export function StaffEntryScreen({
   date: propDate,
   mang,

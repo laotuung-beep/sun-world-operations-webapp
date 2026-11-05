@@ -18,7 +18,7 @@ import { writeErrorMessage } from './entries/api';
 type TabId = 'entry' | 'matrix' | 'report' | 'users';
 
 const TABS: Tab<TabId>[] = [
-  { id: 'entry', label: 'Nhập 6 Line', icon: Smartphone },
+  { id: 'entry', label: 'Nhập liệu', icon: Smartphone },
   { id: 'matrix', label: 'Ma Trận Giờ', icon: TableProperties },
   { id: 'report', label: 'Báo Cáo Ca', icon: FileText },
 ];
