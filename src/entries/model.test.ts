@@ -1,14 +1,20 @@
 import { describe, expect, it } from 'vitest';
 import {
+  PAUSE_CATEGORIES,
+  calcPauseDurationMinutes,
   countTotals,
   currentSlotId,
   emptyLines,
+  finalizeSmartTime24h,
   formatDuration,
+  formatSmartTime24h,
   linesTotals,
+  minutesToHHMM,
   normalizeHHMM,
   runMinutes,
   selectableSlots,
   sortNewestFirst,
+  sumPauseRecordsMinutes,
   totalsBySlot,
   validateLines,
   type Entry,
@@ -121,6 +127,33 @@ describe('runMinutes', () => {
   it('needs both times in order', () => {
     expect(runMinutes('08:30', '', 0)).toBeNull();
     expect(runMinutes('19:00', '08:30', 0)).toBeNull();
+  });
+});
+
+describe('24h time formatting and pause records', () => {
+  it('formats minutes strictly as HH:mm', () => {
+    expect(minutesToHHMM(0)).toBe('00:00');
+    expect(minutesToHHMM(15)).toBe('00:15');
+    expect(minutesToHHMM(65)).toBe('01:05');
+    expect(minutesToHHMM(445)).toBe('07:25');
+  });
+  it('smart 24h input auto-inserts colon and clamps 00:00-23:59', () => {
+    expect(formatSmartTime24h('1015')).toBe('10:15');
+    expect(formatSmartTime24h('1435')).toBe('14:35');
+    expect(formatSmartTime24h('2975')).toBe('23:59');
+    expect(finalizeSmartTime24h('830')).toBe('08:30');
+    expect(finalizeSmartTime24h('19')).toBe('19:00');
+  });
+  it('calculates pause durations and sums 5 incident categories', () => {
+    expect(PAUSE_CATEGORIES).toHaveLength(5);
+    expect(calcPauseDurationMinutes('10:40', '10:55')).toBe(15);
+    expect(calcPauseDurationMinutes('11:00', '10:55')).toBeNull();
+    expect(
+      sumPauseRecordsMinutes([
+        { id: '1', category: 'technical', startTime: '10:40', endTime: '10:55', durationMinutes: 15, note: '' },
+        { id: '2', category: 'rain', startTime: '14:00', endTime: '14:50', durationMinutes: 50, note: '' },
+      ]),
+    ).toBe(65);
   });
 });
 

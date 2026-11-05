@@ -11,7 +11,7 @@ import {
 } from 'firebase/firestore';
 import { db } from '../firebase';
 import type { MangId, SlotId } from '../config';
-import { linesTotals, type Entry, type EntryLines } from './model';
+import { linesTotals, type Entry, type EntryLines, type PauseRecord } from './model';
 import type { MangSchedule } from '../report/compute';
 
 const entriesCol = (date: string) => collection(db, 'days', date, 'entries');
@@ -210,11 +210,37 @@ export function useDayClosed(date: string): boolean | null {
 }
 
 export interface Schedule extends MangSchedule {
+  pauseLogs?: PauseRecord[];
   updatedByName?: string;
   updatedAt?: Date | null;
 }
 
-export const EMPTY_SCHEDULE: Schedule = { openTime: '', closeTime: '', pausedMinutes: 0 };
+export const EMPTY_SCHEDULE: Schedule = { openTime: '', closeTime: '', pausedMinutes: 0, pauseLogs: [] };
+
+function localPauseKey(date: string, mang: MangId): string {
+  return `pauseLogs:${date}:${mang}`;
+}
+
+function readLocalPauseLogs(date: string, mang: MangId): PauseRecord[] {
+  try {
+    const raw = typeof localStorage !== 'undefined' ? localStorage.getItem(localPauseKey(date, mang)) : null;
+    if (!raw) return [];
+    const parsed = JSON.parse(raw);
+    return Array.isArray(parsed) ? parsed : [];
+  } catch {
+    return [];
+  }
+}
+
+function writeLocalPauseLogs(date: string, mang: MangId, logs: PauseRecord[]): void {
+  try {
+    if (typeof localStorage !== 'undefined') {
+      localStorage.setItem(localPauseKey(date, mang), JSON.stringify(logs));
+    }
+  } catch {
+    // Bỏ qua nếu trình duyệt chặn localStorage
+  }
+}
 
 export function useSchedule(date: string, mang: MangId): Schedule | null {
   const [schedule, setSchedule] = useState<Schedule | null>(null);
@@ -224,29 +250,38 @@ export function useSchedule(date: string, mang: MangId): Schedule | null {
       doc(db, 'days', date, 'schedules', String(mang)),
       (snap) => {
         const d = snap.data({ serverTimestamps: 'estimate' });
+        const cloudLogs = Array.isArray(d?.pauseLogs) ? (d.pauseLogs as PauseRecord[]) : null;
+        if (cloudLogs) {
+          writeLocalPauseLogs(date, mang, cloudLogs);
+        }
+        const logs = cloudLogs ?? readLocalPauseLogs(date, mang);
         setSchedule(
           d
             ? {
                 openTime: d.openTime ?? '',
                 closeTime: d.closeTime ?? '',
                 pausedMinutes: d.pausedMinutes ?? 0,
+                pauseLogs: logs,
                 updatedByName: d.updatedByName,
                 updatedAt: d.updatedAt?.toDate?.() ?? null,
               }
-            : EMPTY_SCHEDULE,
+            : { ...EMPTY_SCHEDULE, pauseLogs: logs },
         );
       },
       (e) => {
         console.warn('Không đọc được giờ chạy:', e);
-        setSchedule(EMPTY_SCHEDULE);
+        setSchedule({ ...EMPTY_SCHEDULE, pauseLogs: readLocalPauseLogs(date, mang) });
       },
     );
   }, [date, mang]);
   return schedule;
 }
 
-export function saveSchedule(date: string, mang: MangId, s: Schedule, uid: string, name: string): Promise<void> {
-  return setDoc(doc(db, 'days', date, 'schedules', String(mang)), {
+export async function saveSchedule(date: string, mang: MangId, s: Schedule, uid: string, name: string): Promise<void> {
+  const logs = s.pauseLogs ?? readLocalPauseLogs(date, mang);
+  writeLocalPauseLogs(date, mang, logs);
+  const ref = doc(db, 'days', date, 'schedules', String(mang));
+  const basePayload = {
     mang,
     openTime: s.openTime,
     closeTime: s.closeTime,
@@ -254,5 +289,18 @@ export function saveSchedule(date: string, mang: MangId, s: Schedule, uid: strin
     updatedBy: uid,
     updatedByName: name.slice(0, 100),
     updatedAt: serverTimestamp(),
-  });
+  };
+  try {
+    await setDoc(ref, {
+      ...basePayload,
+      pauseLogs: logs.slice(0, 100),
+    });
+  } catch (err) {
+    const code = (err as { code?: string })?.code;
+    if (code === 'permission-denied') {
+      await setDoc(ref, basePayload);
+      return;
+    }
+    throw err;
+  }
 }

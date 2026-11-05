@@ -115,11 +115,12 @@ service cloud.firestore {
     function validSchedule(mang) {
       let d = request.resource.data;
       let hhmm = '^(|([01][0-9]|2[0-3]):[0-5][0-9])$';
-      return d.keys().hasOnly(['mang', 'openTime', 'closeTime', 'pausedMinutes', 'updatedBy', 'updatedByName', 'updatedAt'])
+      return d.keys().hasOnly(['mang', 'openTime', 'closeTime', 'pausedMinutes', 'pauseLogs', 'updatedBy', 'updatedByName', 'updatedAt'])
         && d.mang == mang
         && d.openTime is string && d.openTime.matches(hhmm)
         && d.closeTime is string && d.closeTime.matches(hhmm)
         && d.pausedMinutes is int && d.pausedMinutes >= 0 && d.pausedMinutes <= 720
+        && (!('pauseLogs' in d) || (d.pauseLogs is list && d.pauseLogs.size() <= 100))
         && d.updatedBy == request.auth.uid
         && d.updatedByName is string && d.updatedByName.size() <= 100
         && d.updatedAt == request.time;

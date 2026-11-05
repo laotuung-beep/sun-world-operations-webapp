@@ -155,6 +155,101 @@ export function formatDuration(minutes: number): string {
   return h > 0 ? `${h} giờ${m ? ` ${m} phút` : ''}` : `${m} phút`;
 }
 
+export type PauseCategoryId = 'technical' | 'customer' | 'lightning' | 'fog' | 'rain';
+
+export interface PauseCategoryDef {
+  id: PauseCategoryId;
+  label: string;
+}
+
+/** 5 danh mục sự cố dừng vận hành chuẩn nghiệp vụ. */
+export const PAUSE_CATEGORIES: readonly PauseCategoryDef[] = [
+  { id: 'technical', label: 'Lỗi kỹ thuật' },
+  { id: 'customer', label: 'Sự cố khách hàng' },
+  { id: 'lightning', label: 'Dông sét' },
+  { id: 'fog', label: 'Sương mù' },
+  { id: 'rain', label: 'Mưa lớn' },
+];
+
+export interface PauseRecord {
+  id: string;
+  category: PauseCategoryId;
+  startTime: string; // HH:mm (24h)
+  endTime: string;   // HH:mm (24h)
+  durationMinutes: number;
+  note: string;
+  createdAt?: number;
+  createdByName?: string;
+}
+
+/** Chuyển số phút sang định dạng HH:mm hệ 24h (ví dụ: 0 -> "00:00", 15 -> "00:15", 65 -> "01:05", 445 -> "07:25"). */
+export function minutesToHHMM(minutes: number | null | undefined): string {
+  const v = Math.max(0, Math.round(Number(minutes) || 0));
+  const h = Math.floor(v / 60);
+  const m = v % 60;
+  return `${String(h).padStart(2, '0')}:${String(m).padStart(2, '0')}`;
+}
+
+/**
+ * Ô nhập số thông minh hệ 24h:
+ * - Gõ 4 chữ số liên tiếp (vd: 1015 -> 10:15, 1435 -> 14:35) không cần gõ dấu hai chấm (:).
+ * - Tự động giới hạn hợp lệ từ 00:00 đến 23:59.
+ */
+export function formatSmartTime24h(raw: string): string {
+  if (/^\d:$/.test(raw)) {
+    return `0${raw}`;
+  }
+  const digits = raw.replace(/\D/g, '').slice(0, 4);
+  if (digits.length === 0) return '';
+  if (digits.length <= 2) return digits;
+  const hRaw = parseInt(digits.slice(0, 2), 10) || 0;
+  const h = Math.min(23, Math.max(0, hRaw));
+  const mRawStr = digits.slice(2);
+  if (mRawStr.length === 2) {
+    const mRaw = parseInt(mRawStr, 10) || 0;
+    const m = Math.min(59, Math.max(0, mRaw));
+    return `${String(h).padStart(2, '0')}:${String(m).padStart(2, '0')}`;
+  }
+  return `${String(h).padStart(2, '0')}:${mRawStr}`;
+}
+
+/** Chuẩn hóa giá trị ô nhập giờ 24h khi rời ô (onBlur) hoặc khi lưu. Trả về '' nếu trống. */
+export function finalizeSmartTime24h(raw: string): string {
+  const digits = raw.replace(/\D/g, '').slice(0, 4);
+  if (!digits) return '';
+  let h = 0;
+  let m = 0;
+  if (digits.length === 4) {
+    h = parseInt(digits.slice(0, 2), 10) || 0;
+    m = parseInt(digits.slice(2, 4), 10) || 0;
+  } else if (digits.length === 3) {
+    h = parseInt(digits.slice(0, 1), 10) || 0;
+    m = parseInt(digits.slice(1, 3), 10) || 0;
+  } else {
+    h = parseInt(digits, 10) || 0;
+    m = 0;
+  }
+  h = Math.min(23, Math.max(0, h));
+  m = Math.min(59, Math.max(0, m));
+  return `${String(h).padStart(2, '0')}:${String(m).padStart(2, '0')}`;
+}
+
+/** Tính số phút dừng giữa startTime và endTime (HH:mm). Trả về null nếu không hợp lệ hoặc endTime <= startTime. */
+export function calcPauseDurationMinutes(startTime: string, endTime: string): number | null {
+  const s = finalizeSmartTime24h(startTime);
+  const e = finalizeSmartTime24h(endTime);
+  if (!s || !e) return null;
+  const sMin = hhmmToMinutes(s);
+  const eMin = hhmmToMinutes(e);
+  if (eMin <= sMin) return null;
+  return eMin - sMin;
+}
+
+/** Tính tổng số phút dừng từ danh sách các lượt dừng. */
+export function sumPauseRecordsMinutes(records: readonly PauseRecord[]): number {
+  return records.reduce((acc, r) => acc + Math.max(0, Math.round(Number(r.durationMinutes) || 0)), 0);
+}
+
 /** Mới nhất trước. Phiếu chưa có giờ server (đang chờ mạng) lấy giờ trên máy. */
 export function sortNewestFirst(entries: Entry[]): Entry[] {
   const t = (e: Entry) => e.createdAt?.getTime() ?? e.clientCreatedAt;
