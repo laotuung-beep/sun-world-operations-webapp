@@ -553,7 +553,7 @@ function ScheduleForm({ date, mang, closed, saved }: { date: string; mang: MangI
             </div>
           </button>
 
-          {/* Ô 4: Giờ Chạy Máng (Nền tối #0f172b, tiêu đề Cyan #06b6d4, ghi chú trừ giờ dừng góc trên) */}
+          {/* Ô 4: Giờ Chạy Máng (Nền tối #0f172b, tiêu đề Cyan #06b6d4) */}
           <div
             className="rounded-xl p-2.5 flex flex-col justify-between min-h-[82px] shadow-xs border border-slate-800"
             style={{ backgroundColor: '#0f172b' }}
@@ -562,9 +562,6 @@ function ScheduleForm({ date, mang, closed, saved }: { date: string; mang: MangI
               <span className="flex items-center gap-1.5 font-semibold whitespace-nowrap" style={{ color: '#06b6d4' }}>
                 <Clock className="w-3.5 h-3.5 shrink-0" style={{ color: '#06b6d4' }} />
                 <span>Giờ Chạy Máng</span>
-              </span>
-              <span className="text-[10px] font-semibold tabular-nums px-1.5 py-0.5 rounded bg-slate-800/90 text-rose-300 border border-slate-700 shrink-0">
-                -{pausedHHMM}
               </span>
             </div>
             <div className="w-full h-10 rounded-lg bg-slate-900/70 border border-slate-800 flex items-center justify-center">
