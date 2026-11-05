@@ -2,18 +2,22 @@ import { describe, expect, it } from 'vitest';
 import {
   PAUSE_CATEGORIES,
   calcPauseDurationMinutes,
+  categoryHasLineScope,
   countTotals,
+  countsTowardMangPause,
   currentSlotId,
   emptyLines,
   finalizeSmartTime24h,
   formatDuration,
   formatSmartTime24h,
+  lineScopeOptionsForMang,
   linesTotals,
   minutesToHHMM,
   normalizeHHMM,
   runMinutes,
   selectableSlots,
   sortNewestFirst,
+  sumAllLoggedPauseMinutes,
   sumPauseRecordsMinutes,
   totalsBySlot,
   validateLines,
@@ -144,16 +148,50 @@ describe('24h time formatting and pause records', () => {
     expect(finalizeSmartTime24h('830')).toBe('08:30');
     expect(finalizeSmartTime24h('19')).toBe('19:00');
   });
-  it('calculates pause durations and sums 5 incident categories', () => {
-    expect(PAUSE_CATEGORIES).toHaveLength(5);
+  it('calculates pause durations and sums 6 incident categories with 1-line vs 2-line rules', () => {
+    expect(PAUSE_CATEGORIES).toHaveLength(6);
+    expect(categoryHasLineScope('maintenance')).toBe(true);
+    expect(categoryHasLineScope('technical')).toBe(true);
+    expect(categoryHasLineScope('rain')).toBe(false);
+
+    expect(lineScopeOptionsForMang(1).map((o) => o.value)).toEqual(['line1', 'line2', 'both']);
+    expect(lineScopeOptionsForMang(2).map((o) => o.value)).toEqual(['line3', 'line4', 'both']);
+    expect(lineScopeOptionsForMang(3).map((o) => o.value)).toEqual(['line5', 'line6', 'both']);
+
     expect(calcPauseDurationMinutes('10:40', '10:55')).toBe(15);
     expect(calcPauseDurationMinutes('11:00', '10:55')).toBeNull();
-    expect(
-      sumPauseRecordsMinutes([
-        { id: '1', category: 'technical', startTime: '10:40', endTime: '10:55', durationMinutes: 15, note: '' },
-        { id: '2', category: 'rain', startTime: '14:00', endTime: '14:50', durationMinutes: 50, note: '' },
-      ]),
-    ).toBe(65);
+
+    const records = [
+      // Bảo trì 1 Line (Line 1) -> KHÔNG tính dừng Máng, vẫn lưu lịch sử đối chiếu (30p)
+      { id: '1', category: 'maintenance' as const, lineScope: 'line1' as const, startTime: '09:00', endTime: '09:30', durationMinutes: 30, note: '' },
+      // Bảo trì Cả 2 Line -> CÓ tính dừng Máng (20p)
+      { id: '2', category: 'maintenance' as const, lineScope: 'both' as const, startTime: '10:00', endTime: '10:20', durationMinutes: 20, note: '' },
+      // Lỗi kỹ thuật 1 Line (Line 2) -> KHÔNG tính dừng Máng, vẫn lưu lịch sử đối chiếu (15p)
+      { id: '3', category: 'technical' as const, lineScope: 'line2' as const, startTime: '10:40', endTime: '10:55', durationMinutes: 15, note: '' },
+      // Lỗi kỹ thuật Cả 2 Line -> CÓ tính dừng Máng (25p)
+      { id: '4', category: 'technical' as const, lineScope: 'both' as const, startTime: '11:00', endTime: '11:25', durationMinutes: 25, note: '' },
+      // Mưa lớn -> CÓ tính dừng Máng (50p)
+      { id: '5', category: 'rain' as const, startTime: '14:00', endTime: '14:50', durationMinutes: 50, note: '' },
+    ];
+
+    expect(countsTowardMangPause(records[0])).toBe(false);
+    expect(countsTowardMangPause(records[1])).toBe(true);
+    expect(countsTowardMangPause(records[2])).toBe(false);
+    expect(countsTowardMangPause(records[3])).toBe(true);
+    expect(countsTowardMangPause(records[4])).toBe(true);
+
+    // Thời gian dừng tính cho Máng = 20 + 25 + 50 = 95 phút (01:35)
+    const mangPaused = sumPauseRecordsMinutes(records);
+    expect(mangPaused).toBe(95);
+    expect(minutesToHHMM(mangPaused)).toBe('01:35');
+
+    // Tổng thời gian lưu lịch sử đối chiếu = 30 + 20 + 15 + 25 + 50 = 140 phút (02:20)
+    expect(sumAllLoggedPauseMinutes(records)).toBe(140);
+
+    // Công thức Giờ chạy Máng = Giờ đóng cửa (17:00) - Giờ mở cửa (08:30) - Dừng vận hành Máng (95p) = 510 - 95 = 415p (06:55)
+    const run = runMinutes('08:30', '17:00', mangPaused);
+    expect(run).toBe(415);
+    expect(minutesToHHMM(run)).toBe('06:55');
   });
 });
 

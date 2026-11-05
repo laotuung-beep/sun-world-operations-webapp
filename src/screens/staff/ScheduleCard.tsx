@@ -13,6 +13,7 @@ import {
   LoaderCircle,
   Plus,
   Save,
+  Settings,
   Timer,
   Trash2,
   UserX,
@@ -27,13 +28,19 @@ import { clockVN, hhmmToMinutes } from '../../time';
 import {
   PAUSE_CATEGORIES,
   calcPauseDurationMinutes,
+  categoryHasLineScope,
+  countsTowardMangPause,
   finalizeSmartTime24h,
+  formatLineScopeLabel,
   formatSmartTime24h,
+  lineScopeOptionsForMang,
   minutesToHHMM,
   normalizeHHMM,
   runMinutes,
+  sumAllLoggedPauseMinutes,
   sumPauseRecordsMinutes,
   type PauseCategoryId,
+  type PauseLineScope,
   type PauseRecord,
 } from '../../entries/model';
 import { saveSchedule, useSchedule, writeErrorMessage, type Schedule } from '../../entries/api';
@@ -80,6 +87,11 @@ const CATEGORY_META: Record<
   PauseCategoryId,
   { icon: LucideIcon; iconBg: string; iconColor: string }
 > = {
+  maintenance: {
+    icon: Settings,
+    iconBg: '#dcfce7',
+    iconColor: '#15803d',
+  },
   technical: {
     icon: Wrench,
     iconBg: '#fef3c7',
@@ -108,17 +120,19 @@ const CATEGORY_META: Record<
 };
 
 interface CategoryDraft {
+  lineScope: PauseLineScope;
   startTime: string;
   endTime: string;
   note: string;
 }
 
 const EMPTY_DRAFTS: Record<PauseCategoryId, CategoryDraft> = {
-  technical: { startTime: '', endTime: '', note: '' },
-  customer: { startTime: '', endTime: '', note: '' },
-  lightning: { startTime: '', endTime: '', note: '' },
-  fog: { startTime: '', endTime: '', note: '' },
-  rain: { startTime: '', endTime: '', note: '' },
+  maintenance: { lineScope: 'both', startTime: '', endTime: '', note: '' },
+  technical: { lineScope: 'both', startTime: '', endTime: '', note: '' },
+  customer: { lineScope: 'both', startTime: '', endTime: '', note: '' },
+  lightning: { lineScope: 'both', startTime: '', endTime: '', note: '' },
+  fog: { lineScope: 'both', startTime: '', endTime: '', note: '' },
+  rain: { lineScope: 'both', startTime: '', endTime: '', note: '' },
 };
 
 /** Khung "Thời gian vận hành" & Module "Dừng Vận Hành" chuẩn hệ 24h (HH:mm). */
@@ -270,6 +284,7 @@ function ScheduleForm({ date, mang, closed, saved }: { date: string; mang: MangI
     const record: PauseRecord = {
       id: `${Date.now()}-${Math.random().toString(36).slice(2, 7)}`,
       category: cat,
+      ...(categoryHasLineScope(cat) ? { lineScope: d.lineScope } : {}),
       startTime: s,
       endTime: e,
       durationMinutes: dur,
@@ -310,6 +325,7 @@ function ScheduleForm({ date, mang, closed, saved }: { date: string; mang: MangI
         nextLogs.push({
           id: `${Date.now()}-${cat.id}-${Math.random().toString(36).slice(2, 6)}`,
           category: cat.id,
+          ...(categoryHasLineScope(cat.id) ? { lineScope: d.lineScope } : {}),
           startTime: s,
           endTime: e,
           durationMinutes: dur,
@@ -390,24 +406,30 @@ function ScheduleForm({ date, mang, closed, saved }: { date: string; mang: MangI
 
   // Tổng thời gian theo từng danh mục bên ngoài màn hình chính
   const summaryByCategory = useMemo(() => {
-    const map: Record<PauseCategoryId, { minutes: number; count: number }> = {
-      technical: { minutes: 0, count: 0 },
-      customer: { minutes: 0, count: 0 },
-      lightning: { minutes: 0, count: 0 },
-      fog: { minutes: 0, count: 0 },
-      rain: { minutes: 0, count: 0 },
+    const map: Record<PauseCategoryId, { mangMinutes: number; loggedMinutes: number; count: number }> = {
+      maintenance: { mangMinutes: 0, loggedMinutes: 0, count: 0 },
+      technical: { mangMinutes: 0, loggedMinutes: 0, count: 0 },
+      customer: { mangMinutes: 0, loggedMinutes: 0, count: 0 },
+      lightning: { mangMinutes: 0, loggedMinutes: 0, count: 0 },
+      fog: { mangMinutes: 0, loggedMinutes: 0, count: 0 },
+      rain: { mangMinutes: 0, loggedMinutes: 0, count: 0 },
     };
     for (const r of pauseLogs) {
       if (map[r.category]) {
-        map[r.category].minutes += r.durationMinutes;
+        map[r.category].loggedMinutes += r.durationMinutes;
+        if (countsTowardMangPause(r)) {
+          map[r.category].mangMinutes += r.durationMinutes;
+        }
         map[r.category].count += 1;
       }
     }
     return map;
   }, [pauseLogs]);
 
-  // Tổng thời gian tạm tính trong Modal (gồm cả các lượt đã thêm trong Modal)
+  // Tổng thời gian tạm tính trong Modal (tính cho cả Máng & tổng lịch sử đối chiếu)
   const modalTotalMinutes = useMemo(() => sumPauseRecordsMinutes(modalLogs), [modalLogs]);
+  const modalLoggedMinutes = useMemo(() => sumAllLoggedPauseMinutes(modalLogs), [modalLogs]);
+  const lineScopeOptions = useMemo(() => lineScopeOptionsForMang(mang), [mang]);
 
   const timeInputCls =
     'w-full h-10 text-center font-semibold text-base bg-white border border-slate-300 focus:border-slate-900 text-slate-900 placeholder:text-slate-400 rounded-lg px-2 outline-none shadow-2xs tabular-nums disabled:bg-slate-100 transition-colors';
@@ -623,20 +645,22 @@ function ScheduleForm({ date, mang, closed, saved }: { date: string; mang: MangI
           }
           className={showDailyLog ? 'px-3 sm:px-3.5 pb-3 pt-2 border-t border-slate-100 space-y-3' : ''}
         >
-          {/* 5 thẻ tổng hợp nhanh theo từng loại sự cố (kiểu HH:mm) */}
-          <div className="grid grid-cols-2 sm:grid-cols-5 gap-2">
+          {/* 6 thẻ tổng hợp nhanh theo từng loại sự cố (kiểu HH:mm) */}
+          <div className="grid grid-cols-2 sm:grid-cols-3 gap-2">
             {PAUSE_CATEGORIES.map((cat) => {
               const meta = CATEGORY_META[cat.id];
               const Icon = meta.icon;
               const stat = summaryByCategory[cat.id];
-              const hasTime = stat.minutes > 0;
+              const hasMangTime = stat.mangMinutes > 0;
+              const hasAnyLog = stat.loggedMinutes > 0;
+              const singleLineDiff = stat.loggedMinutes - stat.mangMinutes;
               return (
                 <div
                   key={cat.id}
                   className="rounded-xl p-2.5 border flex flex-col justify-between gap-1.5 transition-colors"
                   style={{
-                    backgroundColor: hasTime ? palette.lightBg : '#f8fafc',
-                    borderColor: hasTime ? palette.border : '#e2e8f0',
+                    backgroundColor: hasMangTime ? palette.lightBg : hasAnyLog ? '#f8fafc' : '#f8fafc',
+                    borderColor: hasMangTime ? palette.border : '#e2e8f0',
                   }}
                 >
                   <div className="flex items-center gap-1.5 min-w-0">
@@ -650,19 +674,26 @@ function ScheduleForm({ date, mang, closed, saved }: { date: string; mang: MangI
                       {cat.label}
                     </span>
                   </div>
-                  <div className="flex items-center justify-between pt-0.5">
-                    <span className="text-[10px] font-medium text-slate-500 tabular-nums">
-                      {stat.count} lượt
-                    </span>
+                  <div className="flex items-center justify-between pt-0.5 gap-1">
+                    <div className="min-w-0">
+                      <span className="text-[10px] font-medium text-slate-500 tabular-nums block">
+                        {stat.count} lượt
+                      </span>
+                      {singleLineDiff > 0 && (
+                        <span className="text-[9px] font-medium text-slate-500 tabular-nums block truncate">
+                          1 Line: {minutesToHHMM(singleLineDiff)}
+                        </span>
+                      )}
+                    </div>
                     <span
-                      className="text-xs font-semibold tabular-nums px-1.5 py-0.5 rounded border"
+                      className="text-xs font-semibold tabular-nums px-1.5 py-0.5 rounded border shrink-0"
                       style={{
                         backgroundColor: '#ffffff',
-                        borderColor: hasTime ? palette.border : '#e2e8f0',
-                        color: hasTime ? palette.accentText : '#475569',
+                        borderColor: hasMangTime ? palette.border : '#e2e8f0',
+                        color: hasMangTime ? palette.accentText : '#475569',
                       }}
                     >
-                      {minutesToHHMM(stat.minutes)}
+                      {minutesToHHMM(stat.mangMinutes)}
                     </span>
                   </div>
                 </div>
@@ -682,6 +713,8 @@ function ScheduleForm({ date, mang, closed, saved }: { date: string; mang: MangI
                 const meta = CATEGORY_META[rec.category] ?? CATEGORY_META.technical;
                 const Icon = meta.icon;
                 const isConfirming = confirmDailyDeleteId === rec.id;
+                const hasScope = categoryHasLineScope(rec.category);
+                const countsMang = countsTowardMangPause(rec);
                 return (
                   <div
                     key={rec.id}
@@ -705,9 +738,26 @@ function ScheduleForm({ date, mang, closed, saved }: { date: string; mang: MangI
                         #{idx + 1}
                       </span>
                       <span className="font-semibold text-slate-800">{catDef.label}</span>
+                      {hasScope && (
+                        <span
+                          className="font-semibold px-1.5 py-0.5 rounded text-[10px] border tabular-nums"
+                          style={{
+                            backgroundColor: countsMang ? palette.lightBg : '#f1f5f9',
+                            borderColor: countsMang ? palette.border : '#cbd5e1',
+                            color: countsMang ? palette.accentText : '#475569',
+                          }}
+                        >
+                          {formatLineScopeLabel(rec.lineScope)}
+                        </span>
+                      )}
                       <span className="font-semibold text-slate-700 tabular-nums bg-white px-2 py-0.5 rounded border border-slate-200">
                         {rec.startTime} – {rec.endTime} | {minutesToHHMM(rec.durationMinutes)}
                       </span>
+                      {!countsMang && (
+                        <span className="text-[10px] font-semibold text-amber-700 bg-amber-50 border border-amber-200 px-1.5 py-0.5 rounded">
+                          Không tính dừng Máng (Đối chiếu)
+                        </span>
+                      )}
                       {rec.note && (
                         <span className="text-slate-600 bg-white px-2 py-0.5 rounded border border-slate-200 truncate max-w-xs">
                           {rec.note}
@@ -792,8 +842,13 @@ function ScheduleForm({ date, mang, closed, saved }: { date: string; mang: MangI
                   className="text-xs font-semibold tabular-nums px-2 py-0.5 rounded-md border bg-white"
                   style={{ borderColor: palette.border, color: palette.accentText }}
                 >
-                  Tổng: {minutesToHHMM(modalTotalMinutes)}
+                  Tổng dừng Máng: {minutesToHHMM(modalTotalMinutes)}
                 </span>
+                {modalLoggedMinutes > modalTotalMinutes && (
+                  <span className="text-[11px] font-semibold tabular-nums px-2 py-0.5 rounded-md border border-slate-200 bg-white/90 text-slate-600">
+                    Đối chiếu 1 Line: {minutesToHHMM(modalLoggedMinutes - modalTotalMinutes)}
+                  </span>
+                )}
               </div>
               <p className="text-[11px] font-medium mt-0.5" style={{ color: palette.accentText }}>
                 {palette.lineMapping}
@@ -810,7 +865,7 @@ function ScheduleForm({ date, mang, closed, saved }: { date: string; mang: MangI
             </button>
           </div>
 
-          {/* Danh sách 5 danh mục sự cố (Accordion) */}
+          {/* Danh sách 6 danh mục sự cố (Accordion) */}
           <div className="p-3.5 sm:p-4 space-y-2.5 overflow-y-auto flex-1">
             {PAUSE_CATEGORIES.map((cat) => {
               const meta = CATEGORY_META[cat.id];
@@ -818,16 +873,19 @@ function ScheduleForm({ date, mang, closed, saved }: { date: string; mang: MangI
               const isExpanded = expandedCat === cat.id;
               const catLogs = modalLogs.filter((r) => r.category === cat.id);
               const catMinutes = sumPauseRecordsMinutes(catLogs);
+              const catLoggedMinutes = sumAllLoggedPauseMinutes(catLogs);
+              const catSingleLineMinutes = catLoggedMinutes - catMinutes;
               const catHHMM = minutesToHHMM(catMinutes);
               const draft = drafts[cat.id];
               const draftDuration = calcPauseDurationMinutes(draft.startTime, draft.endTime);
+              const hasLineSelect = categoryHasLineScope(cat.id);
 
               return (
                 <div
                   key={cat.id}
                   className="rounded-xl border bg-white overflow-hidden transition-colors"
                   style={{
-                    borderColor: isExpanded || catMinutes > 0 ? palette.border : '#e2e8f0',
+                    borderColor: isExpanded || catLoggedMinutes > 0 ? palette.border : '#e2e8f0',
                   }}
                 >
                   {/* Khung tiêu đề cố định 56px (h-14), flex items-center justify-between */}
@@ -853,10 +911,13 @@ function ScheduleForm({ date, mang, closed, saved }: { date: string; mang: MangI
                         </span>
                         {catLogs.length > 0 && (
                           <span
-                            className="text-[10px] font-semibold tabular-nums block"
+                            className="text-[10px] font-semibold tabular-nums block truncate"
                             style={{ color: palette.accentText }}
                           >
-                            {catLogs.length} lượt dừng trong ngày
+                            {catLogs.length} lượt dừng
+                            {catSingleLineMinutes > 0
+                              ? ` · 1 Line (Đối chiếu): ${minutesToHHMM(catSingleLineMinutes)}`
+                              : ' trong ngày'}
                           </span>
                         )}
                       </div>
@@ -890,7 +951,7 @@ function ScheduleForm({ date, mang, closed, saved }: { date: string; mang: MangI
                     }
                     className={isExpanded ? 'p-3.5 space-y-3 bg-white' : ''}
                   >
-                    {/* Lịch sử các lượt dừng của mục này (ví dụ: #1 10:40 – 10:55 | 00:15) */}
+                    {/* Lịch sử các lượt dừng của mục này (ví dụ: #1 [Line 1] 10:40 – 10:55 | 00:15) */}
                     {catLogs.length > 0 && (
                       <div className="space-y-1.5">
                         <span className="text-[11px] font-semibold text-slate-600 block">
@@ -898,22 +959,46 @@ function ScheduleForm({ date, mang, closed, saved }: { date: string; mang: MangI
                         </span>
                         {catLogs.map((rec, idx) => {
                           const isConfirming = confirmDeleteId === rec.id;
+                          const recCountsMang = countsTowardMangPause(rec);
                           return (
                             <div
                               key={rec.id}
                               className="flex items-center justify-between gap-2 px-2.5 py-2 rounded-lg border text-xs"
                               style={{
-                                backgroundColor: palette.lightBg,
-                                borderColor: palette.border,
+                                backgroundColor: recCountsMang ? palette.lightBg : '#f8fafc',
+                                borderColor: recCountsMang ? palette.border : '#cbd5e1',
                               }}
                             >
-                              <div className="flex items-center gap-2 min-w-0 flex-wrap">
+                              <div className="flex items-center gap-1.5 min-w-0 flex-wrap">
                                 <span
                                   className="font-semibold tabular-nums"
-                                  style={{ color: palette.accentText }}
+                                  style={{ color: recCountsMang ? palette.accentText : '#334155' }}
                                 >
-                                  #{idx + 1} {rec.startTime} – {rec.endTime} | {minutesToHHMM(rec.durationMinutes)}
+                                  #{idx + 1}
                                 </span>
+                                {hasLineSelect && (
+                                  <span
+                                    className="font-semibold px-1.5 py-0.5 rounded text-[10px] border tabular-nums"
+                                    style={{
+                                      backgroundColor: '#ffffff',
+                                      borderColor: recCountsMang ? palette.border : '#cbd5e1',
+                                      color: recCountsMang ? palette.accentText : '#475569',
+                                    }}
+                                  >
+                                    {formatLineScopeLabel(rec.lineScope)}
+                                  </span>
+                                )}
+                                <span
+                                  className="font-semibold tabular-nums"
+                                  style={{ color: recCountsMang ? palette.accentText : '#334155' }}
+                                >
+                                  {rec.startTime} – {rec.endTime} | {minutesToHHMM(rec.durationMinutes)}
+                                </span>
+                                {!recCountsMang && (
+                                  <span className="text-[10px] font-semibold text-amber-700 bg-amber-50 border border-amber-200 px-1.5 py-0.5 rounded">
+                                    Đối chiếu · 00:00 Máng
+                                  </span>
+                                )}
                                 {rec.note && (
                                   <span className="text-slate-600 bg-white/90 px-1.5 py-0.5 rounded border border-slate-200 truncate max-w-[180px]">
                                     {rec.note}
@@ -956,6 +1041,51 @@ function ScheduleForm({ date, mang, closed, saved }: { date: string; mang: MangI
                             </div>
                           );
                         })}
+                      </div>
+                    )}
+
+                    {/* 3 ô chọn Line cho mục "Bảo trì" và "Lỗi kỹ thuật" (Line A, Line B, Cả 2 Line) */}
+                    {hasLineSelect && (
+                      <div className="space-y-1.5">
+                        <div className="flex items-center justify-between gap-2">
+                          <label className="text-[11px] font-semibold text-slate-700">
+                            Chọn phạm vi Line ({mangById(mang).name})
+                          </label>
+                          <span
+                            className="text-[10px] font-semibold px-1.5 py-0.5 rounded border"
+                            style={{
+                              backgroundColor: draft.lineScope === 'both' ? palette.lightBg : '#fffbeb',
+                              borderColor: draft.lineScope === 'both' ? palette.border : '#fde68a',
+                              color: draft.lineScope === 'both' ? palette.accentText : '#b45309',
+                            }}
+                          >
+                            {draft.lineScope === 'both'
+                              ? 'Tính thời gian dừng cho cả Máng'
+                              : 'Không tính dừng Máng · Lưu lịch sử đối chiếu'}
+                          </span>
+                        </div>
+                        <div className="grid grid-cols-3 gap-2">
+                          {lineScopeOptions.map((opt) => {
+                            const active = draft.lineScope === opt.value;
+                            return (
+                              <button
+                                key={opt.value}
+                                type="button"
+                                disabled={closed}
+                                onClick={() => updateCategoryDraft(cat.id, { lineScope: opt.value })}
+                                aria-pressed={active}
+                                className="h-9 rounded-lg border text-xs font-semibold transition-all cursor-pointer select-none flex items-center justify-center px-2"
+                                style={{
+                                  backgroundColor: active ? palette.primary : '#ffffff',
+                                  borderColor: active ? palette.primary : '#cbd5e1',
+                                  color: active ? '#ffffff' : '#334155',
+                                }}
+                              >
+                                {opt.label}
+                              </button>
+                            );
+                          })}
+                        </div>
                       </div>
                     )}
 

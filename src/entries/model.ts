@@ -1,4 +1,4 @@
-import { MAX_CARTS, TIME_SLOTS, mangById, type LineId, type MangId, type SlotId, type TimeSlot } from '../config';
+import { LINE_LABEL, MAX_CARTS, TIME_SLOTS, mangById, type LineId, type MangId, type SlotId, type TimeSlot } from '../config';
 import { hhmmToMinutes } from '../time';
 
 export type EntryStatus = 'pending' | 'approved' | 'rejected' | 'cancelled';
@@ -155,16 +155,21 @@ export function formatDuration(minutes: number): string {
   return h > 0 ? `${h} giờ${m ? ` ${m} phút` : ''}` : `${m} phút`;
 }
 
-export type PauseCategoryId = 'technical' | 'customer' | 'lightning' | 'fog' | 'rain';
+export type PauseCategoryId = 'maintenance' | 'technical' | 'customer' | 'lightning' | 'fog' | 'rain';
+
+/** Phạm vi Line dừng vận hành: 1 Line cụ thể (line1..line6) hoặc Cả 2 Line của Máng ('both'). */
+export type PauseLineScope = LineId | 'both';
 
 export interface PauseCategoryDef {
   id: PauseCategoryId;
   label: string;
+  hasLineScope?: boolean;
 }
 
-/** 5 danh mục sự cố dừng vận hành chuẩn nghiệp vụ. */
+/** 6 danh mục sự cố dừng vận hành chuẩn nghiệp vụ. */
 export const PAUSE_CATEGORIES: readonly PauseCategoryDef[] = [
-  { id: 'technical', label: 'Lỗi kỹ thuật' },
+  { id: 'maintenance', label: 'Bảo trì', hasLineScope: true },
+  { id: 'technical', label: 'Lỗi kỹ thuật', hasLineScope: true },
   { id: 'customer', label: 'Sự cố khách hàng' },
   { id: 'lightning', label: 'Dông sét' },
   { id: 'fog', label: 'Sương mù' },
@@ -174,12 +179,49 @@ export const PAUSE_CATEGORIES: readonly PauseCategoryDef[] = [
 export interface PauseRecord {
   id: string;
   category: PauseCategoryId;
+  /** Áp dụng cho Bảo trì & Lỗi kỹ thuật: 'line1'..'line6' (1 line) hoặc 'both' (Cả 2 Line). */
+  lineScope?: PauseLineScope;
   startTime: string; // HH:mm (24h)
   endTime: string;   // HH:mm (24h)
   durationMinutes: number;
   note: string;
   createdAt?: number;
   createdByName?: string;
+}
+
+/** Kiểm tra danh mục có yêu cầu chọn Line (Line A, Line B, Cả 2 Line) hay không. */
+export function categoryHasLineScope(cat: PauseCategoryId): boolean {
+  return cat === 'maintenance' || cat === 'technical';
+}
+
+/** Trả về 3 ô chọn Line tương ứng với từng Máng (vd Máng 1: Line 1, Line 2, Cả 2 Line). */
+export function lineScopeOptionsForMang(mang: MangId): readonly { value: PauseLineScope; label: string }[] {
+  const [l1, l2] = mangById(mang).lines;
+  return [
+    { value: l1, label: LINE_LABEL[l1] },
+    { value: l2, label: LINE_LABEL[l2] },
+    { value: 'both', label: 'Cả 2 Line' },
+  ];
+}
+
+/** Nhãn hiển thị cho phạm vi Line của phiếu dừng. */
+export function formatLineScopeLabel(scope: PauseLineScope | undefined): string {
+  if (!scope || scope === 'both') return 'Cả 2 Line';
+  return LINE_LABEL[scope] ?? scope;
+}
+
+/**
+ * Kiểm tra lượt dừng có tính vào thời gian dừng của cả Máng hay không:
+ * - Bảo trì / Lỗi kỹ thuật:
+ *   + Cả 2 Line ('both') -> CÓ tính thời gian dừng cho cả Máng.
+ *   + 1 Line ('line1'..'line6') -> KHÔNG tính thời gian dừng của Máng (vẫn lưu lịch sử đối chiếu).
+ * - Các danh mục còn lại -> CÓ tính thời gian dừng cho cả Máng.
+ */
+export function countsTowardMangPause(record: Pick<PauseRecord, 'category' | 'lineScope'>): boolean {
+  if (categoryHasLineScope(record.category)) {
+    return !record.lineScope || record.lineScope === 'both';
+  }
+  return true;
 }
 
 /** Chuyển số phút sang định dạng HH:mm hệ 24h (ví dụ: 0 -> "00:00", 15 -> "00:15", 65 -> "01:05", 445 -> "07:25"). */
@@ -245,8 +287,21 @@ export function calcPauseDurationMinutes(startTime: string, endTime: string): nu
   return eMin - sMin;
 }
 
-/** Tính tổng số phút dừng từ danh sách các lượt dừng. */
+/**
+ * Tính tổng số phút dừng TÍNH CHO CẢ MÁNG (dùng để trừ vào Giờ chạy Máng).
+ * Nếu Bảo trì hoặc Lỗi kỹ thuật chỉ dừng 1 Line thì không tính vào tổng thời gian dừng của Máng.
+ */
 export function sumPauseRecordsMinutes(records: readonly PauseRecord[]): number {
+  return records.reduce((acc, r) => {
+    if (!countsTowardMangPause(r)) return acc;
+    return acc + Math.max(0, Math.round(Number(r.durationMinutes) || 0));
+  }, 0);
+}
+
+/**
+ * Tính tổng số phút của TẤT CẢ các phiếu dừng đã lưu trong lịch sử (bao gồm cả phiếu 1 Line lưu để đối chiếu).
+ */
+export function sumAllLoggedPauseMinutes(records: readonly PauseRecord[]): number {
   return records.reduce((acc, r) => acc + Math.max(0, Math.round(Number(r.durationMinutes) || 0)), 0);
 }
 
