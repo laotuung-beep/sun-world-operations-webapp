@@ -1,5 +1,5 @@
 import { useMemo, useRef, useState } from 'react';
-import { Copy, Download, FileSpreadsheet, LoaderCircle, Lock, LockOpen, Moon, Mountain, Pen, Ticket, TriangleAlert, UserCheck, X } from 'lucide-react';
+import { Copy, FileSpreadsheet, LoaderCircle, Lock, LockOpen, Moon, Mountain, Pen, Ticket, TriangleAlert, UserCheck, X } from 'lucide-react';
 import { toast } from 'sonner';
 import { MANGS } from '../../config';
 import { useActor, useAuth } from '../../auth/AuthProvider';
@@ -25,7 +25,7 @@ export function ReportScreen({ date, onGoMatrix }: { date: string; onGoMatrix: (
   const schedules = useSchedules(date);
   const { entries } = useDayEntries(date);
   const captureRef = useRef<HTMLDivElement>(null);
-  const [busy, setBusy] = useState<'close' | 'excel' | 'image' | 'download' | null>(null);
+  const [busy, setBusy] = useState<'close' | 'excel' | 'image' | null>(null);
   const [editMeta, setEditMeta] = useState(false);
 
   const all = entries ?? [];
@@ -93,14 +93,6 @@ export function ReportScreen({ date, onGoMatrix }: { date: string; onGoMatrix: (
       toast.success('Đã xuất dữ liệu ra file Excel.');
     });
 
-  const download = () =>
-    run('download', async () => {
-      if (!captureRef.current) return;
-      const { downloadReportImage } = await import('../../report/exporters');
-      await downloadReportImage(captureRef.current, date);
-      toast.success('Đã tải ảnh báo cáo về máy.');
-    });
-
   const btn = 'h-10 px-3 sm:px-3.5 rounded-lg font-semibold text-xs bg-white hover:bg-[#F5F6F8] active:scale-[0.98] border border-[#E5E7EB] text-[#20242B] flex items-center gap-1.5 transition-all shrink-0 disabled:opacity-50';
 
   return (
@@ -118,10 +110,6 @@ export function ReportScreen({ date, onGoMatrix }: { date: string; onGoMatrix: (
         <button type="button" onClick={excel} disabled={busy === 'excel'} className={btn} title="Xuất dữ liệu Ma Trận Giờ ra file Excel">
           {busy === 'excel' ? <LoaderCircle className="w-3.5 h-3.5 animate-spin" /> : <FileSpreadsheet className="w-3.5 h-3.5 text-[#16A34A]" />}
           <span className="hidden xs:inline">Xuất dữ liệu</span>
-        </button>
-        <button type="button" onClick={download} disabled={busy === 'download'} className={btn} title="Tải ảnh báo cáo về máy">
-          {busy === 'download' ? <LoaderCircle className="w-3.5 h-3.5 animate-spin" /> : <Download className="w-3.5 h-3.5 text-[#6B7280]" />}
-          <span className="hidden xs:inline">Tải xuống</span>
         </button>
       </div>
 
@@ -192,15 +180,14 @@ export function ReportScreen({ date, onGoMatrix }: { date: string; onGoMatrix: (
 
           <div className="grid grid-cols-2 gap-2 sm:gap-3">
             <div className="bg-white rounded-xl p-3 sm:p-4 border border-[#E5E7EB] flex flex-col justify-between min-h-[105px] sm:min-h-[125px]">
-              <span className="text-xs sm:text-sm font-bold uppercase tracking-wider text-[#6B7280]">Doanh thu</span>
+              <span className="text-xs sm:text-sm font-bold uppercase tracking-wider text-[#6B7280]">Doanh thu (VNĐ)</span>
               <div className="text-[17px] xs:text-xl sm:text-2xl font-bold font-numeric tabular-nums text-[#D97706] tracking-tight flex items-baseline gap-1 whitespace-nowrap overflow-hidden my-1">
                 <span>{n(meta.counterRevenue)}</span>
-                <span className="text-[12px] sm:text-sm text-[#D97706]/90">đ</span>
               </div>
               <div className="text-[10.5px] sm:text-[11px] text-[#16A34A] font-semibold flex items-center gap-1 truncate">✓ Doanh thu vé quầy</div>
             </div>
             <div className="bg-white rounded-xl p-3 sm:p-4 border border-[#E5E7EB] flex flex-col justify-between min-h-[105px] sm:min-h-[125px]">
-              <span className="text-xs sm:text-sm font-bold uppercase tracking-wider text-[#6B7280]">Tỷ lệ lên cáp</span>
+              <span className="text-xs sm:text-sm font-bold uppercase tracking-wider text-[#6B7280]">Tỷ lệ chơi / Cáp</span>
               <div className="text-[17px] xs:text-xl sm:text-2xl font-bold font-numeric tabular-nums text-[#20242B] tracking-tight my-1">
                 {(metrics.conversionRate ?? 0).toFixed(1)}%
               </div>
@@ -345,10 +332,10 @@ function MetaForm({
                   readOnly
                   value={fmt.format(autoFreeGate)}
                   className="mt-1 w-full rounded-lg border border-slate-200 bg-slate-100 px-2.5 py-1.5 font-bold tabular-nums text-slate-700 cursor-not-allowed outline-none select-none"
-                  title="Khách miễn phí = Khách chơi máng - Cổng tính phí"
+                  title="Khách miễn phí = Khách chơi máng - Khách tính phí"
                 />
                 <span className="text-[10px] text-slate-400 mt-1 block leading-tight">
-                  = Khách chơi máng ({fmt.format(totalPassengers)}) − Cổng tính phí ({fmt.format(draft.paidGateVisitors)})
+                  = Khách chơi máng ({fmt.format(totalPassengers)}) − Khách tính phí ({fmt.format(draft.paidGateVisitors)})
                 </span>
               </label>
             );

@@ -25,14 +25,14 @@ export const EMPTY_META: DayMeta = {
 
 export const META_LABEL: Record<keyof DayMeta, string> = {
   cableCarVisitors: 'Khách lên cáp',
-  paidGateVisitors: 'Cổng tính phí',
+  paidGateVisitors: 'Khách tính phí',
   freeGateVisitors: 'Khách miễn phí',
-  nightComboVisitors: 'Combo đêm',
+  nightComboVisitors: 'Khách combo đêm',
   counterRevenue: 'Doanh thu vé quầy (đ)',
 };
 
 /**
- * Tự động tính Khách miễn phí = Math.max(0, Khách chơi máng - Cổng tính phí).
+ * Tự động tính Khách miễn phí = Math.max(0, Khách chơi máng - Khách tính phí).
  */
 export function computeFreeGate(coasterPassengers: number, paidGateVisitors: number): number {
   return Math.max(0, Math.round((coasterPassengers || 0) - (paidGateVisitors || 0)));

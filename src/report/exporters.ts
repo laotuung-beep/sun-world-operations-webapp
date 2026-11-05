@@ -33,7 +33,7 @@ export async function exportExcel(opts: {
 
   ws.addRow(['Tổng khách chơi máng', opts.metrics.total.passengers]).font = bold;
   ws.addRow(['Tổng lượt xe', opts.metrics.total.rides]);
-  ws.addRow(['Tỷ lệ lên cáp (%)', opts.metrics.conversionRate === null ? '' : Number(opts.metrics.conversionRate.toFixed(1))]);
+  ws.addRow(['Tỷ lệ chơi / Cáp (%)', opts.metrics.conversionRate === null ? '' : Number(opts.metrics.conversionRate.toFixed(1))]);
   ws.addRow(['TB chuyến / giờ cao điểm (11h-15h)', opts.metrics.peakAvgRides]);
   for (const k of Object.keys(META_LABEL) as (keyof DayMeta)[]) ws.addRow([META_LABEL[k], opts.meta[k]]);
   ws.addRow([]);
@@ -125,13 +125,3 @@ export async function shareReportImage(node: HTMLElement, date: string): Promise
   return 'downloaded';
 }
 
-/** Tải ảnh PNG của khối báo cáo về máy. */
-export async function downloadReportImage(node: HTMLElement, date: string): Promise<void> {
-  const { toBlob } = await import('html-to-image');
-  const blob = await Promise.race([
-    toBlob(node, { pixelRatio: 2, backgroundColor: '#ffffff', filter: (n) => !(n instanceof HTMLElement && n.dataset.noCapture !== undefined) }),
-    new Promise<never>((_, reject) => setTimeout(() => reject(new Error('Chụp ảnh quá lâu, thử lại.')), 20_000)),
-  ]);
-  if (!blob) throw new Error('Không tạo được ảnh');
-  saveBlob(blob, `bao-cao-mang-truot-${date}.png`);
-}
