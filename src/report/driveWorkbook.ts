@@ -231,7 +231,21 @@ export function upsertDayIntoExcelWorkbook(wb: ExcelJS.Workbook, payload: DaySyn
       result: meta.cableCarVisitors > 0 ? totalPassengers / meta.cableCarVisitors : '',
     };
     sRow.getCell(5).value = meta.paidGateVisitors > 0 ? meta.paidGateVisitors : null;
-    sRow.getCell(6).value = meta.freeGateVisitors >= 0 && totalPassengers > 0 ? meta.freeGateVisitors : null;
+    if (date >= '2026-02-12') {
+      const fResult =
+        meta.paidGateVisitors > 0
+          ? Math.max(0, totalPassengers - meta.paidGateVisitors)
+          : meta.freeGateVisitors > 0
+            ? meta.freeGateVisitors
+            : '';
+      const fallbackExpr = meta.freeGateVisitors > 0 && meta.paidGateVisitors <= 0 ? String(meta.freeGateVisitors) : '""';
+      sRow.getCell(6).value = {
+        formula: `IF(AND(ISNUMBER(B${summaryRowIdx}), ISNUMBER(E${summaryRowIdx})), MAX(0, B${summaryRowIdx}-E${summaryRowIdx}), ${fallbackExpr})`,
+        result: fResult,
+      };
+    } else {
+      sRow.getCell(6).value = meta.freeGateVisitors > 0 ? meta.freeGateVisitors : null;
+    }
     sRow.getCell(7).value = meta.nightComboVisitors > 0 ? meta.nightComboVisitors : null;
     if (meta.counterRevenue > 0) {
       sRow.getCell(11).value = meta.counterRevenue;

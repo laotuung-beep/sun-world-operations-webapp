@@ -22,7 +22,15 @@ import { canManageUsers, canReopenDay } from '../../auth/access';
 import { clockVN } from '../../time';
 import { useDayEntries, writeErrorMessage } from '../../entries/api';
 import { isActive, minutesToHHMM } from '../../entries/model';
-import { META_LABEL, buildMatrix, computeFreeGate, matrixTotal, reportMetrics, resolveFreeGate, type DayMeta } from '../../report/compute';
+import {
+  FREE_GATE_FORMULA_START_DATE,
+  META_LABEL,
+  buildMatrix,
+  matrixTotal,
+  reportMetrics,
+  resolveFreeGate,
+  type DayMeta,
+} from '../../report/compute';
 import { saveMeta, setDayClosed, syncDayToGoogleDrive, useDay, useSchedules, useSheetsWebhook } from '../../report/api';
 import { DRIVE_FILE_NAME, DRIVE_FOLDER_URL } from '../../report/driveWorkbook';
 import { CoasterMark } from '../../components/brand';
@@ -66,12 +74,13 @@ export function ReportScreen({
       totalCoasterPassengers,
       rawMeta.paidGateVisitors,
       rawMeta.freeGateVisitors,
+      date,
     );
     return {
       ...rawMeta,
       freeGateVisitors,
     };
-  }, [rawMeta, totalCoasterPassengers]);
+  }, [rawMeta, totalCoasterPassengers, date]);
   const metrics = useMemo(() => (meta ? reportMetrics(matrix, meta, schedules) : null), [matrix, meta, schedules]);
   const pendingCount = 0;
   const closed = day?.closed ?? false;
@@ -410,10 +419,13 @@ function MetaForm({
   const [draft, setDraft] = useState<DayMeta>(meta);
   const [busy, setBusy] = useState(false);
 
-  const hasPaidGate = draft.paidGateVisitors > 0;
-  const autoFreeGate = hasPaidGate
-    ? computeFreeGate(totalPassengers, draft.paidGateVisitors)
-    : draft.freeGateVisitors;
+  const useFormulaFromFeb12 = date >= FREE_GATE_FORMULA_START_DATE;
+  const autoFreeGate = resolveFreeGate(
+    totalPassengers,
+    draft.paidGateVisitors,
+    draft.freeGateVisitors,
+    date,
+  );
 
   async function save() {
     setBusy(true);
@@ -433,7 +445,7 @@ function MetaForm({
       <p className="text-xs font-bold text-slate-700">Cập nhật số liệu đối soát &amp; doanh thu:</p>
       <div className="grid grid-cols-2 sm:grid-cols-3 gap-2.5">
         {(Object.keys(META_LABEL) as (keyof DayMeta)[]).map((k) => {
-          if (k === 'freeGateVisitors' && hasPaidGate) {
+          if (k === 'freeGateVisitors' && useFormulaFromFeb12) {
             return (
               <label key={k} className="block">
                 <span className="text-[11px] font-semibold text-slate-600 flex items-center justify-between">
@@ -447,7 +459,7 @@ function MetaForm({
                   readOnly
                   value={fmt.format(autoFreeGate)}
                   className="mt-1 w-full rounded-lg border border-slate-200 bg-slate-100 px-2.5 py-1.5 font-bold tabular-nums text-slate-700 cursor-not-allowed outline-none select-none"
-                  title="Khách miễn phí = Khách chơi máng - Khách tính phí"
+                  title="Khách miễn phí = Khách chơi máng - Khách tính phí (áp dụng từ 12/02/2026)"
                 />
                 <span className="text-[10px] text-slate-400 mt-1 block leading-tight">
                   = Khách chơi máng ({fmt.format(totalPassengers)}) − Khách tính phí ({fmt.format(draft.paidGateVisitors)})

@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import type { Entry } from '../entries/model';
-import { EMPTY_META, buildMatrix, computeFreeGate, legacySheetsPayload, lineTotal, matrixTotal, reportMetrics, resolveFreeGate } from './compute';
+import { EMPTY_META, FREE_GATE_FORMULA_START_DATE, buildMatrix, computeFreeGate, legacySheetsPayload, lineTotal, matrixTotal, reportMetrics, resolveFreeGate } from './compute';
 
 function entry(p: Partial<Entry>): Entry {
   return {
@@ -79,15 +79,20 @@ describe('computeFreeGate & resolveFreeGate', () => {
     expect(computeFreeGate(0, 0)).toBe(0);
   });
 
-  it('preserves exact Drive freeGateVisitors when paidGateVisitors is 0 (01/01/2026 - 07/09/2026)', () => {
-    // 10/07/2026: Khách chơi máng = 10.054, Khách tính phí = 0 (trống trên Drive), Khách miễn phí trên Drive = 669
-    expect(resolveFreeGate(10054, 0, 669)).toBe(669);
-    // 07/09/2026: Khách chơi máng = 6.832, Khách tính phí = 0 (trống trên Drive), Khách miễn phí trên Drive = 361
-    expect(resolveFreeGate(6832, 0, 361)).toBe(361);
+  it('applies formula starting from 12/02/2026 and preserves Drive values when paidGate is missing', () => {
+    expect(FREE_GATE_FORMULA_START_DATE).toBe('2026-02-12');
+    // Trước 12/02/2026 (ví dụ 10/02/2026): không áp dụng công thức, giữ nguyên số gốc (0)
+    expect(resolveFreeGate(5405, 5000, 0, '2026-02-10')).toBe(0);
+    // Từ 12/02/2026 trở đi: khi có Khách tính phí -> Khách chơi máng - Khách tính phí
+    expect(resolveFreeGate(5470, 5100, 0, '2026-02-12')).toBe(370);
+    // 10/07/2026: Khách chơi máng = 10.054, Khách tính phí = 0 (đang thiếu), Khách miễn phí trên Drive = 669
+    expect(resolveFreeGate(10054, 0, 669, '2026-07-10')).toBe(669);
+    // 07/09/2026: Khách chơi máng = 6.832, Khách tính phí = 0 (đang thiếu), Khách miễn phí trên Drive = 361
+    expect(resolveFreeGate(6832, 0, 361, '2026-09-07')).toBe(361);
     // 01/01/2026: Khách chơi máng = 6.012, Khách tính phí = 0, Khách miễn phí trên Drive = 0
-    expect(resolveFreeGate(6012, 0, 0)).toBe(0);
+    expect(resolveFreeGate(6012, 0, 0, '2026-01-01')).toBe(0);
     // 08/09/2026: Khách chơi máng = 5.867, Khách tính phí = 5.769 -> Khách miễn phí = 98
-    expect(resolveFreeGate(5867, 5769, 98)).toBe(98);
+    expect(resolveFreeGate(5867, 5769, 98, '2026-09-08')).toBe(98);
   });
 });
 

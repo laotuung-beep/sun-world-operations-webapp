@@ -32,6 +32,9 @@ export const META_LABEL: Record<keyof DayMeta, string> = {
   counterRevenue: 'Doanh thu vé quầy (đ)',
 };
 
+/** Ngày bắt đầu áp dụng công thức tự động Khách miễn phí = Khách chơi máng - Khách tính phí (12/02/2026). */
+export const FREE_GATE_FORMULA_START_DATE = '2026-02-12';
+
 /**
  * Tự động tính Khách miễn phí = Math.max(0, Khách chơi máng - Khách tính phí).
  */
@@ -41,15 +44,19 @@ export function computeFreeGate(coasterPassengers: number, paidGateVisitors: num
 
 /**
  * Xác định số liệu Khách miễn phí hiển thị & đồng bộ:
- * - Nếu đã có số liệu Khách tính phí (> 0): tính theo công thức Khách chơi máng - Khách tính phí.
- * - Nếu Khách tính phí chưa nhập (= 0, như dữ liệu lịch sử 01/01/2026 - 07/09/2026 trên Google Drive):
- *   giữ nguyên số liệu Khách miễn phí gốc từ Google Drive / Firestore.
+ * - Trước ngày 12/02/2026: giữ nguyên số liệu gốc trên Google Drive / Firestore.
+ * - Bắt đầu từ ngày 12/02/2026 trở đi: áp dụng công thức Khách miễn phí = Khách chơi máng - Khách tính phí
+ *   khi đã có số liệu Khách tính phí (> 0); nếu Khách tính phí đang thiếu (= 0) thì giữ số liệu gốc trên Drive.
  */
 export function resolveFreeGate(
   coasterPassengers: number,
   paidGateVisitors: number,
   storedFreeGateVisitors: number,
+  date?: string,
 ): number {
+  if (date && date < FREE_GATE_FORMULA_START_DATE) {
+    return Math.max(0, Math.round(storedFreeGateVisitors || 0));
+  }
   if ((paidGateVisitors || 0) > 0 && (coasterPassengers || 0) > 0) {
     return computeFreeGate(coasterPassengers, paidGateVisitors);
   }

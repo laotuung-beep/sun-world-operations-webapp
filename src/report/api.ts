@@ -215,6 +215,7 @@ export function useRealtimeDriveSync(date: string, actor: Reviewer) {
       totalPassengers,
       day.meta.paidGateVisitors,
       day.meta.freeGateVisitors,
+      date,
     );
     return {
       date,
