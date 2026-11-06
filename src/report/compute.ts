@@ -1,5 +1,6 @@
 import { MANGS, TIME_SLOTS, type LineId, type MangId, type SlotId } from '../config';
-import { ZERO_TOTALS, addTotals, countTotals, runMinutes, type Entry, type EntryStatus, type Totals } from '../entries/model';
+import { ZERO_TOTALS, addTotals, countTotals, runMinutes, type Entry, type EntryStatus, type PauseRecord, type Totals } from '../entries/model';
+import { DRIVE_FILE_ID, DRIVE_FILE_NAME, DRIVE_FOLDER_ID } from './driveWorkbook';
 
 export const ALL_LINES: readonly LineId[] = ['line1', 'line2', 'line3', 'line4', 'line5', 'line6'];
 
@@ -42,6 +43,7 @@ export interface MangSchedule {
   openTime: string;
   closeTime: string;
   pausedMinutes: number;
+  pauseLogs?: PauseRecord[];
 }
 
 export type Schedules = Partial<Record<MangId, MangSchedule>>;
@@ -122,14 +124,19 @@ function hhmm(minutes: number | null): string {
 }
 
 /**
- * Dữ liệu gửi Google Sheets, GIỮ ĐÚNG khuôn của app cũ (action "syncDailyReport6Line")
- * để Apps Script đang dùng không phải sửa.
+ * Dữ liệu gửi Google Drive / Google Sheets, GIỮ ĐÚNG khuôn của app cũ (action "syncDailyReport6Line")
+ * kèm ràng buộc lưu trữ duy nhất tại Folder Web App VHMT (1ZJjwdvmZs9znHacv0z8zLz39KNy4MrZ3).
  */
 export function legacySheetsPayload(date: string, m: Matrix, meta: DayMeta, schedules: Schedules, closed: boolean) {
   const metrics = reportMetrics(m, meta, schedules);
   const sched = (id: MangId) => {
     const s = schedules[id];
-    return { openTime: s?.openTime || '00:00', closeTime: s?.closeTime || '00:00', pausedMinutes: s?.pausedMinutes ?? 0 };
+    return {
+      openTime: s?.openTime || '00:00',
+      closeTime: s?.closeTime || '00:00',
+      pausedMinutes: s?.pausedMinutes ?? 0,
+      pauseLogs: s?.pauseLogs ?? [],
+    };
   };
   const cell = (slot: SlotId, line: LineId) => ({ singleCarts: m[slot][line].single, doubleCarts: m[slot][line].double });
   const summary = (x: MangMetrics) => {
@@ -146,6 +153,10 @@ export function legacySheetsPayload(date: string, m: Matrix, meta: DayMeta, sche
   return {
     action: 'syncDailyReport6Line',
     date,
+    driveFolderId: DRIVE_FOLDER_ID,
+    driveFileId: DRIVE_FILE_ID,
+    driveFileName: DRIVE_FILE_NAME,
+    strictSingleFolderOnly: true,
     metrics: {
       mang1Summary: summary(metrics.mangs[0]!),
       mang2Summary: summary(metrics.mangs[1]!),

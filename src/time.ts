@@ -41,9 +41,20 @@ export function clockVN(d: Date): string {
 }
 
 const dayFmt = new Intl.DateTimeFormat('vi-VN', { timeZone: TIME_ZONE, weekday: 'long', day: '2-digit', month: '2-digit', year: 'numeric' });
+const weekdayEnFmt = new Intl.DateTimeFormat('en-US', { timeZone: TIME_ZONE, weekday: 'short' });
 
 /** 'Thứ Ba, 03/11/2026' */
 export function longDateVN(d: Date): string {
   const s = dayFmt.format(d);
   return s.charAt(0).toUpperCase() + s.slice(1);
+}
+
+/** Kiểm tra có phải Thứ 2 (Monday) theo múi giờ Việt Nam hay không. */
+export function isMondayVN(d: Date = new Date()): boolean {
+  return weekdayEnFmt.format(d) === 'Mon';
+}
+
+/** Khóa lưu trạng thái đã tải dữ liệu ngày Thứ 2 hàng tuần của Admin. */
+export function mondayExportRemindKey(dateStr: string = dateKeyVN()): string {
+  return `mt_monday_export_done:${dateStr}`;
 }

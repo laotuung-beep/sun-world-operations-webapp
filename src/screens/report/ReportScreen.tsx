@@ -1,14 +1,30 @@
 import { useMemo, useRef, useState } from 'react';
-import { Copy, FileSpreadsheet, LoaderCircle, Lock, LockOpen, Moon, Mountain, Pen, Ticket, TriangleAlert, UserCheck, X } from 'lucide-react';
+import {
+  BellRing,
+  Copy,
+  Download,
+  FileSpreadsheet,
+  LoaderCircle,
+  Lock,
+  LockOpen,
+  Moon,
+  Mountain,
+  Pen,
+  Ticket,
+  TriangleAlert,
+  UserCheck,
+  X,
+} from 'lucide-react';
 import { toast } from 'sonner';
 import { MANGS } from '../../config';
 import { useActor, useAuth } from '../../auth/AuthProvider';
-import { canReopenDay } from '../../auth/access';
+import { canManageUsers, canReopenDay } from '../../auth/access';
 import { clockVN } from '../../time';
 import { useDayEntries, writeErrorMessage } from '../../entries/api';
-import { isActive } from '../../entries/model';
+import { isActive, minutesToHHMM } from '../../entries/model';
 import { META_LABEL, buildMatrix, computeFreeGate, matrixTotal, reportMetrics, type DayMeta } from '../../report/compute';
-import { saveMeta, setDayClosed, useDay, useSchedules } from '../../report/api';
+import { saveMeta, setDayClosed, syncDayToGoogleDrive, useDay, useSchedules, useSheetsWebhook } from '../../report/api';
+import { DRIVE_FILE_NAME, DRIVE_FOLDER_URL } from '../../report/driveWorkbook';
 import { CoasterMark } from '../../components/brand';
 
 const fmt = new Intl.NumberFormat('vi-VN');
@@ -18,25 +34,41 @@ const hhmm = (min: number | null) => (min === null ? '00:00' : `${String(Math.fl
 const META_ICON = { cableCarVisitors: Mountain, paidGateVisitors: Ticket, freeGateVisitors: UserCheck, nightComboVisitors: Moon } as const;
 
 /** Tab "Báo Cáo Ca": giao diện như app cũ, chỉ tính phiếu đã duyệt. */
-export function ReportScreen({ date, onGoMatrix }: { date: string; onGoMatrix: () => void }) {
+export function ReportScreen({
+  date,
+  onGoMatrix,
+  showMondayExportAlert = false,
+  onMondayExportCompleted,
+}: {
+  date: string;
+  onGoMatrix: () => void;
+  showMondayExportAlert?: boolean;
+  onMondayExportCompleted?: () => void;
+}) {
   const { access } = useAuth();
   const actor = useActor();
   const day = useDay(date);
   const schedules = useSchedules(date);
+  const webhookUrl = useSheetsWebhook();
   const { entries } = useDayEntries(date);
   const captureRef = useRef<HTMLDivElement>(null);
   const [busy, setBusy] = useState<'close' | 'excel' | 'image' | null>(null);
   const [editMeta, setEditMeta] = useState(false);
 
+  const isAdmin = access ? canManageUsers(access) : false;
   const all = entries ?? [];
   const matrix = useMemo(() => buildMatrix(all, (s) => isActive(s)), [all]);
   const rawMeta = day?.meta;
   const totalCoasterPassengers = useMemo(() => matrixTotal(matrix).passengers, [matrix]);
   const meta = useMemo<DayMeta | undefined>(() => {
     if (!rawMeta) return undefined;
+    const freeGateVisitors =
+      totalCoasterPassengers > 0
+        ? computeFreeGate(totalCoasterPassengers, rawMeta.paidGateVisitors)
+        : rawMeta.freeGateVisitors;
     return {
       ...rawMeta,
-      freeGateVisitors: computeFreeGate(totalCoasterPassengers, rawMeta.paidGateVisitors),
+      freeGateVisitors,
     };
   }, [rawMeta, totalCoasterPassengers]);
   const metrics = useMemo(() => (meta ? reportMetrics(matrix, meta, schedules) : null), [matrix, meta, schedules]);
@@ -89,14 +121,68 @@ export function ReportScreen({ date, onGoMatrix }: { date: string; onGoMatrix: (
   const excel = () =>
     run('excel', async () => {
       const { exportExcel } = await import('../../report/exporters');
-      await exportExcel({ date, matrix, metrics, meta, entries: all, closed });
-      toast.success('Đã xuất dữ liệu ra file Excel.');
+      await exportExcel({ date, matrix, metrics, meta, schedules, entries: all, closed });
+      void syncDayToGoogleDrive(
+        {
+          date,
+          matrix,
+          totalPassengers: metrics.total.passengers,
+          meta,
+          schedules,
+          closed,
+        },
+        webhookUrl,
+        actor,
+      );
+      onMondayExportCompleted?.();
+      toast.success(`Đã xuất dữ liệu (${DRIVE_FILE_NAME}) về máy.`);
     });
 
-  const btn = 'h-10 px-3 sm:px-3.5 rounded-lg font-semibold text-xs bg-white hover:bg-[#F5F6F8] active:scale-[0.98] border border-[#E5E7EB] text-[#20242B] flex items-center gap-1.5 transition-all shrink-0 disabled:opacity-50';
+  const btn =
+    'h-10 px-3 sm:px-3.5 rounded-lg font-semibold text-xs bg-white hover:bg-[#F5F6F8] active:scale-[0.98] border border-[#E5E7EB] text-[#20242B] flex items-center gap-1.5 transition-all shrink-0 disabled:opacity-50';
+
+  const displayTotalPassengers =
+    metrics.total.passengers > 0
+      ? metrics.total.passengers
+      : meta.paidGateVisitors + meta.freeGateVisitors > 0
+        ? meta.paidGateVisitors + meta.freeGateVisitors
+        : 0;
+
+  const displayConversionRate =
+    meta.cableCarVisitors > 0 ? (displayTotalPassengers / meta.cableCarVisitors) * 100 : 0;
 
   return (
     <div className="max-w-4xl mx-auto space-y-3 pb-16">
+      {isAdmin && showMondayExportAlert && (
+        <div
+          data-no-print
+          className="rounded-xl border border-emerald-300 bg-emerald-50/95 px-3.5 py-2.5 flex flex-col sm:flex-row sm:items-center justify-between gap-2.5 shadow-2xs"
+        >
+          <div className="flex items-start gap-2.5">
+            <div className="w-8 h-8 rounded-lg bg-emerald-600 text-white flex items-center justify-center shrink-0 mt-0.5">
+              <BellRing className="w-4 h-4 animate-bounce" />
+            </div>
+            <div>
+              <p className="text-xs font-extrabold text-emerald-950">
+                Thông báo Thứ 2 hàng tuần (Admin): Tải file báo cáo về máy
+              </p>
+              <p className="text-[11px] font-medium text-emerald-800 mt-0.5 leading-snug">
+                Nhấn nút <strong>Xuất dữ liệu</strong> để tải file <strong>{DRIVE_FILE_NAME}</strong> (đồng bộ từ Folder Web App VHMT) về máy lưu trữ định kỳ đầu tuần.
+              </p>
+            </div>
+          </div>
+          <button
+            type="button"
+            onClick={excel}
+            disabled={busy === 'excel'}
+            className="h-9 px-3.5 rounded-lg bg-emerald-700 hover:bg-emerald-800 text-white font-bold text-xs inline-flex items-center justify-center gap-1.5 shrink-0 active:scale-[0.98] transition shadow-2xs"
+          >
+            {busy === 'excel' ? <LoaderCircle className="w-3.5 h-3.5 animate-spin" /> : <Download className="w-3.5 h-3.5" />}
+            <span>Tải về máy ngay</span>
+          </button>
+        </div>
+      )}
+
       <div data-no-print className="bg-white p-2.5 sm:p-3 rounded-xl border border-[#E5E7EB] flex items-center gap-2">
         <button
           type="button"
@@ -107,28 +193,51 @@ export function ReportScreen({ date, onGoMatrix }: { date: string; onGoMatrix: (
           {busy === 'image' ? <LoaderCircle className="w-4 h-4 animate-spin" /> : <Copy className="w-4 h-4 shrink-0" />}
           <span className="truncate">Chép gửi Viber</span>
         </button>
-        <button type="button" onClick={excel} disabled={busy === 'excel'} className={btn} title="Xuất dữ liệu Ma Trận Giờ ra file Excel">
+        <button
+          type="button"
+          onClick={excel}
+          disabled={busy === 'excel'}
+          className={`${btn} ${
+            showMondayExportAlert ? 'ring-2 ring-emerald-500 border-emerald-500 bg-emerald-50/60 text-emerald-900' : ''
+          }`}
+          title="Xuất dữ liệu Bao_Cao_van_hanh_Mang_Truot.xlsx (Thông báo tải về máy cho Admin vào Thứ 2 hàng tuần)"
+        >
           {busy === 'excel' ? <LoaderCircle className="w-3.5 h-3.5 animate-spin" /> : <FileSpreadsheet className="w-3.5 h-3.5 text-[#16A34A]" />}
           <span className="hidden xs:inline">Xuất dữ liệu</span>
+          {showMondayExportAlert && <span className="w-2 h-2 rounded-full bg-emerald-600 animate-pulse" />}
         </button>
       </div>
 
-      <div data-no-print className="flex items-center gap-2 flex-wrap">
-        <button
-          type="button"
-          onClick={toggleClose}
-          disabled={busy === 'close' || (closed && !canReopenDay(access!))}
-          className={`h-9 px-3 rounded-lg text-xs font-bold inline-flex items-center gap-1.5 active:scale-[0.98] disabled:opacity-50 ${
-            closed ? 'bg-white border border-[#E5E7EB] text-slate-700' : 'bg-slate-900 text-white hover:bg-black'
-          }`}
-        >
-          {busy === 'close' ? <LoaderCircle className="w-3.5 h-3.5 animate-spin" /> : closed ? <LockOpen className="w-3.5 h-3.5" /> : <Lock className="w-3.5 h-3.5" />}
-          {closed ? 'Mở lại ngày' : 'Chốt ngày'}
-        </button>
-        <p className="text-[11px] text-slate-500">
-          {closed ? `Đã chốt${day.closedByName ? ` bởi ${day.closedByName}` : ''}${day.closedAt ? ` lúc ${clockVN(day.closedAt)}` : ''}.` : 'Chưa chốt ngày.'}
-          {day.sheetsSyncedAt && ` Đã gửi Sheets lúc ${clockVN(day.sheetsSyncedAt)}.`}
-        </p>
+      <div data-no-print className="flex items-center justify-between gap-2 flex-wrap">
+        <div className="flex items-center gap-2 flex-wrap">
+          <button
+            type="button"
+            onClick={toggleClose}
+            disabled={busy === 'close' || (closed && !canReopenDay(access!))}
+            className={`h-9 px-3 rounded-lg text-xs font-bold inline-flex items-center gap-1.5 active:scale-[0.98] disabled:opacity-50 ${
+              closed ? 'bg-white border border-[#E5E7EB] text-slate-700' : 'bg-slate-900 text-white hover:bg-black'
+            }`}
+          >
+            {busy === 'close' ? <LoaderCircle className="w-3.5 h-3.5 animate-spin" /> : closed ? <LockOpen className="w-3.5 h-3.5" /> : <Lock className="w-3.5 h-3.5" />}
+            {closed ? 'Mở lại ngày' : 'Chốt ngày'}
+          </button>
+          <p className="text-[11px] text-slate-500">
+            {closed ? `Đã chốt${day.closedByName ? ` bởi ${day.closedByName}` : ''}${day.closedAt ? ` lúc ${clockVN(day.closedAt)}` : ''}.` : 'Chưa chốt ngày.'}
+            {day.sheetsSyncedAt && ` Đã đồng bộ Drive lúc ${clockVN(day.sheetsSyncedAt)}.`}
+          </p>
+        </div>
+        {isAdmin && (
+          <a
+            href={DRIVE_FOLDER_URL}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="text-[11px] font-semibold text-emerald-700 hover:text-emerald-800 bg-emerald-50 border border-emerald-200 rounded-lg px-2.5 py-1 inline-flex items-center gap-1.5"
+            title="Chỉ lưu trữ duy nhất tại Folder Web App VHMT trên Google Drive"
+          >
+            <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse" />
+            <span>Google Drive: Web App VHMT (Realtime)</span>
+          </a>
+        )}
       </div>
 
       {pendingCount > 0 && (
@@ -161,7 +270,9 @@ export function ReportScreen({ date, onGoMatrix }: { date: string; onGoMatrix: (
         <div className="p-3.5 sm:p-5 space-y-3.5">
           <div className="bg-brand text-white rounded-xl py-4 px-4 sm:px-5 text-center">
             <p className="text-xs sm:text-sm font-bold uppercase tracking-wider text-red-100">Khách chơi máng</p>
-            <div className="text-5xl sm:text-6xl font-bold tracking-tight font-numeric tabular-nums my-0.5 sm:my-1 leading-none">{n(metrics.total.passengers)}</div>
+            <div className="text-5xl sm:text-6xl font-bold tracking-tight font-numeric tabular-nums my-0.5 sm:my-1 leading-none">
+              {n(displayTotalPassengers)}
+            </div>
             <div className="grid grid-cols-3 gap-1 sm:gap-2 max-w-md mx-auto mt-2.5 pt-2.5 border-t border-white/20">
               {metrics.mangs.map((x) => {
                 const m = MANGS.find((y) => y.id === x.mang)!;
@@ -189,14 +300,14 @@ export function ReportScreen({ date, onGoMatrix }: { date: string; onGoMatrix: (
             <div className="bg-white rounded-xl p-3 sm:p-4 border border-[#E5E7EB] flex flex-col justify-between min-h-[105px] sm:min-h-[125px]">
               <span className="text-xs sm:text-sm font-bold uppercase tracking-wider text-[#6B7280]">Tỷ lệ chơi / Cáp</span>
               <div className="text-[17px] xs:text-xl sm:text-2xl font-bold font-numeric tabular-nums text-[#20242B] tracking-tight my-1">
-                {(metrics.conversionRate ?? 0).toFixed(1)}%
+                {displayConversionRate.toFixed(1)}%
               </div>
               <div className="space-y-1">
                 <div className="w-full bg-[#F5F6F8] h-1.5 rounded-full overflow-hidden border border-[#E5E7EB]">
-                  <div className="h-full bg-brand rounded-full transition-all duration-500" style={{ width: `${Math.min(100, Math.max(0, metrics.conversionRate ?? 0))}%` }} />
+                  <div className="h-full bg-brand rounded-full transition-all duration-500" style={{ width: `${Math.min(100, Math.max(0, displayConversionRate))}%` }} />
                 </div>
                 <div className="text-[10px] sm:text-[10.5px] font-medium tabular-nums text-[#6B7280]">
-                  {n(metrics.total.passengers)} / {n(meta.cableCarVisitors)} khách
+                  {n(displayTotalPassengers)} / {n(meta.cableCarVisitors)} khách
                 </div>
               </div>
             </div>
@@ -218,7 +329,7 @@ export function ReportScreen({ date, onGoMatrix }: { date: string; onGoMatrix: (
               )}
             </div>
             {editMeta && !closed ? (
-              <MetaForm date={date} meta={meta} totalPassengers={totalCoasterPassengers} onDone={() => setEditMeta(false)} />
+              <MetaForm date={date} meta={meta} totalPassengers={displayTotalPassengers} onDone={() => setEditMeta(false)} />
             ) : (
               <div className="grid grid-cols-2 md:grid-cols-4 gap-2.5 sm:gap-3">
                 {(Object.keys(META_ICON) as (keyof typeof META_ICON)[]).map((k) => {
@@ -265,7 +376,7 @@ export function ReportScreen({ date, onGoMatrix }: { date: string; onGoMatrix: (
                     <div className="mt-0.5 font-numeric font-bold tabular-nums text-[#20242B] text-sm">{hhmm(x.runMinutes)}</div>
                     <p className="text-[9.5px] text-[#6B7280] tabular-nums">
                       {x.schedule?.openTime ? `${x.schedule.openTime}–${x.schedule.closeTime || '…'}` : 'Chưa nhập'}
-                      {x.schedule?.pausedMinutes ? ` · dừng ${x.schedule.pausedMinutes}p` : ''}
+                      {x.schedule?.pausedMinutes ? ` · dừng ${minutesToHHMM(x.schedule.pausedMinutes)}` : ''}
                     </p>
                   </div>
                 </div>

@@ -1,9 +1,19 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import { collection, doc, onSnapshot, serverTimestamp, setDoc } from 'firebase/firestore';
 import { db } from '../firebase';
 import { isMangId } from '../config';
-import { EMPTY_META, type DayMeta, type Schedules } from './compute';
-import type { Reviewer } from '../entries/api';
+import {
+  EMPTY_META,
+  buildMatrix,
+  computeFreeGate,
+  legacySheetsPayload,
+  matrixTotal,
+  type DayMeta,
+  type Schedules,
+} from './compute';
+import { DRIVE_FILE_ID, DRIVE_FILE_NAME, DRIVE_FOLDER_ID, type DaySyncPayload } from './driveWorkbook';
+import { useDayEntries, type Reviewer } from '../entries/api';
+import { isActive, type PauseRecord } from '../entries/model';
 
 export interface DayInfo {
   meta: DayMeta;
@@ -61,7 +71,12 @@ export function useSchedules(date: string): Schedules {
           const id = Number(d.id);
           if (!isMangId(id)) continue;
           const v = d.data();
-          out[id] = { openTime: v.openTime ?? '', closeTime: v.closeTime ?? '', pausedMinutes: v.pausedMinutes ?? 0 };
+          out[id] = {
+            openTime: v.openTime ?? '',
+            closeTime: v.closeTime ?? '',
+            pausedMinutes: v.pausedMinutes ?? 0,
+            pauseLogs: Array.isArray(v.pauseLogs) ? (v.pauseLogs as PauseRecord[]) : [],
+          };
         }
         setSchedules(out);
       },
@@ -93,7 +108,7 @@ export function markSheetsSynced(date: string, by: Reviewer): Promise<void> {
   return setDoc(dayRef(date), { sheetsSyncedBy: by.uid, sheetsSyncedAt: serverTimestamp() }, { merge: true });
 }
 
-/** settings/app: cấu hình dùng chung mọi máy (URL Apps Script của Google Sheets). */
+/** settings/app: cấu hình dùng chung mọi máy (URL Apps Script của Google Sheets / Drive). */
 export function useSheetsWebhook(): string | null {
   const [url, setUrl] = useState<string | null>(null);
   useEffect(
@@ -124,4 +139,120 @@ export async function postToSheets(url: string, payload: unknown): Promise<void>
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify(payload),
   });
+}
+
+/**
+ * Đồng bộ trực tiếp dữ liệu ngày từ Web App lên file Bao_Cao_van_hanh_Mang_Truot.xlsx
+ * trong Folder Web App VHMT (1ZJjwdvmZs9znHacv0z8zLz39KNy4MrZ3) theo thời gian thực.
+ */
+export async function syncDayToGoogleDrive(
+  payload: DaySyncPayload,
+  webhookUrl: string | null,
+  by: Reviewer,
+): Promise<boolean> {
+  let ok = false;
+  try {
+    const res = await fetch('/api/drive-sync', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        ...payload,
+        driveFolderId: DRIVE_FOLDER_ID,
+        driveFileId: DRIVE_FILE_ID,
+        driveFileName: DRIVE_FILE_NAME,
+        strictSingleFolderOnly: true,
+      }),
+    });
+    if (res.ok) ok = true;
+  } catch {
+    // Nếu chạy tĩnh hoặc offline, tiếp tục thử qua webhook
+  }
+
+  if (webhookUrl && /^https:\/\/script\.google\.com\//.test(webhookUrl.trim())) {
+    try {
+      const legacyPayload = legacySheetsPayload(
+        payload.date,
+        payload.matrix,
+        payload.meta,
+        payload.schedules,
+        payload.closed,
+      );
+      await postToSheets(webhookUrl.trim(), legacyPayload);
+      ok = true;
+    } catch {
+      // Bỏ qua lỗi mạng tạm thời
+    }
+  }
+
+  if (ok && by.uid) {
+    try {
+      await markSheetsSynced(payload.date, by);
+    } catch {
+      // Bỏ qua nếu không cần ghi dấu
+    }
+  }
+  return ok;
+}
+
+/**
+ * Hook tự động đồng bộ dữ liệu nhập từ Web App vào file Bao_Cao_van_hanh_Mang_Truot.xlsx
+ * trong Folder Web App VHMT (1ZJjwdvmZs9znHacv0z8zLz39KNy4MrZ3) theo thời gian thực
+ * ngay khi nhân viên / Admin lưu phiếu, cập nhật giờ vận hành hoặc chỉnh sửa số liệu.
+ */
+export function useRealtimeDriveSync(date: string, actor: Reviewer) {
+  const day = useDay(date);
+  const schedules = useSchedules(date);
+  const { entries } = useDayEntries(date);
+  const webhookUrl = useSheetsWebhook();
+  const lastFingerprintRef = useRef<string | null>(null);
+  const loadedDateRef = useRef<string | null>(null);
+
+  const payload = useMemo<DaySyncPayload | null>(() => {
+    if (!day || entries === null) return null;
+    const matrix = buildMatrix(entries, (s) => isActive(s));
+    const totalPassengers = matrixTotal(matrix).passengers;
+    const freeGateVisitors =
+      totalPassengers > 0
+        ? computeFreeGate(totalPassengers, day.meta.paidGateVisitors)
+        : day.meta.freeGateVisitors;
+    return {
+      date,
+      matrix,
+      totalPassengers,
+      meta: {
+        ...day.meta,
+        freeGateVisitors,
+      },
+      schedules,
+      closed: day.closed,
+    };
+  }, [date, day, entries, schedules]);
+
+  useEffect(() => {
+    if (!payload) return;
+    const fp = JSON.stringify({
+      date: payload.date,
+      totalPassengers: payload.totalPassengers,
+      matrix: payload.matrix,
+      meta: payload.meta,
+      schedules: payload.schedules,
+      closed: payload.closed,
+    });
+
+    // Lần đầu tiên nạp dữ liệu của ngày -> chỉ ghi nhận trạng thái gốc, chưa bắn sync thừa
+    if (loadedDateRef.current !== payload.date) {
+      loadedDateRef.current = payload.date;
+      lastFingerprintRef.current = fp;
+      return;
+    }
+
+    if (lastFingerprintRef.current === fp) return;
+    lastFingerprintRef.current = fp;
+
+    const timer = window.setTimeout(() => {
+      void syncDayToGoogleDrive(payload, webhookUrl, actor);
+    }, 1200);
+
+    return () => window.clearTimeout(timer);
+  }, [payload, webhookUrl, actor]);
 }

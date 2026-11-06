@@ -11,6 +11,7 @@ export interface Tab<T extends string> {
   id: T;
   label: string;
   icon: LucideIcon;
+  badge?: boolean;
 }
 
 export interface MenuItem {
@@ -60,6 +61,12 @@ export function AppShell<T extends string>({ tabs, current, onChange, date, onDa
                   >
                     <t.icon className="w-4 h-4" />
                     <span>{t.label}</span>
+                    {t.badge && (
+                      <span
+                        className="w-2 h-2 rounded-full bg-red-600 ring-2 ring-white animate-pulse"
+                        title="Thông báo Thứ 2: Tải dữ liệu báo cáo về máy"
+                      />
+                    )}
                   </button>
                 );
               })}
@@ -86,7 +93,12 @@ export function AppShell<T extends string>({ tabs, current, onChange, date, onDa
                   active ? 'text-brand bg-red-50/80 border border-red-100' : 'text-slate-500 hover:text-slate-800 border border-transparent'
                 }`}
               >
-                <t.icon className={`w-5 h-5 ${active ? 'scale-110 stroke-[2.3]' : 'stroke-[1.8]'}`} />
+                <div className="relative">
+                  <t.icon className={`w-5 h-5 ${active ? 'scale-110 stroke-[2.3]' : 'stroke-[1.8]'}`} />
+                  {t.badge && (
+                    <span className="absolute -top-0.5 -right-1.5 w-2 h-2 rounded-full bg-red-600 ring-2 ring-white animate-pulse" />
+                  )}
+                </div>
                 <span className={`text-[11px] tracking-tight mt-0.5 leading-none ${active ? 'font-bold' : 'font-medium'}`}>{t.label}</span>
               </button>
             );
@@ -100,7 +112,7 @@ export function AppShell<T extends string>({ tabs, current, onChange, date, onDa
 function SyncBadge() {
   const online = useOnline();
   return online ? (
-    <div className="inline-flex items-center gap-1.5 px-2 py-1 rounded-lg text-[11px] font-semibold bg-emerald-50 text-emerald-700 border border-emerald-200/80 shrink-0 select-none" title="Kết nối Cloud Firestore ổn định">
+    <div className="inline-flex items-center gap-1.5 px-2 py-1 rounded-lg text-[11px] font-semibold bg-emerald-50 text-emerald-700 border border-emerald-200/80 shrink-0 select-none" title="Đồng bộ thời gian thực với Cloud Firestore & Folder Web App VHMT trên Google Drive">
       <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 shrink-0 animate-pulse" />
       <span className="hidden sm:inline">Realtime</span>
       <Cloud className="w-3 h-3 text-emerald-600 shrink-0 hidden xs:inline" />

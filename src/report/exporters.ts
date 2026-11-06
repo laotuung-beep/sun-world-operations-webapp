@@ -1,7 +1,8 @@
 import { LINE_LABEL, MANGS, TIME_SLOTS, mangById } from '../config';
 import { STATUS_LABEL, formatDuration, linesTotals, sortNewestFirst, type Entry } from '../entries/model';
 import { clockVN } from '../time';
-import { ALL_LINES, META_LABEL, sumLines, type DayMeta, type Matrix, type ReportMetrics } from './compute';
+import { ALL_LINES, META_LABEL, sumLines, type DayMeta, type Matrix, type ReportMetrics, type Schedules } from './compute';
+import { DRIVE_FILE_NAME, upsertDayIntoExcelWorkbook } from './driveWorkbook';
 
 function saveBlob(blob: Blob, filename: string) {
   const url = URL.createObjectURL(blob);
@@ -12,20 +13,58 @@ function saveBlob(blob: Blob, filename: string) {
   setTimeout(() => URL.revokeObjectURL(url), 10_000);
 }
 
-/** File Excel 2 sheet: "Báo cáo" (số đã duyệt) và "Phiếu" (mọi phiếu, để đối chiếu). */
+/**
+ * Xuất dữ liệu chuẩn 3 Sheet (MA TRẬN GIỜ, Báo Cáo Tổng Hợp, Thời gian vận hành)
+ * đồng bộ 100% với file Bao_Cao_van_hanh_Mang_Truot.xlsx trên Google Drive (Folder Web App VHMT).
+ */
 export async function exportExcel(opts: {
   date: string;
   matrix: Matrix;
   metrics: ReportMetrics;
   meta: DayMeta;
+  schedules?: Schedules;
   entries: Entry[];
   closed: boolean;
 }): Promise<void> {
   const { default: ExcelJS } = await import('exceljs');
   const wb = new ExcelJS.Workbook();
   wb.creator = 'Vận Hành Máng Trượt';
-  const bold = { bold: true };
 
+  let loadedMaster = false;
+  try {
+    const res = await fetch(`/${DRIVE_FILE_NAME}`, { cache: 'no-store' });
+    if (res.ok) {
+      const arrayBuf = await res.arrayBuffer();
+      await wb.xlsx.load(arrayBuf);
+      loadedMaster = true;
+    }
+  } catch {
+    loadedMaster = false;
+  }
+
+  if (loadedMaster) {
+    const schedulesMap: Schedules = opts.schedules ?? {
+      1: opts.metrics.mangs[0]?.schedule,
+      2: opts.metrics.mangs[1]?.schedule,
+      3: opts.metrics.mangs[2]?.schedule,
+    };
+    upsertDayIntoExcelWorkbook(wb, {
+      date: opts.date,
+      matrix: opts.matrix,
+      totalPassengers: opts.metrics.total.passengers,
+      meta: opts.meta,
+      schedules: schedulesMap,
+      closed: opts.closed,
+    });
+    const buf = await wb.xlsx.writeBuffer();
+    saveBlob(
+      new Blob([buf], { type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' }),
+      DRIVE_FILE_NAME,
+    );
+    return;
+  }
+
+  const bold = { bold: true };
   const ws = wb.addWorksheet('Báo cáo');
   ws.addRow([`BÁO CÁO VẬN HÀNH MÁNG TRƯỢT - ${opts.date.split('-').reverse().join('/')}`]).font = { bold: true, size: 14 };
   ws.addRow([opts.closed ? 'Đã chốt ngày' : 'Chưa chốt ngày - số liệu có thể còn thay đổi']);
@@ -87,7 +126,7 @@ export async function exportExcel(opts: {
   const buf = await wb.xlsx.writeBuffer();
   saveBlob(
     new Blob([buf], { type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' }),
-    `bao-cao-mang-truot-${opts.date}.xlsx`,
+    DRIVE_FILE_NAME,
   );
 }
 
@@ -124,4 +163,3 @@ export async function shareReportImage(node: HTMLElement, date: string): Promise
   saveBlob(blob, file.name);
   return 'downloaded';
 }
-

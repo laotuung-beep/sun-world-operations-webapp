@@ -1,10 +1,10 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { FileSpreadsheet, FileText, LoaderCircle, Smartphone, TableProperties, Users } from 'lucide-react';
 import { toast } from 'sonner';
 import { useActor, useAuth } from './auth/AuthProvider';
 import { canManageUsers, type Access } from './auth/access';
 import { isMangId, type MangId, type SlotId } from './config';
-import { dateKeyVN } from './time';
+import { dateKeyVN, isMondayVN, mondayExportRemindKey } from './time';
 import { AppShell, type MenuItem, type Tab } from './components/AppShell';
 import { LoginScreen } from './screens/LoginScreen';
 import { PendingScreen } from './screens/PendingScreen';
@@ -12,12 +12,13 @@ import { UsersScreen } from './screens/UsersScreen';
 import { StaffEntryScreen } from './screens/staff/StaffEntryScreen';
 import { MatrixScreen } from './screens/review/MatrixScreen';
 import { ReportScreen } from './screens/report/ReportScreen';
-import { saveSheetsWebhook, useSheetsWebhook } from './report/api';
+import { saveSheetsWebhook, useRealtimeDriveSync, useSheetsWebhook } from './report/api';
+import { DRIVE_FOLDER_URL } from './report/driveWorkbook';
 import { writeErrorMessage } from './entries/api';
 
 type TabId = 'entry' | 'matrix' | 'report' | 'users';
 
-const TABS: Tab<TabId>[] = [
+const BASE_TABS: Tab<TabId>[] = [
   { id: 'entry', label: 'Nhập liệu', icon: Smartphone },
   { id: 'matrix', label: 'Ma Trận Giờ', icon: TableProperties },
   { id: 'report', label: 'Báo Cáo Ca', icon: FileText },
@@ -64,7 +65,7 @@ function Workspace({ access }: { access: Access }) {
   const admin = canManageUsers(access);
   const [current, setCurrent] = useState<TabId>(() => {
     const saved = readLocal(TAB_KEY) as TabId | null;
-    return saved && (TABS.some((t) => t.id === saved) || (saved === 'users' && admin)) ? saved : 'entry';
+    return saved && (BASE_TABS.some((t) => t.id === saved) || (saved === 'users' && admin)) ? saved : 'entry';
   });
   const [date, setDate] = useState(() => dateKeyVN());
   const [selectedSlot, setSelectedSlot] = useState<SlotId | null>(null);
@@ -73,24 +74,67 @@ function Workspace({ access }: { access: Access }) {
     return isMangId(saved) ? saved : isMangId(profile?.mang) ? profile.mang : 1;
   });
 
+  // Đồng bộ tự động theo thời gian thực lên file Bao_Cao_van_hanh_Mang_Truot.xlsx trong Folder Web App VHMT
+  useRealtimeDriveSync(date, actor);
+
+  const today = dateKeyVN();
+  const isMonday = isMondayVN() || isMondayVN(new Date(`${date}T12:00:00+07:00`));
+  const [mondayExportDone, setMondayExportDone] = useState<boolean>(() => readLocal(mondayExportRemindKey(today)) === '1');
+
   useEffect(() => writeLocal(TAB_KEY, current), [current]);
   useEffect(() => writeLocal(MANG_KEY, String(mang)), [mang]);
+
+  // Thông báo định kỳ vào Thứ 2 hàng tuần cho Admin để tải dữ liệu từ nút "Xuất dữ liệu" tại tab Báo Cáo Ca
+  useEffect(() => {
+    if (!admin || !isMonday || mondayExportDone) return;
+    const toastId = toast.info('📅 Nhắc lịch Thứ 2 hàng tuần (Admin): Tải dữ liệu báo cáo về máy', {
+      description: 'Vào tab Báo Cáo Ca và nhấn nút "Xuất dữ liệu" để tải file Bao_Cao_van_hanh_Mang_Truot.xlsx về máy.',
+      duration: 12000,
+      action: {
+        label: 'Đến Báo Cáo Ca',
+        onClick: () => setCurrent('report'),
+      },
+    });
+    return () => {
+      toast.dismiss(toastId);
+    };
+  }, [admin, isMonday, mondayExportDone]);
+
+  const tabs = useMemo<Tab<TabId>[]>(
+    () =>
+      BASE_TABS.map((t) =>
+        t.id === 'report' && admin && isMonday && !mondayExportDone
+          ? { ...t, badge: true }
+          : t,
+      ),
+    [admin, isMonday, mondayExportDone],
+  );
 
   const menu: MenuItem[] = admin
     ? [
         { label: 'Tài khoản (duyệt Gmail)', icon: Users, onClick: () => setCurrent('users') },
         {
-          label: 'Google Sheets',
+          label: 'Folder Google Drive (Web App VHMT)',
           icon: FileSpreadsheet,
           onClick: () => {
-            const url = window.prompt('URL Web App của Google Apps Script (giống URL đã dùng ở app cũ):', webhook ?? '');
+            window.open(DRIVE_FOLDER_URL, '_blank', 'noopener,noreferrer');
+          },
+        },
+        {
+          label: 'Webhook đồng bộ Drive / Sheets',
+          icon: FileSpreadsheet,
+          onClick: () => {
+            const url = window.prompt(
+              'URL Web App của Google Apps Script đồng bộ vào Folder Web App VHMT (1ZJjwdvmZs9znHacv0z8zLz39KNy4MrZ3):',
+              webhook ?? '',
+            );
             if (url === null) return;
             if (url && !/^https:\/\/script\.google\.com\//.test(url.trim())) {
               toast.error('URL phải bắt đầu bằng https://script.google.com/');
               return;
             }
             saveSheetsWebhook(url, actor).then(
-              () => toast.success('Đã lưu URL Google Sheets cho mọi máy.'),
+              () => toast.success('Đã lưu cấu hình đồng bộ Google Drive cho mọi máy.'),
               (e) => toast.error(`Không lưu được: ${writeErrorMessage(e)}`),
             );
           },
@@ -99,7 +143,7 @@ function Workspace({ access }: { access: Access }) {
     : [];
 
   return (
-    <AppShell tabs={TABS} current={current} onChange={setCurrent} date={date} onDateChange={setDate} menu={menu}>
+    <AppShell tabs={tabs} current={current} onChange={setCurrent} date={date} onDateChange={setDate} menu={menu}>
       <div key={current} className="animate-tab-fade">
         {current === 'entry' && (
           <StaffEntryScreen
@@ -121,7 +165,17 @@ function Workspace({ access }: { access: Access }) {
             }}
           />
         )}
-        {current === 'report' && <ReportScreen date={date} onGoMatrix={() => setCurrent('matrix')} />}
+        {current === 'report' && (
+          <ReportScreen
+            date={date}
+            onGoMatrix={() => setCurrent('matrix')}
+            showMondayExportAlert={admin && isMonday && !mondayExportDone}
+            onMondayExportCompleted={() => {
+              writeLocal(mondayExportRemindKey(today), '1');
+              setMondayExportDone(true);
+            }}
+          />
+        )}
         {current === 'users' && admin && <UsersScreen />}
       </div>
     </AppShell>

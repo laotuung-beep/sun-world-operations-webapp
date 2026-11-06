@@ -23,7 +23,9 @@ import {
   validateLines,
   type Entry,
 } from './model';
-import { hhmmToMinutes } from '../time';
+import { hhmmToMinutes, isMondayVN, mondayExportRemindKey } from '../time';
+import { DRIVE_FILE_ID, DRIVE_FILE_NAME, DRIVE_FOLDER_ID } from '../report/driveWorkbook';
+import { EMPTY_META, emptyMatrix, legacySheetsPayload } from '../report/compute';
 
 const at = (hhmm: string) => hhmmToMinutes(hhmm);
 
@@ -203,5 +205,25 @@ describe('sortNewestFirst', () => {
       entry({ id: 'c', createdAt: new Date(3000) }),
     ]);
     expect(sorted.map((e) => e.id)).toEqual(['b', 'c', 'a']);
+  });
+});
+
+describe('Google Drive single-folder binding & Monday Admin export notification', () => {
+  it('enforces Web App VHMT folder and Bao_Cao_van_hanh_Mang_Truot.xlsx file ID', () => {
+    expect(DRIVE_FOLDER_ID).toBe('1ZJjwdvmZs9znHacv0z8zLz39KNy4MrZ3');
+    expect(DRIVE_FILE_ID).toBe('1V37-wjbXReWENypka8IevraROqNXJk73');
+    expect(DRIVE_FILE_NAME).toBe('Bao_Cao_van_hanh_Mang_Truot.xlsx');
+
+    const payload = legacySheetsPayload('2026-11-06', emptyMatrix(), EMPTY_META, {}, false);
+    expect(payload.driveFolderId).toBe('1ZJjwdvmZs9znHacv0z8zLz39KNy4MrZ3');
+    expect(payload.driveFileId).toBe('1V37-wjbXReWENypka8IevraROqNXJk73');
+    expect(payload.strictSingleFolderOnly).toBe(true);
+  });
+
+  it('detects Monday in Vietnam timezone for weekly Admin export reminder', () => {
+    // 2026-11-02 is Monday, 2026-11-06 is Friday
+    expect(isMondayVN(new Date('2026-11-02T09:00:00+07:00'))).toBe(true);
+    expect(isMondayVN(new Date('2026-11-06T09:00:00+07:00'))).toBe(false);
+    expect(mondayExportRemindKey('2026-11-02')).toBe('mt_monday_export_done:2026-11-02');
   });
 });
