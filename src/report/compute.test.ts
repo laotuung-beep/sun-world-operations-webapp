@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import type { Entry } from '../entries/model';
-import { EMPTY_META, buildMatrix, computeFreeGate, legacySheetsPayload, lineTotal, matrixTotal, reportMetrics } from './compute';
+import { EMPTY_META, buildMatrix, computeFreeGate, legacySheetsPayload, lineTotal, matrixTotal, reportMetrics, resolveFreeGate } from './compute';
 
 function entry(p: Partial<Entry>): Entry {
   return {
@@ -71,12 +71,23 @@ describe('reportMetrics (same formulas as the old app)', () => {
   });
 });
 
-describe('computeFreeGate', () => {
-  it('calculates khách chơi máng - cổng tính phí', () => {
+describe('computeFreeGate & resolveFreeGate', () => {
+  it('calculates khách chơi máng - cổng tính phí when paidGate > 0', () => {
     expect(computeFreeGate(4351, 4220)).toBe(131);
     expect(computeFreeGate(1000, 1000)).toBe(0);
     expect(computeFreeGate(1000, 1200)).toBe(0); // không âm
     expect(computeFreeGate(0, 0)).toBe(0);
+  });
+
+  it('preserves exact Drive freeGateVisitors when paidGateVisitors is 0 (01/01/2026 - 07/09/2026)', () => {
+    // 10/07/2026: Khách chơi máng = 10.054, Khách tính phí = 0 (trống trên Drive), Khách miễn phí trên Drive = 669
+    expect(resolveFreeGate(10054, 0, 669)).toBe(669);
+    // 07/09/2026: Khách chơi máng = 6.832, Khách tính phí = 0 (trống trên Drive), Khách miễn phí trên Drive = 361
+    expect(resolveFreeGate(6832, 0, 361)).toBe(361);
+    // 01/01/2026: Khách chơi máng = 6.012, Khách tính phí = 0, Khách miễn phí trên Drive = 0
+    expect(resolveFreeGate(6012, 0, 0)).toBe(0);
+    // 08/09/2026: Khách chơi máng = 5.867, Khách tính phí = 5.769 -> Khách miễn phí = 98
+    expect(resolveFreeGate(5867, 5769, 98)).toBe(98);
   });
 });
 

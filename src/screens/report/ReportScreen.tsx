@@ -22,7 +22,7 @@ import { canManageUsers, canReopenDay } from '../../auth/access';
 import { clockVN } from '../../time';
 import { useDayEntries, writeErrorMessage } from '../../entries/api';
 import { isActive, minutesToHHMM } from '../../entries/model';
-import { META_LABEL, buildMatrix, computeFreeGate, matrixTotal, reportMetrics, type DayMeta } from '../../report/compute';
+import { META_LABEL, buildMatrix, computeFreeGate, matrixTotal, reportMetrics, resolveFreeGate, type DayMeta } from '../../report/compute';
 import { saveMeta, setDayClosed, syncDayToGoogleDrive, useDay, useSchedules, useSheetsWebhook } from '../../report/api';
 import { DRIVE_FILE_NAME, DRIVE_FOLDER_URL } from '../../report/driveWorkbook';
 import { CoasterMark } from '../../components/brand';
@@ -62,10 +62,11 @@ export function ReportScreen({
   const totalCoasterPassengers = useMemo(() => matrixTotal(matrix).passengers, [matrix]);
   const meta = useMemo<DayMeta | undefined>(() => {
     if (!rawMeta) return undefined;
-    const freeGateVisitors =
-      totalCoasterPassengers > 0
-        ? computeFreeGate(totalCoasterPassengers, rawMeta.paidGateVisitors)
-        : rawMeta.freeGateVisitors;
+    const freeGateVisitors = resolveFreeGate(
+      totalCoasterPassengers,
+      rawMeta.paidGateVisitors,
+      rawMeta.freeGateVisitors,
+    );
     return {
       ...rawMeta,
       freeGateVisitors,
@@ -409,7 +410,10 @@ function MetaForm({
   const [draft, setDraft] = useState<DayMeta>(meta);
   const [busy, setBusy] = useState(false);
 
-  const autoFreeGate = computeFreeGate(totalPassengers, draft.paidGateVisitors);
+  const hasPaidGate = draft.paidGateVisitors > 0;
+  const autoFreeGate = hasPaidGate
+    ? computeFreeGate(totalPassengers, draft.paidGateVisitors)
+    : draft.freeGateVisitors;
 
   async function save() {
     setBusy(true);
@@ -429,7 +433,7 @@ function MetaForm({
       <p className="text-xs font-bold text-slate-700">Cập nhật số liệu đối soát &amp; doanh thu:</p>
       <div className="grid grid-cols-2 sm:grid-cols-3 gap-2.5">
         {(Object.keys(META_LABEL) as (keyof DayMeta)[]).map((k) => {
-          if (k === 'freeGateVisitors') {
+          if (k === 'freeGateVisitors' && hasPaidGate) {
             return (
               <label key={k} className="block">
                 <span className="text-[11px] font-semibold text-slate-600 flex items-center justify-between">

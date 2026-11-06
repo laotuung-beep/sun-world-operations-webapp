@@ -5,9 +5,9 @@ import { isMangId } from '../config';
 import {
   EMPTY_META,
   buildMatrix,
-  computeFreeGate,
   legacySheetsPayload,
   matrixTotal,
+  resolveFreeGate,
   type DayMeta,
   type Schedules,
 } from './compute';
@@ -211,10 +211,11 @@ export function useRealtimeDriveSync(date: string, actor: Reviewer) {
     if (!day || entries === null) return null;
     const matrix = buildMatrix(entries, (s) => isActive(s));
     const totalPassengers = matrixTotal(matrix).passengers;
-    const freeGateVisitors =
-      totalPassengers > 0
-        ? computeFreeGate(totalPassengers, day.meta.paidGateVisitors)
-        : day.meta.freeGateVisitors;
+    const freeGateVisitors = resolveFreeGate(
+      totalPassengers,
+      day.meta.paidGateVisitors,
+      day.meta.freeGateVisitors,
+    );
     return {
       date,
       matrix,

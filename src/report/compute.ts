@@ -39,6 +39,23 @@ export function computeFreeGate(coasterPassengers: number, paidGateVisitors: num
   return Math.max(0, Math.round((coasterPassengers || 0) - (paidGateVisitors || 0)));
 }
 
+/**
+ * Xác định số liệu Khách miễn phí hiển thị & đồng bộ:
+ * - Nếu đã có số liệu Khách tính phí (> 0): tính theo công thức Khách chơi máng - Khách tính phí.
+ * - Nếu Khách tính phí chưa nhập (= 0, như dữ liệu lịch sử 01/01/2026 - 07/09/2026 trên Google Drive):
+ *   giữ nguyên số liệu Khách miễn phí gốc từ Google Drive / Firestore.
+ */
+export function resolveFreeGate(
+  coasterPassengers: number,
+  paidGateVisitors: number,
+  storedFreeGateVisitors: number,
+): number {
+  if ((paidGateVisitors || 0) > 0 && (coasterPassengers || 0) > 0) {
+    return computeFreeGate(coasterPassengers, paidGateVisitors);
+  }
+  return Math.max(0, Math.round(storedFreeGateVisitors || 0));
+}
+
 export interface MangSchedule {
   openTime: string;
   closeTime: string;
