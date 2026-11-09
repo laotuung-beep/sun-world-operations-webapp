@@ -1,5 +1,5 @@
 import { MANGS, TIME_SLOTS, type LineId, type MangId, type SlotId } from '../config';
-import { ZERO_TOTALS, addTotals, countTotals, runMinutes, type Entry, type EntryStatus, type PauseRecord, type Totals } from '../entries/model';
+import { ZERO_TOTALS, addTotals, countTotals, runMinutes, sumPauseRecordsMinutes, type Entry, type EntryStatus, type PauseRecord, type Totals } from '../entries/model';
 import { DRIVE_FILE_ID, DRIVE_FILE_NAME, DRIVE_FOLDER_ID } from './driveWorkbook';
 
 export const ALL_LINES: readonly LineId[] = ['line1', 'line2', 'line3', 'line4', 'line5', 'line6'];
@@ -124,11 +124,14 @@ export interface ReportMetrics {
 export function reportMetrics(m: Matrix, meta: DayMeta, schedules: Schedules): ReportMetrics {
   const mangs = MANGS.map((x) => {
     const s = schedules[x.id];
+    const actualPaused = s?.pauseLogs !== undefined
+      ? sumPauseRecordsMinutes(s.pauseLogs, x.id)
+      : (s?.pausedMinutes ?? 0);
     return {
       mang: x.id,
       totals: matrixTotal(m, x.lines),
       schedule: s,
-      runMinutes: s ? runMinutes(s.openTime, s.closeTime, s.pausedMinutes) : null,
+      runMinutes: s ? runMinutes(s.openTime, s.closeTime, actualPaused) : null,
     };
   });
   const total = matrixTotal(m);
@@ -155,10 +158,13 @@ export function legacySheetsPayload(date: string, m: Matrix, meta: DayMeta, sche
   const metrics = reportMetrics(m, meta, schedules);
   const sched = (id: MangId) => {
     const s = schedules[id];
+    const actualPaused = s?.pauseLogs !== undefined
+      ? sumPauseRecordsMinutes(s.pauseLogs, id)
+      : (s?.pausedMinutes ?? 0);
     return {
       openTime: s?.openTime || '00:00',
       closeTime: s?.closeTime || '00:00',
-      pausedMinutes: s?.pausedMinutes ?? 0,
+      pausedMinutes: actualPaused,
       pauseLogs: s?.pauseLogs ?? [],
     };
   };

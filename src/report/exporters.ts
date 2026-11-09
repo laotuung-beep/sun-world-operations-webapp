@@ -2,7 +2,7 @@ import { LINE_LABEL, MANGS, TIME_SLOTS, mangById } from '../config';
 import { STATUS_LABEL, formatDuration, linesTotals, sortNewestFirst, type Entry } from '../entries/model';
 import { clockVN } from '../time';
 import { ALL_LINES, META_LABEL, sumLines, type DayMeta, type Matrix, type ReportMetrics, type Schedules } from './compute';
-import { DRIVE_FILE_NAME, upsertDayIntoExcelWorkbook } from './driveWorkbook';
+import { DRIVE_FILE_NAME, upsertDayIntoExcelWorkbook, type DaySyncPayload } from './driveWorkbook';
 
 function saveBlob(blob: Blob, filename: string) {
   const url = URL.createObjectURL(blob);
@@ -25,6 +25,7 @@ export async function exportExcel(opts: {
   schedules?: Schedules;
   entries: Entry[];
   closed: boolean;
+  allDaysPayloads?: DaySyncPayload[];
 }): Promise<void> {
   const { default: ExcelJS } = await import('exceljs');
   const wb = new ExcelJS.Workbook();
@@ -43,19 +44,26 @@ export async function exportExcel(opts: {
   }
 
   if (loadedMaster) {
-    const schedulesMap: Schedules = opts.schedules ?? {
-      1: opts.metrics.mangs[0]?.schedule,
-      2: opts.metrics.mangs[1]?.schedule,
-      3: opts.metrics.mangs[2]?.schedule,
-    };
-    upsertDayIntoExcelWorkbook(wb, {
-      date: opts.date,
-      matrix: opts.matrix,
-      totalPassengers: opts.metrics.total.passengers,
-      meta: opts.meta,
-      schedules: schedulesMap,
-      closed: opts.closed,
-    });
+    if (opts.allDaysPayloads && opts.allDaysPayloads.length > 0) {
+      const sorted = [...opts.allDaysPayloads].sort((a, b) => a.date.localeCompare(b.date));
+      for (const p of sorted) {
+        upsertDayIntoExcelWorkbook(wb, p);
+      }
+    } else {
+      const schedulesMap: Schedules = opts.schedules ?? {
+        1: opts.metrics.mangs[0]?.schedule,
+        2: opts.metrics.mangs[1]?.schedule,
+        3: opts.metrics.mangs[2]?.schedule,
+      };
+      upsertDayIntoExcelWorkbook(wb, {
+        date: opts.date,
+        matrix: opts.matrix,
+        totalPassengers: opts.metrics.total.passengers,
+        meta: opts.meta,
+        schedules: schedulesMap,
+        closed: opts.closed,
+      });
+    }
     const buf = await wb.xlsx.writeBuffer();
     saveBlob(
       new Blob([buf], { type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' }),

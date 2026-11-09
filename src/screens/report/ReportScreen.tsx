@@ -21,7 +21,7 @@ import { useActor, useAuth } from '../../auth/AuthProvider';
 import { canManageUsers, canReopenDay } from '../../auth/access';
 import { clockVN } from '../../time';
 import { useDayEntries, writeErrorMessage } from '../../entries/api';
-import { isActive, minutesToHHMM } from '../../entries/model';
+import { isActive, minutesToHHMM, sumPauseRecordsMinutes } from '../../entries/model';
 import {
   FREE_GATE_FORMULA_START_DATE,
   META_LABEL,
@@ -131,16 +131,28 @@ export function ReportScreen({
   const excel = () =>
     run('excel', async () => {
       const { exportExcel } = await import('../../report/exporters');
-      await exportExcel({ date, matrix, metrics, meta, schedules, entries: all, closed });
+      const { fetchAllEnteredDays } = await import('../../report/api');
+      const livePayload = {
+        date,
+        matrix,
+        totalPassengers: metrics.total.passengers,
+        meta,
+        schedules,
+        closed,
+      };
+      const allDays = await fetchAllEnteredDays(livePayload);
+      await exportExcel({
+        date,
+        matrix,
+        metrics,
+        meta,
+        schedules,
+        entries: all,
+        closed,
+        allDaysPayloads: allDays,
+      });
       void syncDayToGoogleDrive(
-        {
-          date,
-          matrix,
-          totalPassengers: metrics.total.passengers,
-          meta,
-          schedules,
-          closed,
-        },
+        livePayload,
         webhookUrl,
         actor,
       );
@@ -384,10 +396,17 @@ export function ReportScreen({
                   <div className="bg-white p-2.5 rounded-lg border border-[#E5E7EB] text-center">
                     <p className="text-[10px] text-[#6B7280] font-medium">Giờ chạy {m.short}</p>
                     <div className="mt-0.5 font-numeric font-bold tabular-nums text-[#20242B] text-sm">{hhmm(x.runMinutes)}</div>
-                    <p className="text-[9.5px] text-[#6B7280] tabular-nums">
-                      {x.schedule?.openTime ? `${x.schedule.openTime}–${x.schedule.closeTime || '…'}` : 'Chưa nhập'}
-                      {x.schedule?.pausedMinutes ? ` · dừng ${minutesToHHMM(x.schedule.pausedMinutes)}` : ''}
-                    </p>
+                    {(() => {
+                      const pausedVal = x.schedule?.pauseLogs !== undefined
+                        ? sumPauseRecordsMinutes(x.schedule.pauseLogs, x.mang)
+                        : (x.schedule?.pausedMinutes ?? 0);
+                      return (
+                        <p className="text-[9.5px] text-[#6B7280] tabular-nums">
+                          {x.schedule?.openTime ? `${x.schedule.openTime}–${x.schedule.closeTime || '…'}` : 'Chưa nhập'}
+                          {pausedVal > 0 ? ` · dừng ${minutesToHHMM(pausedVal)}` : ''}
+                        </p>
+                      );
+                    })()}
                   </div>
                 </div>
               );

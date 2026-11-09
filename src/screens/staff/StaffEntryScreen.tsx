@@ -105,8 +105,22 @@ export function StaffEntryScreen({
   }, [entries, existingLines, mang, targetKey]);
 
   const totals = linesTotals(lines);
-    const hasExisting = activeEntries.length > 0;
+  const hasExisting = activeEntries.length > 0;
   const canSave = (totals.rides > 0 || hasExisting) && canEdit;
+
+  const [saving, setSaving] = useState(false);
+  const savingRef = useRef(false);
+  const autoSaveTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  // Phát hiện trạng thái thay đổi chưa lưu (dirty state) so với dữ liệu hệ thống
+  const isDirty = useMemo(() => {
+    const baseline = existingLines ?? emptyLines(mang);
+    for (const l of m.lines) {
+      if ((lines[l]?.single ?? 0) !== (baseline[l]?.single ?? 0)) return true;
+      if ((lines[l]?.double ?? 0) !== (baseline[l]?.double ?? 0)) return true;
+    }
+    return false;
+  }, [existingLines, lines, m.lines, mang]);
 
   // Khung đang chọn luôn nằm trong tầm nhìn của thanh khung giờ.
   const slotBar = useRef<HTMLDivElement>(null);
@@ -122,18 +136,24 @@ export function StaffEntryScreen({
     setLines((prev) => ({ ...prev, [line]: { ...prev[line]!, [key]: value } }));
   }
 
-  async function save() {
-    if (!user) return;
+  async function save(options?: { silent?: boolean }) {
+    if (!user || savingRef.current) return;
     if (closed && !isSuperAdmin) {
-      toast.error('Ngày đã chốt báo cáo. Chỉ Super Admin mới có thể chỉnh sửa.');
+      if (!options?.silent) {
+        toast.error('Ngày đã chốt báo cáo. Chỉ Super Admin mới có thể chỉnh sửa.');
+      }
       return;
     }
     const err = validateLines(mang, lines);
     if (err && totals.rides > 0) {
-      toast.error(err);
+      if (!options?.silent) {
+        toast.error(err);
+      }
       return;
     }
-    const summary = `${m.short} ${slotById(slotId).label}`;
+    const summary = `${m.short} ${slotById(slotId).label.replace(' – ', ' - ')}`;
+    savingRef.current = true;
+    setSaving(true);
     try {
       const res = await saveOrUpdateSlotEntry({
         date,
@@ -145,18 +165,66 @@ export function StaffEntryScreen({
         email: user.email ?? '',
         activeEntries,
       });
-      if (res.action === 'cleared') {
-        toast.success(`Đã xoá số liệu khung ${summary}`);
-      } else if (res.action === 'updated') {
-        toast.success(`Đã cập nhật ${totals.rides} chuyến cho ${summary}`);
+      if (options?.silent) {
+        toast.success(`Đã tự động lưu số liệu khung ${summary}`, { id: 'slot-autosave' });
       } else {
-        toast.success(`Đã lưu phiếu ${summary}: ${totals.rides} chuyến`);
+        if (res.action === 'cleared') {
+          toast.success(`Đã xoá số liệu khung ${summary}`);
+        } else if (res.action === 'updated') {
+          toast.success(`Đã cập nhật ${totals.rides} chuyến cho ${summary}`);
+        } else {
+          toast.success(`Đã lưu phiếu ${summary}: ${totals.rides} chuyến`);
+        }
       }
       // Đồng bộ loadedKeyRef để tiếp tục giữ số vừa lưu
       loadedKeyRef.current = targetKey;
     } catch (e) {
       toast.error(`Không lưu được số liệu ${summary}: ${writeErrorMessage(e)}`);
+    } finally {
+      savingRef.current = false;
+      setSaving(false);
     }
+  }
+
+  // Tự động lưu sau 2 giây ngừng gõ khi có thay đổi chưa lưu
+  useEffect(() => {
+    if (!isDirty || !canSave || !user || !canEdit || savingRef.current) return;
+    const timer = setTimeout(() => {
+      save({ silent: true });
+    }, 2000);
+    return () => clearTimeout(timer);
+  }, [lines, isDirty, canSave, user, canEdit]);
+
+  // Dọn dẹp timer khi unmount
+  useEffect(() => {
+    return () => {
+      if (autoSaveTimerRef.current) clearTimeout(autoSaveTimerRef.current);
+    };
+  }, []);
+
+  function handleFieldBlur() {
+    if (isDirty && canSave && user && canEdit && !savingRef.current) {
+      save({ silent: true });
+    }
+  }
+
+  // Chuyển khung giờ an toàn: tự động lưu khung hiện tại nếu có thay đổi chưa lưu
+  async function handleSelectSlot(nextSlotId: SlotId) {
+    if (nextSlotId === slotId) return;
+    if (isDirty && canSave && user && canEdit) {
+      await save({ silent: true });
+    }
+    setChosen(nextSlotId);
+    onSelectSlotId?.(nextSlotId);
+  }
+
+  // Chuyển máng an toàn: tự động lưu khung hiện tại nếu có thay đổi chưa lưu
+  async function handleSwitchMang(nextMang: MangId) {
+    if (nextMang === mang) return;
+    if (isDirty && canSave && user && canEdit) {
+      await save({ silent: true });
+    }
+    onChangeMang(nextMang);
   }
 
   // Khách hôm nay của từng máng (phiếu còn hiệu lực) - hiện trên nút chọn máng.
@@ -205,16 +273,17 @@ export function StaffEntryScreen({
           </div>
           <button
             type="button"
-            onClick={save}
-            disabled={!canSave}
+            onClick={() => save()}
+            disabled={!canSave || saving}
             title="Lưu số liệu khung giờ vào hệ thống"
-            className="inline-flex items-center gap-1.5 font-bold active:scale-95 bg-emerald-600 hover:bg-emerald-700 text-white shadow-xs min-h-[30px] px-3 py-1 text-[11px] rounded-lg disabled:opacity-40 disabled:bg-slate-300 transition"
+            className="inline-flex items-center gap-1.5 font-bold active:scale-95 bg-emerald-600 hover:bg-emerald-700 text-white shadow-xs min-h-[36px] px-3.5 py-1.5 text-xs rounded-xl disabled:opacity-40 disabled:bg-slate-300 transition cursor-pointer"
           >
-            <Save className="w-3.5 h-3.5" /> Lưu phiếu
+            <Save className="w-3.5 h-3.5" />
+            <span>{saving ? 'Đang lưu...' : 'Lưu phiếu'}</span>
           </button>
         </div>
 
-        <div ref={slotBar} className="flex gap-1 overflow-x-auto pb-0.5 no-scrollbar scroll-smooth">
+        <div ref={slotBar} className="flex gap-1.5 overflow-x-auto pb-1 no-scrollbar scroll-smooth">
           {TIME_SLOTS.map((s) => {
             const active = s.id === slotId;
             return (
@@ -222,11 +291,8 @@ export function StaffEntryScreen({
                 key={s.id}
                 data-slot={s.id}
                 type="button"
-                onClick={() => {
-                  setChosen(s.id);
-                  onSelectSlotId?.(s.id);
-                }}
-                className={`flex-shrink-0 px-2.5 py-1.5 rounded-lg text-[11px] border transition-all active:scale-95 flex items-center gap-1 ${
+                onClick={() => handleSelectSlot(s.id)}
+                className={`flex-shrink-0 px-3 py-2 rounded-xl text-xs border transition-all active:scale-95 flex items-center gap-1.5 touch-manipulation min-h-[38px] ${
                   active
                     ? 'bg-slate-900 text-white border-slate-900 font-bold shadow-sm'
                     : 'bg-slate-50 text-slate-600 border-slate-200 hover:bg-slate-100 font-semibold'
@@ -250,7 +316,7 @@ export function StaffEntryScreen({
               <button
                 key={x.id}
                 type="button"
-                onClick={() => onChangeMang(x.id)}
+                onClick={() => handleSwitchMang(x.id)}
                 className={`relative min-h-[46px] py-1.5 px-1 rounded-lg text-center transition-all active:scale-95 ${active ? 'text-white font-bold' : 'text-slate-700 hover:bg-white/60'}`}
               >
                 {active && <div className={`absolute inset-0 bg-gradient-to-r ${MANG_UI[x.id].gradient} rounded-lg shadow-sm border border-gold`} />}
@@ -296,6 +362,7 @@ export function StaffEntryScreen({
                     lineLabel={LINE_LABEL[line]}
                     value={lines[line]?.[k] ?? 0}
                     onChange={(v) => setCount(line, k, v)}
+                    onBlur={handleFieldBlur}
                     plusClass={`${ui.solid} ${ui.solidHover}`}
                     ringClass={ui.ring}
                     disabled={!canEdit}
@@ -305,6 +372,23 @@ export function StaffEntryScreen({
             </div>
           );
         })}
+
+        {/* Nút Lưu chính to bản (Primary Action) ngay dưới 2 Line */}
+        <div className="pt-0.5">
+          <button
+            type="button"
+            onClick={() => save()}
+            disabled={!canSave || saving}
+            className="w-full h-12 rounded-xl bg-emerald-600 hover:bg-emerald-700 active:scale-[0.99] text-white font-bold text-sm shadow-sm flex items-center justify-center gap-2 transition disabled:opacity-40 disabled:bg-slate-300 cursor-pointer"
+          >
+            <Save className="w-4 h-4" />
+            <span>
+              {saving
+                ? 'Đang lưu số liệu...'
+                : `Lưu Khung ${slotById(slotId).label.replace(' – ', ' - ')} (${totals.rides} lượt · ${totals.passengers} khách)`}
+            </span>
+          </button>
+        </div>
 
         <ScheduleCard date={date} mang={mang} closed={!canEdit} />
       </div>

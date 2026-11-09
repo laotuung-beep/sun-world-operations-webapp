@@ -157,10 +157,6 @@ function ScheduleForm({ date, mang, closed, saved }: { date: string; mang: MangI
   const [open, setOpen] = useState(saved.openTime === '00:00' && !saved.closeTime ? '' : saved.openTime);
   const [close, setClose] = useState(saved.closeTime === '00:00' && !saved.openTime ? '' : saved.closeTime);
   const [pauseLogs, setPauseLogs] = useState<PauseRecord[]>(() => saved.pauseLogs ?? []);
-  const [paused, setPaused] = useState<number>(() => {
-    const logs = saved.pauseLogs ?? [];
-    return logs.length > 0 ? sumPauseRecordsMinutes(logs) : saved.pausedMinutes;
-  });
 
   const [saving, setSaving] = useState(false);
   const [showDailyLog, setShowDailyLog] = useState(false);
@@ -182,8 +178,7 @@ function ScheduleForm({ date, mang, closed, saved }: { date: string; mang: MangI
     setClose(saved.closeTime);
     const nextLogs = saved.pauseLogs ?? [];
     setPauseLogs(nextLogs);
-    setPaused(nextLogs.length > 0 ? sumPauseRecordsMinutes(nextLogs) : saved.pausedMinutes);
-  }, [saved.openTime, saved.closeTime, saved.pausedMinutes, saved.pauseLogs]);
+  }, [saved.openTime, saved.closeTime, saved.pauseLogs]);
 
   function persist(next: { openTime: string; closeTime: string; pausedMinutes: number; pauseLogs: PauseRecord[] }) {
     if (timer.current) clearTimeout(timer.current);
@@ -214,15 +209,16 @@ function ScheduleForm({ date, mang, closed, saved }: { date: string; mang: MangI
 
   function handleTimeChange(which: 'open' | 'close', rawValue: string) {
     const formatted = formatSmartTime24h(rawValue);
+    const currentPaused = sumPauseRecordsMinutes(pauseLogs, mang);
     if (which === 'open') {
       setOpen(formatted);
       if (formatted.length === 5) {
-        persist({ openTime: formatted, closeTime: close, pausedMinutes: paused, pauseLogs });
+        persist({ openTime: formatted, closeTime: close, pausedMinutes: currentPaused, pauseLogs });
       }
     } else {
       setClose(formatted);
       if (formatted.length === 5) {
-        persist({ openTime: open, closeTime: formatted, pausedMinutes: paused, pauseLogs });
+        persist({ openTime: open, closeTime: formatted, pausedMinutes: currentPaused, pauseLogs });
       }
     }
   }
@@ -237,7 +233,8 @@ function ScheduleForm({ date, mang, closed, saved }: { date: string; mang: MangI
     const nextOpen = which === 'open' ? v : open;
     const nextClose = which === 'close' ? v : close;
     which === 'open' ? setOpen(v) : setClose(v);
-    persist({ openTime: nextOpen, closeTime: nextClose, pausedMinutes: paused, pauseLogs });
+    const currentPaused = sumPauseRecordsMinutes(pauseLogs, mang);
+    persist({ openTime: nextOpen, closeTime: nextClose, pausedMinutes: currentPaused, pauseLogs });
   }
 
   function openPauseModal() {
@@ -336,9 +333,8 @@ function ScheduleForm({ date, mang, closed, saved }: { date: string; mang: MangI
       }
     }
 
-    const totalPausedMin = Math.min(720, sumPauseRecordsMinutes(nextLogs));
+    const totalPausedMin = Math.min(720, sumPauseRecordsMinutes(nextLogs, mang));
     setPauseLogs(nextLogs);
-    setPaused(totalPausedMin);
     setDrafts(EMPTY_DRAFTS);
     closePauseModal();
     toast.success(`Đã lưu & đồng bộ dừng vận hành (${minutesToHHMM(totalPausedMin)})`);
@@ -372,9 +368,8 @@ function ScheduleForm({ date, mang, closed, saved }: { date: string; mang: MangI
   async function handleDeleteDailyRecord(id: string) {
     if (closed) return;
     const nextLogs = pauseLogs.filter((r) => r.id !== id);
-    const totalPausedMin = Math.min(720, sumPauseRecordsMinutes(nextLogs));
+    const totalPausedMin = Math.min(720, sumPauseRecordsMinutes(nextLogs, mang));
     setPauseLogs(nextLogs);
-    setPaused(totalPausedMin);
     setConfirmDailyDeleteId(null);
     setSaving(true);
     try {
@@ -399,7 +394,7 @@ function ScheduleForm({ date, mang, closed, saved }: { date: string; mang: MangI
   }
 
   // Tính toán thời gian hiển thị chuẩn hệ 24h (HH:mm)
-  const totalPausedMinutes = pauseLogs.length > 0 ? sumPauseRecordsMinutes(pauseLogs) : paused;
+  const totalPausedMinutes = sumPauseRecordsMinutes(pauseLogs, mang);
   const pausedHHMM = minutesToHHMM(totalPausedMinutes);
   const run = runMinutes(normalizeHHMM(open) ?? '', normalizeHHMM(close) ?? '', totalPausedMinutes);
   const runHHMM = run === null ? '00:00' : minutesToHHMM(run);
@@ -414,20 +409,17 @@ function ScheduleForm({ date, mang, closed, saved }: { date: string; mang: MangI
       fog: { mangMinutes: 0, loggedMinutes: 0, count: 0 },
       rain: { mangMinutes: 0, loggedMinutes: 0, count: 0 },
     };
-    for (const r of pauseLogs) {
-      if (map[r.category]) {
-        map[r.category].loggedMinutes += r.durationMinutes;
-        if (countsTowardMangPause(r)) {
-          map[r.category].mangMinutes += r.durationMinutes;
-        }
-        map[r.category].count += 1;
-      }
+    for (const cat of PAUSE_CATEGORIES) {
+      const catLogs = pauseLogs.filter((r) => r.category === cat.id);
+      map[cat.id].count = catLogs.length;
+      map[cat.id].loggedMinutes = sumAllLoggedPauseMinutes(catLogs);
+      map[cat.id].mangMinutes = sumPauseRecordsMinutes(catLogs, mang);
     }
     return map;
-  }, [pauseLogs]);
+  }, [pauseLogs, mang]);
 
   // Tổng thời gian tạm tính trong Modal (tính cho cả Máng & tổng lịch sử đối chiếu)
-  const modalTotalMinutes = useMemo(() => sumPauseRecordsMinutes(modalLogs), [modalLogs]);
+  const modalTotalMinutes = useMemo(() => sumPauseRecordsMinutes(modalLogs, mang), [modalLogs, mang]);
   const modalLoggedMinutes = useMemo(() => sumAllLoggedPauseMinutes(modalLogs), [modalLogs]);
   const lineScopeOptions = useMemo(() => lineScopeOptionsForMang(mang), [mang]);
 
@@ -872,7 +864,7 @@ function ScheduleForm({ date, mang, closed, saved }: { date: string; mang: MangI
               const Icon = meta.icon;
               const isExpanded = expandedCat === cat.id;
               const catLogs = modalLogs.filter((r) => r.category === cat.id);
-              const catMinutes = sumPauseRecordsMinutes(catLogs);
+              const catMinutes = sumPauseRecordsMinutes(catLogs, mang);
               const catLoggedMinutes = sumAllLoggedPauseMinutes(catLogs);
               const catSingleLineMinutes = catLoggedMinutes - catMinutes;
               const catHHMM = minutesToHHMM(catMinutes);

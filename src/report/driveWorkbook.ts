@@ -93,6 +93,32 @@ function copyRowStyle(srcRow: ExcelJS.Row, dstRow: ExcelJS.Row, maxCol: number) 
   }
 }
 
+function isCoasterOperatingInSlot(
+  sch: ScheduleWithLogs | undefined,
+  slotId: string,
+): boolean {
+  if (!sch || !sch.openTime || !sch.closeTime) return false;
+  const slotDef = SLOTS_EXCEL.find((s) => s.id === slotId);
+  if (!slotDef) return false;
+  const m = slotDef.label.match(/^(\d{2}:\d{2})\s*-\s*(\d{2}:\d{2})/);
+  if (!m) return false;
+  const slotStart = m[1]!;
+  const slotEnd = m[2]!;
+
+  const toMin = (t: string) => {
+    const [h, min] = t.split(':').map(Number);
+    return (h ?? 0) * 60 + (min ?? 0);
+  };
+
+  const oMin = toMin(sch.openTime);
+  const cMin = toMin(sch.closeTime);
+  const sStartMin = toMin(slotStart);
+  const sEndMin = toMin(slotEnd);
+
+  if (cMin <= oMin) return false;
+  return oMin < sEndMin && cMin > sStartMin;
+}
+
 /**
  * Cập nhật hoặc chèn dữ liệu của một ngày vào đúng 3 Sheet chuẩn của file Bao_Cao_van_hanh_Mang_Truot.xlsx:
  * 1. MA TRẬN GIỜ
@@ -107,16 +133,25 @@ export function upsertDayIntoExcelWorkbook(wb: ExcelJS.Workbook, payload: DaySyn
   const wsMatrix = wb.getWorksheet('MA TRẬN GIỜ');
   if (wsMatrix) {
     let matrixStartRow = -1;
-    for (let r = 4; r <= wsMatrix.rowCount; r++) {
+    let insertStartRow = -1;
+    for (let r = 4; r <= wsMatrix.rowCount; r += 11) {
       const d = parseExcelDate(wsMatrix.getRow(r).getCell(1).value);
       if (d === date) {
         matrixStartRow = r;
         break;
       }
+      if (d !== null && d > date && insertStartRow === -1) {
+        insertStartRow = r;
+      }
     }
     if (matrixStartRow === -1) {
-      matrixStartRow = wsMatrix.rowCount + 1;
-      const prevStart = matrixStartRow - 11;
+      if (insertStartRow !== -1) {
+        wsMatrix.spliceRows(insertStartRow, 0, ...new Array(11).fill([]));
+        matrixStartRow = insertStartRow;
+      } else {
+        matrixStartRow = wsMatrix.rowCount + 1;
+      }
+      const prevStart = matrixStartRow > 14 ? matrixStartRow - 11 : 4;
       for (let i = 0; i < 11; i++) {
         const newRow = wsMatrix.getRow(matrixStartRow + i);
         if (prevStart >= 4) {
@@ -126,12 +161,12 @@ export function upsertDayIntoExcelWorkbook(wb: ExcelJS.Workbook, payload: DaySyn
     }
 
     const lineCols = [
-      { key: 'line1' as const, s: 3, d: 4, p: 5 },
-      { key: 'line2' as const, s: 6, d: 7, p: 8 },
-      { key: 'line3' as const, s: 9, d: 10, p: 11 },
-      { key: 'line4' as const, s: 12, d: 13, p: 14 },
-      { key: 'line5' as const, s: 15, d: 16, p: 17 },
-      { key: 'line6' as const, s: 18, d: 19, p: 20 },
+      { key: 'line1' as const, mang: 1 as const, s: 3, d: 4, p: 5 },
+      { key: 'line2' as const, mang: 1 as const, s: 6, d: 7, p: 8 },
+      { key: 'line3' as const, mang: 2 as const, s: 9, d: 10, p: 11 },
+      { key: 'line4' as const, mang: 2 as const, s: 12, d: 13, p: 14 },
+      { key: 'line5' as const, mang: 3 as const, s: 15, d: 16, p: 17 },
+      { key: 'line6' as const, mang: 3 as const, s: 18, d: 19, p: 20 },
     ];
 
     for (let i = 0; i < SLOTS_EXCEL.length; i++) {
@@ -147,12 +182,22 @@ export function upsertDayIntoExcelWorkbook(wb: ExcelJS.Workbook, payload: DaySyn
         const cellData = slotRow?.[lc.key] ?? { single: 0, double: 0, rides: 0, passengers: 0 };
         const sColLet = COL_LETTERS[lc.s]!;
         const dColLet = COL_LETTERS[lc.d]!;
+        const sch = (schedules as SchedulesWithLogs)[lc.mang];
+        const isOperating = isCoasterOperatingInSlot(sch, slot.id);
+
         if (cellData.rides > 0) {
           row.getCell(lc.s).value = cellData.single;
           row.getCell(lc.d).value = cellData.double;
           row.getCell(lc.p).value = {
             formula: `IF(COUNT(${sColLet}${r}:${dColLet}${r})>0, ${sColLet}${r}+${dColLet}${r}*2, "")`,
             result: cellData.passengers,
+          };
+        } else if (isOperating) {
+          row.getCell(lc.s).value = 0;
+          row.getCell(lc.d).value = 0;
+          row.getCell(lc.p).value = {
+            formula: `IF(COUNT(${sColLet}${r}:${dColLet}${r})>0, ${sColLet}${r}+${dColLet}${r}*2, "")`,
+            result: 0,
           };
         } else {
           row.getCell(lc.s).value = null;
@@ -199,6 +244,7 @@ export function upsertDayIntoExcelWorkbook(wb: ExcelJS.Workbook, payload: DaySyn
   if (wsSummary) {
     let summaryRowIdx = -1;
     let totalRowIdx = wsSummary.rowCount;
+    let insertIdx = -1;
     for (let r = 3; r <= wsSummary.rowCount; r++) {
       const v1 = wsSummary.getRow(r).getCell(1).value;
       if (String(v1 ?? '').trim() === 'Tổng cộng') {
@@ -210,11 +256,15 @@ export function upsertDayIntoExcelWorkbook(wb: ExcelJS.Workbook, payload: DaySyn
         summaryRowIdx = r;
         break;
       }
+      if (d !== null && d > date && insertIdx === -1) {
+        insertIdx = r;
+      }
     }
 
     if (summaryRowIdx === -1) {
-      wsSummary.spliceRows(totalRowIdx, 0, []);
-      summaryRowIdx = totalRowIdx;
+      const targetIdx = insertIdx !== -1 ? insertIdx : totalRowIdx;
+      wsSummary.spliceRows(targetIdx, 0, []);
+      summaryRowIdx = targetIdx;
       totalRowIdx++;
       if (summaryRowIdx > 3) {
         copyRowStyle(wsSummary.getRow(summaryRowIdx - 1), wsSummary.getRow(summaryRowIdx), 11);
@@ -247,19 +297,73 @@ export function upsertDayIntoExcelWorkbook(wb: ExcelJS.Workbook, payload: DaySyn
       sRow.getCell(6).value = meta.freeGateVisitors > 0 ? meta.freeGateVisitors : null;
     }
     sRow.getCell(7).value = meta.nightComboVisitors > 0 ? meta.nightComboVisitors : null;
+
+    // Doanh thu máng 1 (Cột 8), máng 2 (Cột 9), máng 3 (Cột 10) & Tổng doanh thu (Cột 11)
+    let p1 = 0;
+    let p2 = 0;
+    let p3 = 0;
+    for (const slot of SLOTS_EXCEL) {
+      const sr = matrix[slot.id];
+      if (sr) {
+        p1 += (sr.line1?.passengers ?? 0) + (sr.line2?.passengers ?? 0);
+        p2 += (sr.line3?.passengers ?? 0) + (sr.line4?.passengers ?? 0);
+        p3 += (sr.line5?.passengers ?? 0) + (sr.line6?.passengers ?? 0);
+      }
+    }
+    const pSum = p1 + p2 + p3 > 0 ? p1 + p2 + p3 : totalPassengers;
+
     if (meta.counterRevenue > 0) {
+      if (pSum > 0) {
+        const rev1 = Math.round((meta.counterRevenue * p1) / pSum);
+        const rev2 = Math.round((meta.counterRevenue * p2) / pSum);
+        const rev3 = Math.max(0, meta.counterRevenue - rev1 - rev2);
+        sRow.getCell(8).value = p1 > 0 ? rev1 : 0;
+        sRow.getCell(9).value = p2 > 0 ? rev2 : 0;
+        sRow.getCell(10).value = p3 > 0 ? rev3 : 0;
+      } else {
+        sRow.getCell(8).value = 0;
+        sRow.getCell(9).value = 0;
+        sRow.getCell(10).value = 0;
+      }
       sRow.getCell(11).value = meta.counterRevenue;
+    } else {
+      sRow.getCell(8).value = null;
+      sRow.getCell(9).value = null;
+      sRow.getCell(10).value = null;
+      sRow.getCell(11).value = null;
     }
 
     const lastDataRow = totalRowIdx - 1;
     const totRow = wsSummary.getRow(totalRowIdx);
     totRow.getCell(1).value = 'Tổng cộng';
-    totRow.getCell(2).value = { formula: `SUM(B3:B${lastDataRow})` };
-    totRow.getCell(3).value = { formula: `SUM(C3:C${lastDataRow})` };
-    totRow.getCell(4).value = { formula: `IF(C${totalRowIdx}>0, B${totalRowIdx}/C${totalRowIdx}, 0)` };
+
+    const calcSum = (col: number) => {
+      let sum = 0;
+      for (let r = 3; r <= lastDataRow; r++) {
+        const v = wsSummary.getRow(r).getCell(col).value;
+        const val =
+          typeof v === 'number'
+            ? v
+            : v && typeof v === 'object' && 'result' in v && typeof v.result === 'number'
+              ? v.result
+              : 0;
+        sum += val;
+      }
+      return sum;
+    };
+
+    const sumB = calcSum(2);
+    const sumC = calcSum(3);
+
+    totRow.getCell(2).value = { formula: `SUM(B3:B${lastDataRow})`, result: sumB };
+    totRow.getCell(3).value = { formula: `SUM(C3:C${lastDataRow})`, result: sumC };
+    totRow.getCell(4).value = {
+      formula: `IF(C${totalRowIdx}>0, B${totalRowIdx}/C${totalRowIdx}, 0)`,
+      result: sumC > 0 ? sumB / sumC : 0,
+    };
     for (let c = 5; c <= 11; c++) {
       const cl = COL_LETTERS[c]!;
-      totRow.getCell(c).value = { formula: `SUM(${cl}3:${cl}${lastDataRow})` };
+      totRow.getCell(c).value = { formula: `SUM(${cl}3:${cl}${lastDataRow})`, result: calcSum(c) };
     }
   }
 
@@ -267,15 +371,19 @@ export function upsertDayIntoExcelWorkbook(wb: ExcelJS.Workbook, payload: DaySyn
   const wsSched = wb.getWorksheet('Thời gian vận hành');
   if (wsSched) {
     let schedRowIdx = -1;
+    let lastDateRow = 4;
     for (let r = 5; r <= wsSched.rowCount; r++) {
       const d = parseExcelDate(wsSched.getRow(r).getCell(1).value);
       if (d === date) {
         schedRowIdx = r;
         break;
       }
+      if (d !== null) {
+        lastDateRow = r;
+      }
     }
     if (schedRowIdx === -1) {
-      schedRowIdx = wsSched.rowCount + 1;
+      schedRowIdx = lastDateRow + 1;
       if (schedRowIdx > 5) {
         copyRowStyle(wsSched.getRow(schedRowIdx - 1), wsSched.getRow(schedRowIdx), 40);
       }

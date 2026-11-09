@@ -2,6 +2,7 @@ import { describe, expect, it } from 'vitest';
 import {
   PAUSE_CATEGORIES,
   calcPauseDurationMinutes,
+  calculateCoasterDowntime,
   categoryHasLineScope,
   countTotals,
   countsTowardMangPause,
@@ -22,10 +23,11 @@ import {
   totalsBySlot,
   validateLines,
   type Entry,
+  type PauseRecord,
 } from './model';
 import { hhmmToMinutes, isMondayVN, mondayExportRemindKey } from '../time';
 import { DRIVE_FILE_ID, DRIVE_FILE_NAME, DRIVE_FOLDER_ID } from '../report/driveWorkbook';
-import { EMPTY_META, emptyMatrix, legacySheetsPayload } from '../report/compute';
+import { EMPTY_META, emptyMatrix, legacySheetsPayload, reportMetrics } from '../report/compute';
 
 const at = (hhmm: string) => hhmmToMinutes(hhmm);
 
@@ -225,5 +227,199 @@ describe('Google Drive single-folder binding & Monday Admin export notification'
     expect(isMondayVN(new Date('2026-11-02T09:00:00+07:00'))).toBe(true);
     expect(isMondayVN(new Date('2026-11-06T09:00:00+07:00'))).toBe(false);
     expect(mondayExportRemindKey('2026-11-02')).toBe('mt_monday_export_done:2026-11-02');
+  });
+});
+
+describe('calculateCoasterDowntime & downtime interval engine (R2)', () => {
+  it('07/11/2026 empty pause logs -> strictly 00:00 downtime and 10:30 net operating hours', () => {
+    const emptyLogs: PauseRecord[] = [];
+    const result = calculateCoasterDowntime(3, emptyLogs);
+    expect(result).toEqual({
+      coasterDowntimeMinutes: 0,
+      lineOverlapMinutes: 0,
+      generalDowntimeMinutes: 0,
+      line1Minutes: 0,
+      line2Minutes: 0,
+      totalLoggedMinutes: 0,
+    });
+    expect(sumPauseRecordsMinutes(emptyLogs, 3)).toBe(0);
+    expect(sumPauseRecordsMinutes(emptyLogs)).toBe(0);
+    expect(minutesToHHMM(sumPauseRecordsMinutes(emptyLogs, 3))).toBe('00:00');
+
+    // 08:30 to 19:00 with 0 downtime = 10h30m (630 min)
+    const run = runMinutes('08:30', '19:00', sumPauseRecordsMinutes(emptyLogs, 3));
+    expect(run).toBe(630);
+    expect(minutesToHHMM(run)).toBe('10:30');
+  });
+
+  it('single line maintenance (Line 1 or Line 2) -> 0 min coaster pause and full operating hours', () => {
+    // Mang 3 has lines line5 (Line 1) and line6 (Line 2)
+    const logsLine5Only: PauseRecord[] = [
+      { id: 'p1', category: 'maintenance', lineScope: 'line5', startTime: '09:00', endTime: '09:45', durationMinutes: 45, note: 'Bảo dưỡng Line 5' },
+    ];
+    const resLine5 = calculateCoasterDowntime(3, logsLine5Only);
+    expect(resLine5.coasterDowntimeMinutes).toBe(0);
+    expect(resLine5.lineOverlapMinutes).toBe(0);
+    expect(resLine5.line1Minutes).toBe(45);
+    expect(resLine5.line2Minutes).toBe(0);
+    expect(resLine5.totalLoggedMinutes).toBe(45);
+    expect(sumPauseRecordsMinutes(logsLine5Only, 3)).toBe(0);
+
+    const logsLine6Only: PauseRecord[] = [
+      { id: 'p2', category: 'technical', lineScope: 'line6', startTime: '10:00', endTime: '10:30', durationMinutes: 30, note: 'Sửa lỗi ray Line 6' },
+    ];
+    const resLine6 = calculateCoasterDowntime(3, logsLine6Only);
+    expect(resLine6.coasterDowntimeMinutes).toBe(0);
+    expect(resLine6.lineOverlapMinutes).toBe(0);
+    expect(resLine6.line1Minutes).toBe(0);
+    expect(resLine6.line2Minutes).toBe(30);
+    expect(resLine6.totalLoggedMinutes).toBe(30);
+    expect(sumPauseRecordsMinutes(logsLine6Only, 3)).toBe(0);
+
+    // Run hours unaffected (08:30 to 18:30 = 600m)
+    expect(runMinutes('08:30', '18:30', sumPauseRecordsMinutes(logsLine5Only, 3))).toBe(600);
+  });
+
+  it('Line 1 & Line 2 partial overlap -> exact intersection duration deducted', () => {
+    // Line 1 (line1) stops 09:00 - 10:00 (60m), Line 2 (line2) stops 09:30 - 10:30 (60m)
+    // Overlap: 09:30 - 10:00 (30m)
+    const records: PauseRecord[] = [
+      { id: 'm1', category: 'maintenance', lineScope: 'line1', startTime: '09:00', endTime: '10:00', durationMinutes: 60, note: '' },
+      { id: 't1', category: 'technical', lineScope: 'line2', startTime: '09:30', endTime: '10:30', durationMinutes: 60, note: '' },
+    ];
+    const res = calculateCoasterDowntime(1, records);
+    expect(res.line1Minutes).toBe(60);
+    expect(res.line2Minutes).toBe(60);
+    expect(res.lineOverlapMinutes).toBe(30);
+    expect(res.generalDowntimeMinutes).toBe(0);
+    expect(res.coasterDowntimeMinutes).toBe(30);
+    expect(res.totalLoggedMinutes).toBe(120);
+    expect(sumPauseRecordsMinutes(records, 1)).toBe(30);
+
+    // 08:30 - 18:30 (600m) - 30m = 570m (09:30)
+    expect(runMinutes('08:30', '18:30', sumPauseRecordsMinutes(records, 1))).toBe(570);
+  });
+
+  it('Line 1 & Line 2 exact overlap (both) -> exact duration deducted', () => {
+    const records: PauseRecord[] = [
+      { id: 'b1', category: 'technical', lineScope: 'both', startTime: '10:00', endTime: '10:40', durationMinutes: 40, note: '' },
+    ];
+    const res = calculateCoasterDowntime(1, records);
+    expect(res.line1Minutes).toBe(40);
+    expect(res.line2Minutes).toBe(40);
+    expect(res.lineOverlapMinutes).toBe(40);
+    expect(res.coasterDowntimeMinutes).toBe(40);
+    expect(res.totalLoggedMinutes).toBe(40);
+    expect(sumPauseRecordsMinutes(records, 1)).toBe(40);
+  });
+
+  it('weather and customer general stops -> full duration deducted directly', () => {
+    const records: PauseRecord[] = [
+      { id: 'r1', category: 'rain', startTime: '14:00', endTime: '15:15', durationMinutes: 75, note: 'Mưa lớn' },
+      { id: 'c1', category: 'customer', startTime: '16:00', endTime: '16:20', durationMinutes: 20, note: 'Khách ngất' },
+    ];
+    const res = calculateCoasterDowntime(2, records);
+    expect(res.generalDowntimeMinutes).toBe(95);
+    expect(res.coasterDowntimeMinutes).toBe(95);
+    expect(res.lineOverlapMinutes).toBe(0);
+    expect(res.totalLoggedMinutes).toBe(95);
+    expect(sumPauseRecordsMinutes(records, 2)).toBe(95);
+  });
+
+  it('overlapping weather and maintenance -> guaranteed no double-counting', () => {
+    // Rain 14:00 - 15:00 (60m)
+    // Maintenance on Line 1 14:15 - 14:45 (30m)
+    const records1: PauseRecord[] = [
+      { id: 'r', category: 'rain', startTime: '14:00', endTime: '15:00', durationMinutes: 60, note: '' },
+      { id: 'm', category: 'maintenance', lineScope: 'line5', startTime: '14:15', endTime: '14:45', durationMinutes: 30, note: '' },
+    ];
+    const res1 = calculateCoasterDowntime(3, records1);
+    expect(res1.generalDowntimeMinutes).toBe(60);
+    expect(res1.line1Minutes).toBe(30);
+    expect(res1.line2Minutes).toBe(0);
+    expect(res1.coasterDowntimeMinutes).toBe(60); // strictly 60, not 90
+    expect(res1.totalLoggedMinutes).toBe(90);
+
+    // Rain 14:00 - 15:00 (60m) AND both lines stopped 14:15 - 14:45 (30m)
+    const records2: PauseRecord[] = [
+      { id: 'r2', category: 'rain', startTime: '14:00', endTime: '15:00', durationMinutes: 60, note: '' },
+      { id: 'b2', category: 'technical', lineScope: 'both', startTime: '14:15', endTime: '14:45', durationMinutes: 30, note: '' },
+    ];
+    const res2 = calculateCoasterDowntime(3, records2);
+    expect(res2.generalDowntimeMinutes).toBe(60);
+    expect(res2.lineOverlapMinutes).toBe(30);
+    expect(res2.coasterDowntimeMinutes).toBe(60); // union is 60m, no double counting
+  });
+
+  it('multiple overlapping general weather tickets -> union duration without double-counting', () => {
+    // Rain 13:00 - 14:00 (60m) and Lightning 13:30 - 14:30 (60m)
+    // Combined span is 13:00 - 14:30 (90m), NOT 120m!
+    const records: PauseRecord[] = [
+      { id: 'r', category: 'rain', startTime: '13:00', endTime: '14:00', durationMinutes: 60, note: '' },
+      { id: 'l', category: 'lightning', startTime: '13:30', endTime: '14:30', durationMinutes: 60, note: '' },
+    ];
+    const res = calculateCoasterDowntime(1, records);
+    expect(res.generalDowntimeMinutes).toBe(90);
+    expect(res.coasterDowntimeMinutes).toBe(90);
+    expect(res.totalLoggedMinutes).toBe(120);
+    expect(sumPauseRecordsMinutes(records, 1)).toBe(90);
+  });
+
+  it('supports overloaded call signatures calculateCoasterDowntime(mang, records) and calculateCoasterDowntime(records, mang)', () => {
+    const records: PauseRecord[] = [
+      { id: 'x', category: 'fog', startTime: '08:00', endTime: '08:30', durationMinutes: 30, note: '' },
+    ];
+    const res1 = calculateCoasterDowntime(2, records);
+    const res2 = calculateCoasterDowntime(records, 2);
+    const res3 = calculateCoasterDowntime(records);
+    expect(res1.coasterDowntimeMinutes).toBe(30);
+    expect(res2.coasterDowntimeMinutes).toBe(30);
+    expect(res3.coasterDowntimeMinutes).toBe(30);
+  });
+
+  it('handles multiple Mang line mappings correctly (Mang 1: line1/line2, Mang 2: line3/line4, Mang 3: line5/line6)', () => {
+    const recM1: PauseRecord[] = [
+      { id: '1', category: 'maintenance', lineScope: 'line1', startTime: '09:00', endTime: '10:00', durationMinutes: 60, note: '' },
+      { id: '2', category: 'technical', lineScope: 'line2', startTime: '09:30', endTime: '10:30', durationMinutes: 60, note: '' },
+    ];
+    expect(calculateCoasterDowntime(1, recM1).lineOverlapMinutes).toBe(30);
+
+    const recM2: PauseRecord[] = [
+      { id: '3', category: 'maintenance', lineScope: 'line3', startTime: '09:00', endTime: '10:00', durationMinutes: 60, note: '' },
+      { id: '4', category: 'technical', lineScope: 'line4', startTime: '09:30', endTime: '10:30', durationMinutes: 60, note: '' },
+    ];
+    expect(calculateCoasterDowntime(2, recM2).lineOverlapMinutes).toBe(30);
+
+    const recM3: PauseRecord[] = [
+      { id: '5', category: 'maintenance', lineScope: 'line5', startTime: '09:00', endTime: '10:00', durationMinutes: 60, note: '' },
+      { id: '6', category: 'technical', lineScope: 'line6', startTime: '09:30', endTime: '10:30', durationMinutes: 60, note: '' },
+    ];
+    expect(calculateCoasterDowntime(3, recM3).lineOverlapMinutes).toBe(30);
+  });
+});
+
+describe('07/11/2026 bug fix verification (UI & Report consistency)', () => {
+  it('reportMetrics computes 10:30 operating hours when pauseLogs is empty even if legacy pausedMinutes is 50', () => {
+    const m = emptyMatrix();
+    // Simulating Firestore data for 07/11/2026 on Mang 3: open 08:30, close 19:00, pausedMinutes: 50, pauseLogs: []
+    const schedules = {
+      3: { openTime: '08:30', closeTime: '19:00', pausedMinutes: 50, pauseLogs: [] },
+    };
+    const metrics = reportMetrics(m, EMPTY_META, schedules);
+    const m3 = metrics.mangs.find((x) => x.mang === 3)!;
+    // With fix: actualPaused is 0 (from pauseLogs: []), runMinutes is 630 (10:30)
+    expect(m3.runMinutes).toBe(630);
+    expect(minutesToHHMM(m3.runMinutes)).toBe('10:30');
+  });
+
+  it('legacySheetsPayload exports 0 pausedMinutes when pauseLogs is empty even if legacy pausedMinutes is 50', () => {
+    const m = emptyMatrix();
+    const schedules = {
+      3: { openTime: '08:30', closeTime: '19:00', pausedMinutes: 50, pauseLogs: [] },
+    };
+    const payload = legacySheetsPayload('2026-11-07', m, EMPTY_META, schedules, false);
+    expect(payload.metrics.mang3Summary.pausedMinutes).toBe(0);
+    expect(payload.metrics.mang3Summary.operatingHours).toBe('10:30');
+    expect(payload.report.schedules.mang3.pausedMinutes).toBe(0);
   });
 });

@@ -287,15 +287,149 @@ export function calcPauseDurationMinutes(startTime: string, endTime: string): nu
   return eMin - sMin;
 }
 
+/** Kết quả phân tích thời gian dừng vận hành Alpine Coaster. */
+export interface CoasterDowntimeResult {
+  coasterDowntimeMinutes: number; // Phút dừng thực tế của toàn cụm Máng (trừ vào Giờ Chạy Máng)
+  lineOverlapMinutes: number;     // Phút dừng đồng thời giữa Line 1 và Line 2
+  generalDowntimeMinutes: number; // Phút dừng do nguyên nhân chung (Thời tiết, Khách hàng)
+  line1Minutes: number;           // Tổng phút dừng kỹ thuật/bảo trì của Line 1
+  line2Minutes: number;           // Tổng phút dừng kỹ thuật/bảo trì của Line 2
+  totalLoggedMinutes: number;     // Tổng phút của tất cả các phiếu
+}
+
+export type CoasterDowntimeBreakdown = CoasterDowntimeResult;
+
+function inferMangFromRecords(records: readonly PauseRecord[], mang?: MangId): MangId {
+  if (mang === 1 || mang === 2 || mang === 3) return mang;
+  for (const r of records) {
+    if (r.lineScope === 'line3' || r.lineScope === 'line4') return 2;
+    if (r.lineScope === 'line5' || r.lineScope === 'line6') return 3;
+    if (r.lineScope === 'line1' || r.lineScope === 'line2') return 1;
+  }
+  return 1;
+}
+
+/**
+ * Tính toán thời gian dừng vận hành theo mô hình toán học khoảng thời gian rời rạc (1.440 phút):
+ * - Bảo trì và Lỗi kỹ thuật của từng Line (Line 1, Line 2) chỉ tính riêng cho Line đó.
+ * - Chỉ khi CẢ 2 LINE CÙNG DỪNG (giao thoa thời gian) thì khoảng dừng đồng thời mới tính vào Máng.
+ * - Các nguyên nhân dừng chung (Thời tiết, Khách hàng) tính trực tiếp cho toàn bộ Máng.
+ * - Đảm bảo triệt tiêu trùng lặp (Anti double-counting) giữa các phiếu dừng chồng lấn.
+ */
+export function calculateCoasterDowntime(mang: MangId, records: readonly PauseRecord[]): CoasterDowntimeResult;
+export function calculateCoasterDowntime(records: readonly PauseRecord[], mang?: MangId): CoasterDowntimeResult;
+export function calculateCoasterDowntime(
+  arg1: MangId | readonly PauseRecord[],
+  arg2?: readonly PauseRecord[] | MangId,
+): CoasterDowntimeResult {
+  let mang: MangId | undefined;
+  let records: readonly PauseRecord[];
+
+  if (typeof arg1 === 'number') {
+    mang = arg1;
+    records = (arg2 as readonly PauseRecord[]) ?? [];
+  } else {
+    records = arg1 ?? [];
+    mang = typeof arg2 === 'number' ? arg2 : undefined;
+  }
+
+  if (!records || records.length === 0) {
+    return {
+      coasterDowntimeMinutes: 0,
+      lineOverlapMinutes: 0,
+      generalDowntimeMinutes: 0,
+      line1Minutes: 0,
+      line2Minutes: 0,
+      totalLoggedMinutes: 0,
+    };
+  }
+
+  const resolvedMang = inferMangFromRecords(records, mang);
+  const [l1, l2] = mangById(resolvedMang).lines;
+
+  const line1Bits = new Uint8Array(1440);
+  const line2Bits = new Uint8Array(1440);
+  const generalBits = new Uint8Array(1440);
+  const coasterBits = new Uint8Array(1440);
+
+  let totalLoggedMinutes = 0;
+
+  for (const r of records) {
+    let sMin = hhmmToMinutes(finalizeSmartTime24h(r.startTime) || r.startTime);
+    let eMin = hhmmToMinutes(finalizeSmartTime24h(r.endTime) || r.endTime);
+
+    if (eMin <= sMin && r.durationMinutes > 0) {
+      if (r.startTime) {
+        eMin = Math.min(1440, sMin + Math.round(Number(r.durationMinutes) || 0));
+      } else if (r.endTime) {
+        sMin = Math.max(0, eMin - Math.round(Number(r.durationMinutes) || 0));
+      }
+    }
+
+    const dur = eMin > sMin ? eMin - sMin : Math.max(0, Math.round(Number(r.durationMinutes) || 0));
+    totalLoggedMinutes += dur;
+
+    if (eMin <= sMin) continue;
+
+    const clampedStart = Math.max(0, Math.min(1439, sMin));
+    const clampedEnd = Math.max(0, Math.min(1440, eMin));
+
+    if (categoryHasLineScope(r.category)) {
+      const scope = r.lineScope || 'both';
+      if (scope === l1 || scope === 'both') {
+        for (let t = clampedStart; t < clampedEnd; t++) line1Bits[t] = 1;
+      }
+      if (scope === l2 || scope === 'both') {
+        for (let t = clampedStart; t < clampedEnd; t++) line2Bits[t] = 1;
+      }
+    } else {
+      for (let t = clampedStart; t < clampedEnd; t++) {
+        generalBits[t] = 1;
+        coasterBits[t] = 1;
+      }
+    }
+  }
+
+  let line1Minutes = 0;
+  let line2Minutes = 0;
+  let lineOverlapMinutes = 0;
+  let generalDowntimeMinutes = 0;
+
+  for (let t = 0; t < 1440; t++) {
+    if (line1Bits[t]) line1Minutes++;
+    if (line2Bits[t]) line2Minutes++;
+    if (line1Bits[t] && line2Bits[t]) {
+      lineOverlapMinutes++;
+      coasterBits[t] = 1;
+    }
+    if (generalBits[t]) {
+      generalDowntimeMinutes++;
+    }
+  }
+
+  let coasterDowntimeMinutes = 0;
+  for (let t = 0; t < 1440; t++) {
+    if (coasterBits[t]) coasterDowntimeMinutes++;
+  }
+
+  return {
+    coasterDowntimeMinutes,
+    lineOverlapMinutes,
+    generalDowntimeMinutes,
+    line1Minutes,
+    line2Minutes,
+    totalLoggedMinutes,
+  };
+}
+
 /**
  * Tính tổng số phút dừng TÍNH CHO CẢ MÁNG (dùng để trừ vào Giờ chạy Máng).
- * Nếu Bảo trì hoặc Lỗi kỹ thuật chỉ dừng 1 Line thì không tính vào tổng thời gian dừng của Máng.
+ * Nếu không có phiếu nào (`records` rỗng), trả về chính xác 0.
+ * Chỉ khi cả 2 Line cùng dừng đồng thời (overlap) hoặc có sự cố chung thì mới tính vào dừng Máng.
  */
-export function sumPauseRecordsMinutes(records: readonly PauseRecord[]): number {
-  return records.reduce((acc, r) => {
-    if (!countsTowardMangPause(r)) return acc;
-    return acc + Math.max(0, Math.round(Number(r.durationMinutes) || 0));
-  }, 0);
+export function sumPauseRecordsMinutes(records: readonly PauseRecord[], mang?: MangId): number {
+  if (!records || records.length === 0) return 0;
+  return calculateCoasterDowntime(records, mang).coasterDowntimeMinutes;
 }
 
 /**
