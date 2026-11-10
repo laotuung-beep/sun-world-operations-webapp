@@ -28,7 +28,7 @@ export interface Mang {
 export const MANGS: readonly Mang[] = [
   { id: 1, name: 'Alpine Coaster 1', short: 'AC 1', lines: ['line1', 'line2'], color: '#10B981', logo: '/logos/alpine-coaster-1.png', badge: '/assets/alpine_1_logo.png', dot: '#10B981' },
   { id: 2, name: 'Alpine Coaster 2', short: 'AC 2', lines: ['line3', 'line4'], color: '#0EA5E9', logo: '/logos/alpine-coaster-2.png', badge: '/assets/alpine_2_logo.png', dot: '#0EA5E9' },
-  { id: 3, name: 'Alpine Coaster 3', short: 'AC 3', lines: ['line5', 'line6'], color: '#EF4444', logo: '/logos/alpine-coaster-3.png', badge: '/assets/alpine_3_logo.png', dot: '#FFC928' },
+  { id: 3, name: 'Alpine Coaster 3', short: 'AC 3', lines: ['line5', 'line6'], color: '#EF4444', logo: '/logos/alpine-coaster-3.png', badge: '/assets/alpine_3_logo.png', dot: '#D71920' },
 ];
 
 export const LINE_LABEL: Record<LineId, string> = {

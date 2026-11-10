@@ -1,19 +1,11 @@
 import { useMemo, useRef, useState } from 'react';
 import {
   BellRing,
-  Copy,
   Download,
-  FileSpreadsheet,
   LoaderCircle,
   Lock,
   LockOpen,
-  Moon,
-  Mountain,
-  Pen,
-  Ticket,
   TriangleAlert,
-  UserCheck,
-  X,
 } from 'lucide-react';
 import { toast } from 'sonner';
 import { MANGS } from '../../config';
@@ -23,25 +15,37 @@ import { clockVN } from '../../time';
 import { useDayEntries, writeErrorMessage } from '../../entries/api';
 import { isActive, minutesToHHMM, sumPauseRecordsMinutes } from '../../entries/model';
 import {
-  FREE_GATE_FORMULA_START_DATE,
-  META_LABEL,
   buildMatrix,
   matrixTotal,
   reportMetrics,
   resolveFreeGate,
   type DayMeta,
 } from '../../report/compute';
-import { saveMeta, setDayClosed, syncDayToGoogleDrive, useDay, useSchedules, useSheetsWebhook } from '../../report/api';
+import {
+  saveMeta,
+  setDayClosed,
+  syncDayToGoogleDrive,
+  useDay,
+  useSchedules,
+  useSheetsWebhook,
+} from '../../report/api';
 import { DRIVE_FILE_NAME, DRIVE_FOLDER_URL } from '../../report/driveWorkbook';
-import { CoasterMark } from '../../components/brand';
+import { ReportHeaderCard } from './components/ReportHeaderCard';
+import { RevenueHeroCard } from './components/RevenueHeroCard';
+import { OperationalKpiCard } from './components/OperationalKpiCard';
+import { ReconciliationGrid } from './components/ReconciliationGrid';
+import { useGrowthRates } from './components/useGrowthRates';
 
 const fmt = new Intl.NumberFormat('vi-VN');
 const n = (v: number) => fmt.format(v);
-const hhmm = (min: number | null) => (min === null ? '00:00' : `${String(Math.floor(min / 60)).padStart(2, '0')}:${String(min % 60).padStart(2, '0')}`);
+const hhmm = (min: number | null) =>
+  min === null
+    ? '00:00'
+    : `${String(Math.floor(min / 60)).padStart(2, '0')}:${String(min % 60).padStart(2, '0')}`;
 
-const META_ICON = { cableCarVisitors: Mountain, paidGateVisitors: Ticket, freeGateVisitors: UserCheck, nightComboVisitors: Moon } as const;
-
-/** Tab "Báo Cáo Ca": giao diện như app cũ, chỉ tính phiếu đã duyệt. */
+/**
+ * Tab "Báo Cáo Ca": Executive Dashboard Vận Hành Máng Trượt (Alpine Coaster Sun World Ba Na Hills)
+ */
 export function ReportScreen({
   date,
   onGoMatrix,
@@ -61,30 +65,57 @@ export function ReportScreen({
   const { entries } = useDayEntries(date);
   const captureRef = useRef<HTMLDivElement>(null);
   const [busy, setBusy] = useState<'close' | 'excel' | 'image' | null>(null);
-  const [editMeta, setEditMeta] = useState(false);
 
   const isAdmin = access ? canManageUsers(access) : false;
   const all = entries ?? [];
   const matrix = useMemo(() => buildMatrix(all, (s) => isActive(s)), [all]);
   const rawMeta = day?.meta;
   const totalCoasterPassengers = useMemo(() => matrixTotal(matrix).passengers, [matrix]);
+
   const meta = useMemo<DayMeta | undefined>(() => {
     if (!rawMeta) return undefined;
     const freeGateVisitors = resolveFreeGate(
       totalCoasterPassengers,
       rawMeta.paidGateVisitors,
       rawMeta.freeGateVisitors,
-      date,
+      date
     );
     return {
       ...rawMeta,
       freeGateVisitors,
     };
   }, [rawMeta, totalCoasterPassengers, date]);
-  const metrics = useMemo(() => (meta ? reportMetrics(matrix, meta, schedules) : null), [matrix, meta, schedules]);
+
+  const metrics = useMemo(
+    () => (meta ? reportMetrics(matrix, meta, schedules) : null),
+    [matrix, meta, schedules]
+  );
   const pendingCount = 0;
   const closed = day?.closed ?? false;
   const [y, mo, d] = date.split('-');
+
+  const displayTotalPassengers =
+    (metrics?.total.passengers ?? 0) > 0
+      ? metrics!.total.passengers
+      : (meta?.paidGateVisitors ?? 0) + (meta?.freeGateVisitors ?? 0) > 0
+        ? meta!.paidGateVisitors + meta!.freeGateVisitors
+        : 0;
+
+  const displayConversionRate =
+    (meta?.cableCarVisitors ?? 0) > 0 ? (displayTotalPassengers / meta!.cableCarVisitors) * 100 : 0;
+
+  const { revenueGrowth, passengersGrowth, conversionGrowth } = useGrowthRates({
+    date,
+    currentRevenue: meta?.counterRevenue ?? 0,
+    currentPassengers: displayTotalPassengers,
+    currentConversionRate: displayConversionRate,
+  });
+
+  const activeLinesCount = useMemo(() => {
+    if (!metrics) return 3;
+    const active = metrics.mangs.filter((m) => m.totals.rides > 0 || (m.runMinutes ?? 0) > 0);
+    return active.length > 0 ? active.length : 3;
+  }, [metrics]);
 
   if (!day || !metrics || !meta || entries === null) {
     return (
@@ -110,7 +141,12 @@ export function ReportScreen({
     run('close', async () => {
       if (!closed) {
         const warn = pendingCount ? `\n\nCòn ${pendingCount} phiếu chờ duyệt sẽ KHÔNG được tính.` : '';
-        if (!window.confirm(`Chốt báo cáo ngày ${d}/${mo}/${y}? Sau khi chốt không gửi / duyệt thêm phiếu được.${warn}`)) return;
+        if (
+          !window.confirm(
+            `Chốt báo cáo ngày ${d}/${mo}/${y}? Sau khi chốt không gửi / duyệt thêm phiếu được.${warn}`
+          )
+        )
+          return;
         if (meta) {
           await saveMeta(date, meta, actor);
         }
@@ -151,34 +187,19 @@ export function ReportScreen({
         closed,
         allDaysPayloads: allDays,
       });
-      void syncDayToGoogleDrive(
-        livePayload,
-        webhookUrl,
-        actor,
-      );
+      void syncDayToGoogleDrive(livePayload, webhookUrl, actor);
       onMondayExportCompleted?.();
       toast.success(`Đã xuất dữ liệu (${DRIVE_FILE_NAME}) về máy.`);
     });
 
-  const btn =
-    'h-10 px-3 sm:px-3.5 rounded-lg font-semibold text-xs bg-white hover:bg-[#F5F6F8] active:scale-[0.98] border border-[#E5E7EB] text-[#20242B] flex items-center gap-1.5 transition-all shrink-0 disabled:opacity-50';
-
-  const displayTotalPassengers =
-    metrics.total.passengers > 0
-      ? metrics.total.passengers
-      : meta.paidGateVisitors + meta.freeGateVisitors > 0
-        ? meta.paidGateVisitors + meta.freeGateVisitors
-        : 0;
-
-  const displayConversionRate =
-    meta.cableCarVisitors > 0 ? (displayTotalPassengers / meta.cableCarVisitors) * 100 : 0;
-
   return (
-    <div className="max-w-4xl mx-auto space-y-3 pb-16">
+    <div className="max-w-4xl mx-auto space-y-3.5 pb-16">
+      {/* Alert banner Thứ 2 hàng tuần (Admin) */}
       {isAdmin && showMondayExportAlert && (
         <div
           data-no-print
-          className="rounded-xl border border-emerald-300 bg-emerald-50/95 px-3.5 py-2.5 flex flex-col sm:flex-row sm:items-center justify-between gap-2.5 shadow-2xs"
+          data-no-capture
+          className="rounded-2xl border border-emerald-300 bg-emerald-50/95 px-3.5 py-2.5 flex flex-col sm:flex-row sm:items-center justify-between gap-2.5 shadow-2xs"
         >
           <div className="flex items-start gap-2.5">
             <div className="w-8 h-8 rounded-lg bg-emerald-600 text-white flex items-center justify-center shrink-0 mt-0.5">
@@ -189,7 +210,7 @@ export function ReportScreen({
                 Thông báo Thứ 2 hàng tuần (Admin): Tải file báo cáo về máy
               </p>
               <p className="text-[11px] font-medium text-emerald-800 mt-0.5 leading-snug">
-                Nhấn nút <strong>Xuất dữ liệu</strong> để tải file <strong>{DRIVE_FILE_NAME}</strong> (đồng bộ từ Folder Web App VHMT) về máy lưu trữ định kỳ đầu tuần.
+                Nhấn nút <strong>Xuất Excel</strong> để tải file <strong>{DRIVE_FILE_NAME}</strong> (đồng bộ từ Folder Web App VHMT) về máy lưu trữ định kỳ đầu tuần.
               </p>
             </div>
           </div>
@@ -197,7 +218,7 @@ export function ReportScreen({
             type="button"
             onClick={excel}
             disabled={busy === 'excel'}
-            className="h-9 px-3.5 rounded-lg bg-emerald-700 hover:bg-emerald-800 text-white font-bold text-xs inline-flex items-center justify-center gap-1.5 shrink-0 active:scale-[0.98] transition shadow-2xs"
+            className="h-9 px-3.5 rounded-xl bg-emerald-700 hover:bg-emerald-800 text-white font-bold text-xs inline-flex items-center justify-center gap-1.5 shrink-0 active:scale-[0.98] transition shadow-2xs cursor-pointer"
           >
             {busy === 'excel' ? <LoaderCircle className="w-3.5 h-3.5 animate-spin" /> : <Download className="w-3.5 h-3.5" />}
             <span>Tải về máy ngay</span>
@@ -205,55 +226,38 @@ export function ReportScreen({
         </div>
       )}
 
-      <div data-no-print className="bg-white p-2.5 sm:p-3 rounded-xl border border-[#E5E7EB] flex items-center gap-2">
-        <button
-          type="button"
-          onClick={image}
-          disabled={busy === 'image'}
-          className="flex-1 min-w-0 h-10 px-3.5 rounded-lg font-bold text-xs sm:text-sm flex items-center justify-center gap-2 active:scale-[0.98] bg-brand hover:bg-brand-dark text-white border border-brand disabled:opacity-75"
-        >
-          {busy === 'image' ? <LoaderCircle className="w-4 h-4 animate-spin" /> : <Copy className="w-4 h-4 shrink-0" />}
-          <span className="truncate">Chép gửi Viber</span>
-        </button>
-        <button
-          type="button"
-          onClick={excel}
-          disabled={busy === 'excel'}
-          className={`${btn} ${
-            showMondayExportAlert ? 'ring-2 ring-emerald-500 border-emerald-500 bg-emerald-50/60 text-emerald-900' : ''
-          }`}
-          title="Xuất dữ liệu Bao_Cao_van_hanh_Mang_Truot.xlsx (Thông báo tải về máy cho Admin vào Thứ 2 hàng tuần)"
-        >
-          {busy === 'excel' ? <LoaderCircle className="w-3.5 h-3.5 animate-spin" /> : <FileSpreadsheet className="w-3.5 h-3.5 text-[#16A34A]" />}
-          <span className="hidden xs:inline">Xuất dữ liệu</span>
-          {showMondayExportAlert && <span className="w-2 h-2 rounded-full bg-emerald-600 animate-pulse" />}
-        </button>
-      </div>
-
-      <div data-no-print className="flex items-center justify-between gap-2 flex-wrap">
+      {/* Thanh tiện ích quản trị: Chốt ngày, Realtime Drive Sync status, Drive link */}
+      <div data-no-print data-no-capture className="flex items-center justify-between gap-2 flex-wrap px-1">
         <div className="flex items-center gap-2 flex-wrap">
           <button
             type="button"
             onClick={toggleClose}
             disabled={busy === 'close' || (closed && !canReopenDay(access!))}
-            className={`h-9 px-3 rounded-lg text-xs font-bold inline-flex items-center gap-1.5 active:scale-[0.98] disabled:opacity-50 ${
-              closed ? 'bg-white border border-[#E5E7EB] text-slate-700' : 'bg-slate-900 text-white hover:bg-black'
+            className={`h-9 px-3.5 rounded-xl text-xs font-bold inline-flex items-center gap-1.5 active:scale-[0.98] disabled:opacity-50 cursor-pointer shadow-2xs transition-all ${
+              closed ? 'bg-white border border-[#E5E7EB] text-slate-700 hover:bg-[#F5F6F8]' : 'bg-slate-900 text-white hover:bg-black'
             }`}
           >
-            {busy === 'close' ? <LoaderCircle className="w-3.5 h-3.5 animate-spin" /> : closed ? <LockOpen className="w-3.5 h-3.5" /> : <Lock className="w-3.5 h-3.5" />}
+            {busy === 'close' ? (
+              <LoaderCircle className="w-3.5 h-3.5 animate-spin" />
+            ) : closed ? (
+              <LockOpen className="w-3.5 h-3.5" />
+            ) : (
+              <Lock className="w-3.5 h-3.5" />
+            )}
             {closed ? 'Mở lại ngày' : 'Chốt ngày'}
           </button>
-          <p className="text-[11px] text-slate-500">
-            {closed ? `Đã chốt${day.closedByName ? ` bởi ${day.closedByName}` : ''}${day.closedAt ? ` lúc ${clockVN(day.closedAt)}` : ''}.` : 'Chưa chốt ngày.'}
-            {day.sheetsSyncedAt && ` Đã đồng bộ Drive lúc ${clockVN(day.sheetsSyncedAt)}.`}
-          </p>
+          {day.sheetsSyncedAt && (
+            <p className="text-[11px] text-slate-500 font-medium">
+              Đã đồng bộ Drive lúc {clockVN(day.sheetsSyncedAt)}.
+            </p>
+          )}
         </div>
         {isAdmin && (
           <a
             href={DRIVE_FOLDER_URL}
             target="_blank"
             rel="noopener noreferrer"
-            className="text-[11px] font-semibold text-emerald-700 hover:text-emerald-800 bg-emerald-50 border border-emerald-200 rounded-lg px-2.5 py-1 inline-flex items-center gap-1.5"
+            className="text-[11px] font-semibold text-emerald-700 hover:text-emerald-800 bg-emerald-50 border border-emerald-200 rounded-xl px-2.5 py-1.5 inline-flex items-center gap-1.5 shadow-2xs transition-colors"
             title="Chỉ lưu trữ duy nhất tại Folder Web App VHMT trên Google Drive"
           >
             <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse" />
@@ -265,128 +269,74 @@ export function ReportScreen({
       {pendingCount > 0 && (
         <button
           data-no-print
+          data-no-capture
           type="button"
           onClick={onGoMatrix}
-          className="w-full text-left flex items-center gap-2 rounded-xl bg-amber-50 border border-amber-200 text-amber-800 px-3 py-2.5 text-xs font-semibold"
+          className="w-full text-left flex items-center gap-2 rounded-xl bg-amber-50 border border-amber-200 text-amber-800 px-3 py-2.5 text-xs font-semibold cursor-pointer"
         >
           <TriangleAlert className="w-4 h-4 shrink-0" /> Còn {pendingCount} phiếu chờ duyệt, chưa tính vào báo cáo. Bấm để sang Ma Trận Giờ duyệt.
         </button>
       )}
 
-      {/* Khối được chụp gửi Viber */}
-      <div ref={captureRef} className="bg-white rounded-xl border border-[#E5E7EB] overflow-hidden">
-        <div className="px-4 py-3 sm:py-3.5 bg-white border-b border-[#E5E7EB] flex items-center justify-between">
-          <div className="flex items-center gap-2.5">
-            <div className="w-8 h-8 rounded-lg bg-brand text-white flex items-center justify-center shrink-0">
-              <CoasterMark className="w-5 h-5" />
-            </div>
-            <div>
-              <h2 className="text-xs sm:text-sm font-bold tracking-wide uppercase text-[#20242B] leading-tight">Báo cáo vận hành máng trượt</h2>
-              <p className="text-[11px] font-medium text-[#6B7280] mt-0.5">
-                Ngày {d}/{mo}/{y}
-              </p>
-            </div>
-          </div>
-        </div>
+      {/* Khối được chụp gửi Viber (Executive Report View) */}
+      <div ref={captureRef} className="space-y-3 sm:space-y-3.5">
+        {/* TẦNG 0: BÁO CÁO VẬN HÀNH HEADER CARD */}
+        <ReportHeaderCard
+          date={date}
+          onShareReport={image}
+          onExportExcel={excel}
+          busy={busy}
+          showMondayExportAlert={showMondayExportAlert}
+        />
 
-        <div className="p-3.5 sm:p-5 space-y-3.5">
-          <div className="bg-brand text-white rounded-xl py-4 px-4 sm:px-5 text-center">
-            <p className="text-xs sm:text-sm font-bold uppercase tracking-wider text-red-100">Khách chơi máng</p>
-            <div className="text-5xl sm:text-6xl font-bold tracking-tight font-numeric tabular-nums my-0.5 sm:my-1 leading-none">
-              {n(displayTotalPassengers)}
-            </div>
-            <div className="grid grid-cols-3 gap-1 sm:gap-2 max-w-md mx-auto mt-2.5 pt-2.5 border-t border-white/20">
-              {metrics.mangs.map((x) => {
-                const m = MANGS.find((y) => y.id === x.mang)!;
-                return (
-                  <div key={x.mang} className="bg-white/10 border border-white/20 py-1.5 px-0.5 rounded-lg text-center">
-                    <div className="flex items-center justify-center gap-1 text-[9px] sm:text-[10.5px] text-red-100 font-bold whitespace-nowrap leading-none">
-                      <span className="w-1.5 h-1.5 rounded-full shrink-0" style={{ backgroundColor: m.dot }} />
-                      <span>{m.name}</span>
-                    </div>
-                    <div className="text-xs sm:text-sm font-semibold font-numeric tabular-nums mt-1">{n(x.totals.passengers)}</div>
-                  </div>
-                );
-              })}
-            </div>
-          </div>
+        {/* TẦNG 1: DOANH THU PREMIER RED HERO CARD */}
+        <RevenueHeroCard revenue={meta.counterRevenue} growth={revenueGrowth} />
 
-          <div className="grid grid-cols-2 gap-2 sm:gap-3">
-            <div className="bg-white rounded-xl p-3 sm:p-4 border border-[#E5E7EB] flex flex-col justify-between min-h-[105px] sm:min-h-[125px]">
-              <span className="text-xs sm:text-sm font-bold uppercase tracking-wider text-[#6B7280]">Doanh thu (VNĐ)</span>
-              <div className="text-[17px] xs:text-xl sm:text-2xl font-bold font-numeric tabular-nums text-[#D97706] tracking-tight flex items-baseline gap-1 whitespace-nowrap overflow-hidden my-1">
-                <span>{n(meta.counterRevenue)}</span>
-              </div>
-              <div className="text-[10.5px] sm:text-[11px] text-[#16A34A] font-semibold flex items-center gap-1 truncate">✓ Doanh thu vé quầy</div>
-            </div>
-            <div className="bg-white rounded-xl p-3 sm:p-4 border border-[#E5E7EB] flex flex-col justify-between min-h-[105px] sm:min-h-[125px]">
-              <span className="text-xs sm:text-sm font-bold uppercase tracking-wider text-[#6B7280]">Tỷ lệ chơi / Cáp</span>
-              <div className="text-[17px] xs:text-xl sm:text-2xl font-bold font-numeric tabular-nums text-[#20242B] tracking-tight my-1">
-                {displayConversionRate.toFixed(1)}%
-              </div>
-              <div className="space-y-1">
-                <div className="w-full bg-[#F5F6F8] h-1.5 rounded-full overflow-hidden border border-[#E5E7EB]">
-                  <div className="h-full bg-brand rounded-full transition-all duration-500" style={{ width: `${Math.min(100, Math.max(0, displayConversionRate))}%` }} />
-                </div>
-                <div className="text-[10px] sm:text-[10.5px] font-medium tabular-nums text-[#6B7280]">
-                  {n(displayTotalPassengers)} / {n(meta.cableCarVisitors)} khách
-                </div>
-              </div>
-            </div>
-          </div>
+        {/* TẦNG 2: CHỈ SỐ VẬN HÀNH (KHÁCH CHƠI MÁNG & TỶ LỆ CHƠI / CÁP) */}
+        <OperationalKpiCard
+          passengers={displayTotalPassengers}
+          passengersGrowth={passengersGrowth}
+          activeLinesCount={activeLinesCount}
+          conversionRate={displayConversionRate}
+          conversionGrowth={conversionGrowth}
+          cableCarVisitors={meta.cableCarVisitors}
+        />
 
-          <div className="space-y-2 pt-1">
-            <div className="flex items-center justify-between gap-2 w-full">
-              <span className="text-xs font-extrabold tracking-wide text-slate-800 whitespace-nowrap">ĐỐI SOÁT CÁP TREO &amp; CỔNG</span>
-              {!closed && (
-                <button
-                  type="button"
-                  data-no-capture
-                  onClick={() => setEditMeta((v) => !v)}
-                  className="text-xs font-semibold px-2.5 sm:px-3 py-1 sm:py-1.5 rounded-xl whitespace-nowrap shrink-0 border border-[#E5E7EB] bg-white hover:bg-[#F5F6F8] text-[#20242B] inline-flex items-center gap-1.5 shadow-2xs"
-                >
-                  {editMeta ? <X className="w-3.5 h-3.5 text-[#6B7280]" /> : <Pen className="w-3.5 h-3.5 text-[#6B7280]" />}
-                  <span>{editMeta ? 'Đóng' : 'Chỉnh sửa số liệu'}</span>
-                </button>
-              )}
-            </div>
-            {editMeta && !closed ? (
-              <MetaForm date={date} meta={meta} totalPassengers={displayTotalPassengers} onDone={() => setEditMeta(false)} />
-            ) : (
-              <div className="grid grid-cols-2 md:grid-cols-4 gap-2.5 sm:gap-3">
-                {(Object.keys(META_ICON) as (keyof typeof META_ICON)[]).map((k) => {
-                  const Icon = META_ICON[k];
-                  return (
-                    <div key={k} className="bg-[#FAFAFA] border border-[#EAECEF] rounded-xl p-3 sm:p-3.5 flex flex-col justify-between">
-                      <div className="flex items-center justify-between text-xs mb-1.5">
-                        <span className="font-semibold text-[#6B7280]">{META_LABEL[k]}</span>
-                        <Icon className="w-4 h-4 text-[#6B7280] shrink-0" />
-                      </div>
-                      <div className="text-xl sm:text-2xl font-bold font-numeric tabular-nums text-[#20242B] leading-none mt-1">{n(meta[k])}</div>
-                    </div>
-                  );
-                })}
-              </div>
-            )}
-          </div>
-        </div>
+        {/* TẦNG 3: ĐỐI SOÁT CÁP TREO & CỔNG (LƯỚI 2X2) */}
+        <ReconciliationGrid
+          date={date}
+          meta={meta}
+          displayTotalPassengers={displayTotalPassengers}
+          closed={closed}
+        />
       </div>
 
-      <div className="space-y-2.5">
-        <h3 className="text-xs sm:text-sm font-bold text-[#20242B] tracking-wider uppercase">Vận hành máng trượt (6 line)</h3>
+      {/* Bảng chi tiết 6 line máng trượt (Bảo toàn không hồi quy) */}
+      <div className="space-y-2.5 pt-2">
+        <h3 className="text-xs sm:text-sm font-bold text-[#20242B] tracking-wider uppercase px-1">
+          Vận hành máng trượt (6 line)
+        </h3>
         <div className="grid grid-cols-1 lg:grid-cols-4 gap-2.5">
           <div className="lg:col-span-3 space-y-2">
             {metrics.mangs.map((x) => {
               const m = MANGS.find((y) => y.id === x.mang)!;
               return (
-                <div key={x.mang} className="grid grid-cols-3 gap-2 bg-[#F5F6F8] p-2 rounded-xl border border-[#E5E7EB]">
+                <div
+                  key={x.mang}
+                  className="grid grid-cols-3 gap-2 bg-[#F5F6F8] p-2 rounded-xl border border-[#E5E7EB]"
+                >
                   <div className="bg-white p-2.5 rounded-lg border border-[#E5E7EB] text-center flex flex-col items-center justify-center">
                     <img src={m.badge} alt={m.name} className="h-6 object-contain mb-1" />
-                    <div className="font-numeric font-bold tabular-nums text-[#20242B] text-sm">{n(x.totals.rides)} xe</div>
+                    <div className="font-numeric font-bold tabular-nums text-[#20242B] text-sm">
+                      {n(x.totals.rides)} xe
+                    </div>
                   </div>
                   <div className="bg-white p-2.5 rounded-lg border border-[#E5E7EB] text-center">
                     <p className="text-[10px] text-[#6B7280] font-medium">Khách {m.short}</p>
-                    <div className="mt-0.5 font-numeric font-bold tabular-nums text-sm" style={{ color: m.id === 3 ? '#D71920' : m.color }}>
+                    <div
+                      className="mt-0.5 font-numeric font-bold tabular-nums text-sm"
+                      style={{ color: m.id === 3 ? '#D71920' : m.color }}
+                    >
                       {n(x.totals.passengers)}
                     </div>
                     <p className="text-[9.5px] text-[#6B7280] tabular-nums">
@@ -395,14 +345,19 @@ export function ReportScreen({
                   </div>
                   <div className="bg-white p-2.5 rounded-lg border border-[#E5E7EB] text-center">
                     <p className="text-[10px] text-[#6B7280] font-medium">Giờ chạy {m.short}</p>
-                    <div className="mt-0.5 font-numeric font-bold tabular-nums text-[#20242B] text-sm">{hhmm(x.runMinutes)}</div>
+                    <div className="mt-0.5 font-numeric font-bold tabular-nums text-[#20242B] text-sm">
+                      {hhmm(x.runMinutes)}
+                    </div>
                     {(() => {
-                      const pausedVal = x.schedule?.pauseLogs !== undefined
-                        ? sumPauseRecordsMinutes(x.schedule.pauseLogs, x.mang)
-                        : (x.schedule?.pausedMinutes ?? 0);
+                      const pausedVal =
+                        x.schedule?.pauseLogs !== undefined
+                          ? sumPauseRecordsMinutes(x.schedule.pauseLogs, x.mang)
+                          : (x.schedule?.pausedMinutes ?? 0);
                       return (
                         <p className="text-[9.5px] text-[#6B7280] tabular-nums">
-                          {x.schedule?.openTime ? `${x.schedule.openTime}–${x.schedule.closeTime || '…'}` : 'Chưa nhập'}
+                          {x.schedule?.openTime
+                            ? `${x.schedule.openTime}–${x.schedule.closeTime || '…'}`
+                            : 'Chưa nhập'}
                           {pausedVal > 0 ? ` · dừng ${minutesToHHMM(pausedVal)}` : ''}
                         </p>
                       );
@@ -414,104 +369,13 @@ export function ReportScreen({
           </div>
           <div className="lg:col-span-1 bg-white p-4 rounded-xl border border-[#E5E7EB] flex flex-col items-center justify-center text-center">
             <span className="text-xs font-semibold text-[#6B7280]">TB chuyến giờ cao điểm:</span>
-            <div className="mt-1 font-extrabold tabular-nums text-2xl text-[#20242B]">{n(metrics.peakAvgRides)}</div>
+            <div className="mt-1 font-extrabold tabular-nums text-2xl text-[#20242B]">
+              {n(metrics.peakAvgRides)}
+            </div>
             <span className="text-[10px] text-[#6B7280] mt-0.5">chuyến / giờ (11h-15h)</span>
           </div>
         </div>
       </div>
-    </div>
-  );
-}
-
-function MetaForm({
-  date,
-  meta,
-  totalPassengers,
-  onDone,
-}: {
-  date: string;
-  meta: DayMeta;
-  totalPassengers: number;
-  onDone: () => void;
-}) {
-  const actor = useActor();
-  const [draft, setDraft] = useState<DayMeta>(meta);
-  const [busy, setBusy] = useState(false);
-
-  const useFormulaFromFeb12 = date >= FREE_GATE_FORMULA_START_DATE;
-  const autoFreeGate = resolveFreeGate(
-    totalPassengers,
-    draft.paidGateVisitors,
-    draft.freeGateVisitors,
-    date,
-  );
-
-  async function save() {
-    setBusy(true);
-    try {
-      await saveMeta(date, { ...draft, freeGateVisitors: autoFreeGate }, actor);
-      toast.success('Đã lưu thông số đối soát.');
-      onDone();
-    } catch (e) {
-      toast.error(`Không lưu được: ${writeErrorMessage(e)}`);
-    } finally {
-      setBusy(false);
-    }
-  }
-
-  return (
-    <div data-no-capture className="bg-[#FAFAFA] border border-[#EAECEF] rounded-xl p-3 space-y-3">
-      <p className="text-xs font-bold text-slate-700">Cập nhật số liệu đối soát &amp; doanh thu:</p>
-      <div className="grid grid-cols-2 sm:grid-cols-3 gap-2.5">
-        {(Object.keys(META_LABEL) as (keyof DayMeta)[]).map((k) => {
-          if (k === 'freeGateVisitors' && useFormulaFromFeb12) {
-            return (
-              <label key={k} className="block">
-                <span className="text-[11px] font-semibold text-slate-600 flex items-center justify-between">
-                  <span>{META_LABEL[k]}:</span>
-                  <span className="text-[9.5px] font-bold text-emerald-600 bg-emerald-50 px-1.5 py-0.5 rounded border border-emerald-200">
-                    Tự động
-                  </span>
-                </span>
-                <input
-                  type="text"
-                  readOnly
-                  value={fmt.format(autoFreeGate)}
-                  className="mt-1 w-full rounded-lg border border-slate-200 bg-slate-100 px-2.5 py-1.5 font-bold tabular-nums text-slate-700 cursor-not-allowed outline-none select-none"
-                  title="Khách miễn phí = Khách chơi máng - Khách tính phí (áp dụng từ 12/02/2026)"
-                />
-                <span className="text-[10px] text-slate-400 mt-1 block leading-tight">
-                  = Khách chơi máng ({fmt.format(totalPassengers)}) − Khách tính phí ({fmt.format(draft.paidGateVisitors)})
-                </span>
-              </label>
-            );
-          }
-          return (
-            <label key={k} className="block">
-              <span className="text-[11px] font-semibold text-slate-600">{META_LABEL[k]}:</span>
-              <input
-                type="text"
-                inputMode="numeric"
-                value={draft[k] ? fmt.format(draft[k]) : ''}
-                placeholder="0"
-                onChange={(e) => {
-                  const digits = e.target.value.replace(/\D/g, '');
-                  setDraft((d) => ({ ...d, [k]: digits ? Math.min(Number(digits), 99_999_999_999) : 0 }));
-                }}
-                className="mt-1 w-full rounded-lg border border-slate-300 bg-white px-2.5 py-1.5 font-bold tabular-nums outline-none focus:border-slate-900"
-              />
-            </label>
-          );
-        })}
-      </div>
-      <button
-        type="button"
-        onClick={save}
-        disabled={busy}
-        className="inline-flex items-center gap-1.5 rounded-lg bg-slate-900 text-white px-3.5 py-2 text-xs font-bold disabled:opacity-50"
-      >
-        {busy && <LoaderCircle className="w-3.5 h-3.5 animate-spin" />} Lưu thông số
-      </button>
     </div>
   );
 }

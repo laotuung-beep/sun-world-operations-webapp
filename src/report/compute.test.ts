@@ -1,5 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import type { Entry } from '../entries/model';
+import { MANGS } from '../config';
 import { EMPTY_META, FREE_GATE_FORMULA_START_DATE, buildMatrix, computeFreeGate, legacySheetsPayload, lineTotal, matrixTotal, reportMetrics, resolveFreeGate } from './compute';
 
 function entry(p: Partial<Entry>): Entry {
@@ -93,6 +94,16 @@ describe('computeFreeGate & resolveFreeGate', () => {
     expect(resolveFreeGate(6012, 0, 0, '2026-01-01')).toBe(0);
     // 08/09/2026: Khách chơi máng = 5.867, Khách tính phí = 5.769 -> Khách miễn phí = 98
     expect(resolveFreeGate(5867, 5769, 98, '2026-09-08')).toBe(98);
+  });
+});
+
+describe('MANGS branding configuration', () => {
+  it('configures brand colors and indicator dots matching identity (AC3 is #D71920)', () => {
+    expect(MANGS).toHaveLength(3);
+    const [ac1, ac2, ac3] = MANGS;
+    expect(ac1.dot).toBe('#10B981');
+    expect(ac2.dot).toBe('#0EA5E9');
+    expect(ac3.dot).toBe('#D71920');
   });
 });
 
